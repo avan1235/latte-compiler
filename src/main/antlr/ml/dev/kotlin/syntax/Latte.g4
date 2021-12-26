@@ -44,7 +44,7 @@ item
     ;
 
 expr
-    : ('-'|'!') expr                      # EUnOp
+    : unOp expr                           # EUnOp
     | expr mulOp expr                     # EMulOp
     | expr addOp expr                     # EAddOp
     | expr relOp expr                     # ERelOp
@@ -60,23 +60,28 @@ expr
     ;
 
 addOp
-    : '+'
-    | '-'
+    : '+'                           # Plus
+    | '-'                           # Minus
     ;
 
 mulOp
-    : '*'
-    | '/'
-    | '%'
+    : '*'                           # Times
+    | '/'                           # Divide
+    | '%'                           # Mod
     ;
 
 relOp
-    : '<'
-    | '<='
-    | '>'
-    | '>='
-    | '=='
-    | '!='
+    : '<'                           # LT
+    | '<='                          # LE
+    | '>'                           # GT
+    | '>='                          # GE
+    | '=='                          # EQ
+    | '!='                          # NE
+    ;
+
+unOp
+    : '!'                          # Not
+    | '-'                          # Neg
     ;
 
 COMMENT : ('#' ~[\r\n]* | '//' ~[\r\n]*) -> channel(HIDDEN);
