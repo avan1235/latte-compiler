@@ -1,6 +1,7 @@
 package ml.dev.kotlin.latte.syntax
 
 sealed interface AstNode
+
 data class Program(val topDefs: List<TopDef>) : AstNode
 
 sealed interface Type : AstNode
@@ -48,4 +49,4 @@ data class BoolExpr(val value: Boolean) : Expr
 data class StringExpr(val node: String) : Expr
 data class FunCallExpr(val name: SpannedText, val args: List<Expr>) : Expr
 
-data class SpannedText(val text: String, val row: Int, val startIndex: Int, val stopIndex: Int)
+data class SpannedText(val text: String, val line: Int, val charPositionInLine: Int)
