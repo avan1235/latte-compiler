@@ -2,12 +2,12 @@ package ml.dev.kotlin.latte.quadruple
 
 import ml.dev.kotlin.latte.util.MutableDefaultMap
 
-data class SimpleBlock(
-  val label: CodeLabel,
+data class BasicBlock(
+  val label: Label,
   val instructions: List<Quadruple>,
 )
 
-class ControlFlowGraph(
-  private val adj: MutableDefaultMap<CodeLabel, MutableSet<CodeLabel>> = MutableDefaultMap({ hashSetOf() }),
-  private val byName: MutableMap<CodeLabel, SimpleBlock> = hashMapOf()
+data class ControlFlowGraph(
+  private val adj: MutableDefaultMap<Label, MutableSet<Label>> = MutableDefaultMap({ hashSetOf() }),
+  private val byName: MutableMap<Label, BasicBlock> = hashMapOf()
 )

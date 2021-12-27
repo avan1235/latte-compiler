@@ -13,7 +13,7 @@ private val STD_LIB_FUNCTIONS = HashSet<FunctionSignature>().apply {
 }
 
 infix fun String.mangled(args: List<Type>) =
-  if (this withArgs args in STD_LIB_FUNCTIONS) this else "$this${args.joinToString("@", "@", "@")}"
+  if (this withArgs args in STD_LIB_FUNCTIONS) this else "$this${args.joinToString("") { "@$it" }}"
 
 data class FunctionSignature(val name: String, val args: List<Type>)
 

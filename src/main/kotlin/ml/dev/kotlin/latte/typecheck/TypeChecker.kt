@@ -7,7 +7,7 @@ import ml.dev.kotlin.latte.util.TypeCheckException
 
 fun Program.typeCheck() = TypeChecker().typeCheck(this)
 
-internal data class TypeChecker(
+private data class TypeChecker(
   private val funEnv: MutableMap<String, Type> = stdLibFunctionTypes(),
   private val varEnv: StackTable<String, Type> = StackTable(),
   private var expectedReturnType: Type? = null,
@@ -21,6 +21,7 @@ internal data class TypeChecker(
     val name = topDef.ident mangled topDef.args.list.map { it.type }
     if (name in funEnv) topDef.err("Redefined function ${topDef.ident}")
     funEnv[name] = topDef.type
+    topDef.mangledName = name
   }
 
   private fun typeCheck(topDef: TopDef) = varEnv.level {
@@ -114,8 +115,10 @@ internal data class TypeChecker(
     }
     is BoolExpr -> BooleanType
     is FunCallExpr -> {
-      val name = expr.name mangled expr.args.map { typeOf(it) }
-      funEnv[name] ?: expr.err("Not defined function with name ${expr.name}")
+      val argsTypes = expr.args.map { typeOf(it) }
+      val name = expr.name mangled argsTypes
+      expr.mangledName = name
+      funEnv[name] ?: expr.err("Not defined function ${expr.name}$argsTypes")
     }
     is IdentExpr -> varEnv[expr.text] ?: expr.err("Not defined variable with name ${expr.text}")
     is IntExpr -> IntType

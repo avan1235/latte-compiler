@@ -1,6 +1,7 @@
 package ml.dev.kotlin.latte.syntax
 
 import ml.dev.kotlin.latte.util.Span
+import kotlin.properties.Delegates.notNull
 
 sealed interface AstNode {
   val span: Span?
@@ -14,7 +15,9 @@ data class TopDef(
   val args: Args,
   val block: Block,
   override val span: Span
-) : AstNode
+) : AstNode {
+  var mangledName by notNull<String>()
+}
 
 data class Args(val list: List<Arg>, override val span: Span?) : AstNode
 data class Arg(val type: Type, val ident: String)
@@ -48,8 +51,10 @@ sealed interface Expr : AstNode
 data class UnOpExpr(val op: UnOp, val expr: Expr, override val span: Span) : Expr
 data class BinOpExpr(val left: Expr, val opExpr: BinOp, val right: Expr, override val span: Span) : Expr
 data class IdentExpr(val text: String, override val span: Span) : Expr
-data class IntExpr(val node: String, override val span: Span) : Expr
+data class IntExpr(val value: String, override val span: Span) : Expr
 data class BoolExpr(val value: Boolean, override val span: Span) : Expr
 data class StringExpr(val value: String, override val span: Span) : Expr
-data class FunCallExpr(val name: String, val args: List<Expr>, override val span: Span) : Expr
+data class FunCallExpr(val name: String, val args: List<Expr>, override val span: Span) : Expr {
+  var mangledName by notNull<String>()
+}
 
