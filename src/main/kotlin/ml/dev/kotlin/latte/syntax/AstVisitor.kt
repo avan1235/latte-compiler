@@ -23,11 +23,21 @@ object AstVisitor : LatteBaseVisitor<AstNode>() {
   override fun visitVRet(ctx: LatteParser.VRetContext) = VRetStmt
   override fun visitSExp(ctx: LatteParser.SExpContext) = ExprStmt(ctx.expr().visit())
   override fun visitDecl(ctx: LatteParser.DeclContext) = DeclStmt(ctx.type_().visit(), ctx.item().map { visitItem(it) })
-  override fun visitCond(ctx: LatteParser.CondContext) = CondStmt(ctx.expr().visit(), ctx.stmt().visit())
-  override fun visitWhile(ctx: LatteParser.WhileContext) = WhileStmt(ctx.expr().visit(), ctx.stmt().visit())
+  override fun visitCond(ctx: LatteParser.CondContext) = when (val expr = ctx.expr().visit()) {
+    BoolExpr(false) -> EmptyStmt
+    else -> CondStmt(expr, ctx.stmt().visit())
+  }
 
-  override fun visitCondElse(ctx: LatteParser.CondElseContext) =
-    CondElseStmt(ctx.expr().visit(), ctx.stmt(0).visit(), ctx.stmt(1).visit())
+  override fun visitWhile(ctx: LatteParser.WhileContext) = when (val expr = ctx.expr().visit()) {
+    BoolExpr(false) -> EmptyStmt
+    else -> WhileStmt(expr, ctx.stmt().visit())
+  }
+
+  override fun visitCondElse(ctx: LatteParser.CondElseContext) = when (val expr = ctx.expr().visit()) {
+    BoolExpr(true) -> ctx.stmt(0).visit()
+    BoolExpr(false) -> ctx.stmt(1).visit()
+    else -> CondElseStmt(expr, ctx.stmt(0).visit(), ctx.stmt(1).visit())
+  }
 
   override fun visitItem(ctx: LatteParser.ItemContext) =
     ctx.expr()?.visit()?.let { InitItem(ctx.ID().visit(), it) } ?: NotInitItem(ctx.ID().visit())
