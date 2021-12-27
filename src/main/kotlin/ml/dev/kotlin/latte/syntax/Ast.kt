@@ -1,52 +1,55 @@
 package ml.dev.kotlin.latte.syntax
 
-sealed interface AstNode
+import ml.dev.kotlin.latte.util.Span
 
-data class Program(val topDefs: List<TopDef>) : AstNode
+sealed interface AstNode {
+  val span: Span?
+}
 
-sealed interface Type : AstNode
-object IntType : Type
-object StringType : Type
-object BooleanType : Type
-object VoidType : Type
+data class Program(val topDefs: List<TopDef>, override val span: Span) : AstNode
 
-enum class UnOp : AstNode { Not, Neg }
-sealed interface BinOp : AstNode
-enum class NumOp : BinOp { Plus, Minus, Times, Divide, Mod }
-enum class RelOp : BinOp { LT, LE, GT, GE, EQ, NE }
-enum class BooleanOp : BinOp { And, Or }
+data class TopDef(
+  val type: Type,
+  val ident: String,
+  val args: Args,
+  val block: Block,
+  override val span: Span
+) : AstNode
 
-data class TopDef(val type: Type, val ident: SpannedText, val args: Args, val block: Block) : AstNode
+data class Args(val list: List<Arg>, override val span: Span?) : AstNode
+data class Arg(val type: Type, val ident: String)
+data class Block(val stmts: List<Stmt>, override val span: Span) : AstNode
 
-data class Args(val args: List<Arg>) : AstNode
-data class Arg(val type: Type, val ident: SpannedText) : AstNode
-data class Block(val stmts: List<Stmt>) : AstNode
+sealed interface Item : AstNode {
+  val ident: String
+}
 
-sealed interface Item : AstNode
-data class NotInitItem(val ident: SpannedText) : Item
-data class InitItem(val ident: SpannedText, val expr: Expr) : Item
+data class NotInitItem(override val ident: String, override val span: Span) : Item
+data class InitItem(override val ident: String, val expr: Expr, override val span: Span) : Item
 
 sealed interface Stmt : AstNode
-data class BlockStmt(val block: Block) : Stmt
-data class DeclStmt(val type: Type, val items: List<Item>) : Stmt
-data class AssStmt(val ident: SpannedText, val expr: Expr) : Stmt
-data class IncrStmt(val ident: SpannedText) : Stmt
-data class DecrStmt(val ident: SpannedText) : Stmt
-data class RetStmt(val expr: Expr) : Stmt
-object VRetStmt : Stmt
-object EmptyStmt : Stmt
-data class CondStmt(val expr: Expr, val onTrue: Stmt) : Stmt
-data class CondElseStmt(val expr: Expr, val onTrue: Stmt, val onFalse: Stmt) : Stmt
-data class WhileStmt(val expr: Expr, val onTrue: Stmt) : Stmt
-data class ExprStmt(val expr: Expr) : Stmt
+data class BlockStmt(val block: Block, override val span: Span) : Stmt
+data class DeclStmt(val type: Type, val items: List<Item>, override val span: Span) : Stmt
+data class AssStmt(val ident: String, val expr: Expr, override val span: Span) : Stmt
+data class IncrStmt(val ident: String, override val span: Span) : Stmt
+data class DecrStmt(val ident: String, override val span: Span) : Stmt
+data class RetStmt(val expr: Expr, override val span: Span) : Stmt
+data class VRetStmt(override val span: Span) : Stmt
+data class CondStmt(val expr: Expr, val onTrue: Stmt, override val span: Span) : Stmt
+data class CondElseStmt(val expr: Expr, val onTrue: Stmt, val onFalse: Stmt, override val span: Span) : Stmt
+data class WhileStmt(val expr: Expr, val onTrue: Stmt, override val span: Span) : Stmt
+data class ExprStmt(val expr: Expr, override val span: Span) : Stmt
+object EmptyStmt : Stmt {
+  override val span: Span? = null
+}
 
 sealed interface Expr : AstNode
-data class UnOpExpr(val op: UnOp, val expr: Expr) : Expr
-data class BinOpExpr(val left: Expr, val opExpr: BinOp, val right: Expr) : Expr
-data class IdentExpr(val ident: SpannedText) : Expr
-data class IntExpr(val node: SpannedText) : Expr
-data class BoolExpr(val value: Boolean) : Expr
-data class StringExpr(val node: String) : Expr
-data class FunCallExpr(val name: SpannedText, val args: List<Expr>) : Expr
 
-data class SpannedText(val text: String, val line: Int, val charPositionInLine: Int)
+data class UnOpExpr(val op: UnOp, val expr: Expr, override val span: Span) : Expr
+data class BinOpExpr(val left: Expr, val opExpr: BinOp, val right: Expr, override val span: Span) : Expr
+data class IdentExpr(val text: String, override val span: Span) : Expr
+data class IntExpr(val node: String, override val span: Span) : Expr
+data class BoolExpr(val value: Boolean, override val span: Span) : Expr
+data class StringExpr(val value: String, override val span: Span) : Expr
+data class FunCallExpr(val name: String, val args: List<Expr>, override val span: Span) : Expr
+

@@ -6,6 +6,8 @@ data class FileLocation(val line: Int, val charPositionInLine: Int) {
   override fun toString() = "[$line:$charPositionInLine]"
 }
 
+data class Span(val from: FileLocation, val to: FileLocation)
+
 data class ExceptionLocalizedMessage(val description: String, val location: FileLocation? = null) {
   override fun toString() = "$location $description"
 }

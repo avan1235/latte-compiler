@@ -21,10 +21,7 @@ private fun <T : Recognizer<*, *>> T.reportErrorsAsExceptions() = apply {
   removeErrorListeners()
   addErrorListener(object : BaseErrorListener() {
     override fun syntaxError(
-      recognizer: Recognizer<*, *>,
-      offendingSymbol: Any,
-      line: Int, charPositionInLine: Int,
-      msg: String, e: RecognitionException
+      r: Recognizer<*, *>?, symbol: Any?, line: Int, charPositionInLine: Int, msg: String, e: RecognitionException?
     ) = throw ParseException(ExceptionLocalizedMessage(msg, FileLocation(line, charPositionInLine)))
   })
 }

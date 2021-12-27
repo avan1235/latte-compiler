@@ -13,14 +13,14 @@ internal class TypeCheckerTest {
 
   @ParameterizedTest
   @MethodSource("goodExamplesProvider")
-  fun `should parse valid input files`(input: File) {
-    input.inputStream().parse()
+  fun `should accept valid input files`(input: File) {
+    input.inputStream().parse().typeCheck()
   }
 
   @ParameterizedTest
   @MethodSource("badExamplesProvider")
   fun `should throw on invalid input files`(input: File) {
-    assertThrows<FrontendException> { input.inputStream().parse() }
+    assertThrows<FrontendException> { input.inputStream().parse().typeCheck() }
   }
 
   companion object {
