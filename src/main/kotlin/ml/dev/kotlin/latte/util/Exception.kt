@@ -10,8 +10,8 @@ data class ExceptionLocalizedMessage(val description: String, val location: File
   override fun toString() = "$location $description"
 }
 
-interface WithMessage {
-  val userMessage: ExceptionLocalizedMessage
-}
+abstract class LatteException(val userMessage: ExceptionLocalizedMessage) : CancellationException("$userMessage")
 
-class ParseCancellationException(override val userMessage: ExceptionLocalizedMessage) : CancellationException(), WithMessage
+sealed class FrontendException(userMessage: ExceptionLocalizedMessage) : LatteException(userMessage)
+class ParseException(userMessage: ExceptionLocalizedMessage) : FrontendException(userMessage)
+class TypeCheckException(userMessage: ExceptionLocalizedMessage) : FrontendException(userMessage)

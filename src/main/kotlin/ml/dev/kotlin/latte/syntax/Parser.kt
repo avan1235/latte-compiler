@@ -2,7 +2,7 @@ package ml.dev.kotlin.latte.syntax
 
 import ml.dev.kotlin.latte.util.ExceptionLocalizedMessage
 import ml.dev.kotlin.latte.util.FileLocation
-import ml.dev.kotlin.latte.util.ParseCancellationException
+import ml.dev.kotlin.latte.util.ParseException
 import ml.dev.kotlin.syntax.LatteLexer
 import ml.dev.kotlin.syntax.LatteParser
 import org.antlr.v4.runtime.*
@@ -25,6 +25,6 @@ private fun <T : Recognizer<*, *>> T.reportErrorsAsExceptions() = apply {
       offendingSymbol: Any,
       line: Int, charPositionInLine: Int,
       msg: String, e: RecognitionException
-    ) = throw ParseCancellationException(ExceptionLocalizedMessage(msg, FileLocation(line, charPositionInLine)))
+    ) = throw ParseException(ExceptionLocalizedMessage(msg, FileLocation(line, charPositionInLine)))
   })
 }
