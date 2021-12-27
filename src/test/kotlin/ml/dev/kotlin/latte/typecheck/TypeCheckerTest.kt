@@ -20,7 +20,8 @@ internal class TypeCheckerTest {
   @ParameterizedTest
   @MethodSource("badExamplesProvider")
   fun `should throw on invalid input files`(input: File) {
-    assertThrows<FrontendException> { input.inputStream().parse().typeCheck() }
+    val exception = assertThrows<FrontendException> { input.inputStream().parse().typeCheck() }
+    println(exception.userMessage)
   }
 
   companion object {

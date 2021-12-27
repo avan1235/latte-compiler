@@ -53,7 +53,7 @@ internal data class TypeChecker(
   }
 
   private fun typeCheck(assStmt: AssStmt) {
-    val varType = varEnv[assStmt.ident] ?: assStmt.err("Cannot assign to not declared variable")
+    val varType = varEnv[assStmt.ident] ?: assStmt.err("Cannot assign value to not declared variable")
     val exprType = typeOf(assStmt.expr)
     if (varType != exprType) assStmt.err("Cannot assign value of type $exprType to variable of type $varType")
   }
