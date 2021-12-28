@@ -181,8 +181,8 @@ private data class IRGenerator(
   private fun generateCondElse(left: Expr, op: BooleanOp, right: Expr): TempValue = freshTemp(BooleanType) { to ->
     CondElseStmt(
       BinOpExpr(left, op, right),
-      AssStmt(to.label.name, BoolExpr(true)),
-      AssStmt(to.label.name, BoolExpr(false)),
+      AssStmt(to.name, BoolExpr(true)),
+      AssStmt(to.name, BoolExpr(false)),
     ).generate()
   }
 
@@ -200,20 +200,20 @@ private data class IRGenerator(
   }
 
   private fun freshTemp(type: Type, action: (TempValue) -> Unit = {}): TempValue =
-    TempValue(freshLabel(prefix = "T"), type).also { varEnv[it.label.name] = it }.also(action)
+    freshIdx().let { TempValue("T$it", it, type) }.also { varEnv[it.name] = it }.also(action)
 
   private fun addStringConst(value: String): StringConstValue =
-    StringConstValue(strings[value] ?: freshLabel("S").also { strings[value] = it }, value)
+    StringConstValue(strings[value] ?: freshLabel(prefix = "S").also { strings[value] = it }, value)
 
-  private fun freshLabel(prefix: String): Label = "$prefix$labelIdx".also { labelIdx += 1 }.label
-
+  private fun freshIdx(): Int = labelIdx.also { labelIdx += 1 }
+  private fun freshLabel(prefix: String): Label = "$prefix${freshIdx()}".label
   private fun freshLabels(count: Int, prefix: String = "L"): List<Label> = List(count) { freshLabel(prefix) }
 
   private fun addArg(label: Label, type: Type, idx: Int): ArgValue =
-    ArgValue(idx, type).also { varEnv[label.name] = it }
+    ArgValue(label.name, idx, type).also { varEnv[label.name] = it }
 
   private fun addLocal(label: Label, type: Type): LocalValue =
-    LocalValue(localIdx, type).also { varEnv[label.name] = it }.also { localIdx += 1 }
+    LocalValue(label.name, localIdx, type).also { varEnv[label.name] = it }.also { localIdx += 1 }
 
   private fun AstNode.getVar(name: String): MemoryLoc = varEnv[name] ?: err("Not defined variable with name $name")
   private fun AstNode.getFunType(name: String): Type = funEnv[name] ?: err("Not defined function with name $name")

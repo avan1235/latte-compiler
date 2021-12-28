@@ -12,10 +12,14 @@ data class IntConstValue(val int: Int) : ConstValue(IntType)
 data class BooleanConstValue(val bool: Boolean) : ConstValue(BooleanType)
 data class StringConstValue(val label: Label, val str: String) : ConstValue(StringType)
 
-sealed interface MemoryLoc : ValueHolder
-data class LocalValue(val idx: Int, override val type: Type) : MemoryLoc
-data class ArgValue(val idx: Int, override val type: Type) : MemoryLoc
-data class TempValue(val label: Label, override val type: Type) : MemoryLoc
+sealed interface MemoryLoc : ValueHolder {
+  val name: String
+  val idx: Int
+}
+
+data class LocalValue(override val name: String, override val idx: Int, override val type: Type) : MemoryLoc
+data class ArgValue(override val name: String, override val idx: Int, override val type: Type) : MemoryLoc
+data class TempValue(override val name: String, override val idx: Int, override val type: Type) : MemoryLoc
 
 sealed interface Quadruple
 data class BinOpQ(val to: MemoryLoc, val left: MemoryLoc, val op: BinOp, val right: MemoryLoc) : Quadruple

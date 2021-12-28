@@ -35,10 +35,10 @@ internal class IRGeneratorTest {
       """,
       ir = """
       main():
-        V0 = 1
+        a = 1
         T1 = 1
-        T0 = V0 minus T1
-        V0 = T0
+        T0 = a minus T1
+        a = T0
         T2 = 0
         ret T2
       """
@@ -55,10 +55,10 @@ internal class IRGeneratorTest {
       """,
       ir = """
       main():
-        V0 = 1
+        a = 1
         T1 = 1
-        T0 = V0 plus T1
-        V0 = T0
+        T0 = a plus T1
+        a = T0
         T2 = 0
         ret T2
       """
@@ -79,19 +79,19 @@ internal class IRGeneratorTest {
       """,
       ir = """
       main():
-        V0 = 42
-        V1 = 24
+        a = 42
+        b = 24
         T1 = 3
-        T0 = T1 minus V1
-        T2 = V1 times T0
-        T3 = T2 divide V0
-        T4 = V0 plus T3
+        T0 = T1 minus b
+        T2 = b times T0
+        T3 = T2 divide a
+        T4 = a plus T3
         T6 = 1
         T5 = T4 plus T6
         T8 = 49
         T7 = T5 mod T8
-        V2 = T7
-        ret V2
+        x = T7
+        ret x
       """
     )
 
@@ -107,18 +107,18 @@ internal class IRGeneratorTest {
       """,
       ir = """
       main():
-        V0 = true
-        V1 = false
-        if V0 goto L1
+        a = true
+        b = false
+        if a goto L1
       M4:
-        if V1 goto L1
+        if b goto L1
       L2:
         T0 = false
         goto L3
       L1:
         T0 = true
       L3:
-        V2 = T0
+        x = T0
         T5 = 0
         ret T5
       """
@@ -136,19 +136,19 @@ internal class IRGeneratorTest {
       """,
       ir = """
       main():
-        V0 = true
-        V1 = false
-        if V0 goto M4
+        a = true
+        b = false
+        if a goto M4
         goto L2
       M4:
-        if V1 goto L1
+        if b goto L1
       L2:
         T0 = false
         goto L3
       L1:
         T0 = true
       L3:
-        V2 = T0
+        x = T0
         T5 = 0
         ret T5
       """
@@ -167,11 +167,11 @@ internal class IRGeneratorTest {
       """,
       ir = """
       main():
-        V0 = S0
-        V1 = S1
-        T2 = V0 plus V1
-        T3 = T2 plus V0
-        V2 = T3
+        a = S0
+        b = S1
+        T2 = a plus b
+        T3 = T2 plus a
+        x = T3
         T4 = 0
         ret T4
       """,
@@ -192,8 +192,8 @@ internal class IRGeneratorTest {
       """,
       ir = """
       main():
-        V0 = 5
-        ret V0
+        i = 5
+        ret i
       """
     )
 
@@ -207,7 +207,7 @@ internal class IRGeneratorTest {
       """,
       ir = """
       main():
-        V0 = true
+        b = true
         T0 = 0
         ret T0
       """
@@ -223,7 +223,7 @@ internal class IRGeneratorTest {
       """,
       ir = """
       main():
-        V0 = S4
+        s = S4
         T5 = 0
         ret T5
       """,
@@ -263,9 +263,9 @@ private fun ValueHolder.repr(): String = when (this) {
   is BooleanConstValue -> "$bool"
   is IntConstValue -> int.toString()
   is StringConstValue -> label.name
-  is ArgValue -> "A$idx"
-  is LocalValue -> "V$idx"
-  is TempValue -> label.name
+  is ArgValue -> name
+  is LocalValue -> name
+  is TempValue -> name
 }
 
 private fun Quadruple.repr(): String = when (this) {
