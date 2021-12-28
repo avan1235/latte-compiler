@@ -255,11 +255,9 @@ private fun List<Quadruple>.optimize(): List<Quadruple> {
       next = higherKey(next) ?: break
       val goto = (this[last] as? JumpQ) ?: continue
       val codeLabel = (this[next] as? CodeLabelQ) ?: continue
-      if (goto.label == codeLabel.label) next = higherKey(next)?.also {
-        this -= last
-        this -= next
-        removed += 1
-      } ?: break
+      if (goto.label != codeLabel.label) continue
+      this -= last
+      removed += 1
     }
     return if (removed == 0) values.toList() else optimizeJumpToNextLabel()
   }

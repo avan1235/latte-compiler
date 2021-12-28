@@ -8,19 +8,22 @@ import org.junit.jupiter.api.Test
 
 internal class IRGeneratorTest {
 
-  @Test
-  fun `test returns using temp variables`() = testIRRepr(
-    program = """
-    int main() {
-      return 0;
-    }
-    """,
-    ir = """
-    main():
-      T0 = 0
-      ret T0
-    """
-  )
+  @Nested
+  inner class BaseConstructTest {
+    @Test
+    fun `test returns using temp variables`() = testIRRepr(
+      program = """
+      int main() {
+        return 0;
+      }
+      """,
+      ir = """
+      main():
+        T0 = 0
+        ret T0
+      """
+    )
+  }
 
   @Nested
   inner class OpOnNotConstTest {
@@ -67,7 +70,9 @@ internal class IRGeneratorTest {
         V0 = true
         V1 = false
         if V0 goto L1
+      M4:
         if V1 goto L1
+      L2:
         T0 = false
         goto L3
       L1:
@@ -97,6 +102,7 @@ internal class IRGeneratorTest {
         goto L2
       M4:
         if V1 goto L1
+      L2:
         T0 = false
         goto L3
       L1:
@@ -192,8 +198,8 @@ internal class IRGeneratorTest {
 
 private fun testIRRepr(program: String, ir: String, vararg strings: Pair<String, String>) {
   val quadruples = program.byteInputStream().parse().typeCheck().toIR()
-  val irRepr = quadruples.list.joinToString("\n") { it.repr() }
-  assertEquals(ir.trimIndent(), irRepr)
+  val irRepr = quadruples.list.joinToString("\n", "\n", "\n") { it.repr() }
+  assertEquals("\n${ir.trimIndent()}\n", irRepr)
   assertEquals(strings.toMap(), quadruples.strings.mapValues { it.value.name })
 }
 
