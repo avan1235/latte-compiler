@@ -21,8 +21,6 @@ sealed interface Quadruple
 data class BinOpQ(val to: MemoryLoc, val left: MemoryLoc, val op: BinOp, val right: MemoryLoc) : Quadruple
 data class UnOpQ(val to: MemoryLoc, val op: UnOp, val from: MemoryLoc) : Quadruple
 data class AssignQ(val to: MemoryLoc, val from: ValueHolder) : Quadruple
-data class IncQ(val label: MemoryLoc) : Quadruple
-data class DecQ(val label: MemoryLoc) : Quadruple
 data class JumpQ(val label: Label) : Quadruple
 data class CondJumpQ(val cond: MemoryLoc, val onTrue: Label) : Quadruple
 data class BiCondJumpQ(val left: MemoryLoc, val op: RelOp, val right: MemoryLoc, val onTrue: Label) : Quadruple

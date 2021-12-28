@@ -23,6 +23,46 @@ internal class IRGeneratorTest {
         ret T0
       """
     )
+
+    @Test
+    fun `test decreases with bin op`() = testIRRepr(
+      program = """
+      int main() {
+        int a = 1;
+        a--;
+        return 0;
+      }
+      """,
+      ir = """
+      main():
+        V0 = 1
+        T1 = 1
+        T0 = V0 minus T1
+        V0 = T0
+        T2 = 0
+        ret T2
+      """
+    )
+
+    @Test
+    fun `test increases with bin op`() = testIRRepr(
+      program = """
+      int main() {
+        int a = 1;
+        a++;
+        return 0;
+      }
+      """,
+      ir = """
+      main():
+        V0 = 1
+        T1 = 1
+        T0 = V0 plus T1
+        V0 = T0
+        T2 = 0
+        ret T2
+      """
+    )
   }
 
   @Nested
@@ -201,7 +241,23 @@ private fun testIRRepr(program: String, ir: String, vararg strings: Pair<String,
   val irRepr = quadruples.list.joinToString("\n", "\n", "\n") { it.repr() }
   assertEquals("\n${ir.trimIndent()}\n", irRepr)
   assertEquals(strings.toMap(), quadruples.strings.mapValues { it.value.name })
+  // assert(quadruples.list.isSSA())
 }
+
+private fun List<Quadruple>.isSSA(): Boolean = mapNotNull {
+  when (it) {
+    is AssignQ -> it.to
+    is BiCondJumpQ -> null
+    is BinOpQ -> it.to
+    is CondJumpQ -> null
+    is FunCallQ -> it.to
+    is JumpQ -> null
+    is CodeFunLabelQ -> null
+    is CodeLabelQ -> null
+    is RetQ -> null
+    is UnOpQ -> it.to
+  }?.repr()
+}.let { it.size == it.toSet().size }
 
 private fun ValueHolder.repr(): String = when (this) {
   is BooleanConstValue -> "$bool"
@@ -221,8 +277,6 @@ private fun Quadruple.repr(): String = when (this) {
   is CodeLabelQ -> "${label.name}:"
   is CondJumpQ -> "if ${cond.repr()} goto ${onTrue.name}"
   is JumpQ -> "goto ${label.name}"
-  is DecQ -> "dec ${label.repr()}"
-  is IncQ -> "inc ${label.repr()}"
   is FunCallQ -> "${to.repr()} = call ${label.name} (${args.joinToString { it.repr() }})"
   is RetQ -> "ret${valueHolder?.let { " ${it.repr()}" } ?: ""}"
 }.let { if (this is LabelQuadruple) it else "  $it" }

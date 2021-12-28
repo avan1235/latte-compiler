@@ -40,8 +40,8 @@ private data class IRGenerator(
     is BlockStmt -> varEnv.level { block.generate() }
     is DeclStmt -> items.forEach { it.generate(type) }
     is AssStmt -> emit { AssignQ(getVar(ident), expr.generate()) }
-    is DecrStmt -> emit { DecQ(getVar(ident)) }
-    is IncrStmt -> emit { IncQ(getVar(ident)) }
+    is DecrStmt -> ident.oneOp(NumOp.MINUS)
+    is IncrStmt -> ident.oneOp(NumOp.PLUS)
     is ExprStmt -> expr.generate().unit()
     is RetStmt -> emit { RetQ(expr.generate().inMemory()) }
     is VRetStmt -> emit { RetQ() }
@@ -185,6 +185,8 @@ private data class IRGenerator(
       AssStmt(to.label.name, BoolExpr(false)),
     ).generate()
   }
+
+  private fun String.oneOp(op: NumOp): Unit = AssStmt(this, BinOpExpr(IdentExpr(this), op, IntExpr("1"))).generate()
 
   private inline fun emit(emit: () -> Quadruple) {
     quadruples += emit()
