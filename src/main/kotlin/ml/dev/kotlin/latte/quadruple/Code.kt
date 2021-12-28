@@ -10,7 +10,7 @@ sealed interface ValueHolder {
 sealed class ConstValue(override val type: Type) : ValueHolder
 data class IntConstValue(val int: Int) : ConstValue(IntType)
 data class BooleanConstValue(val bool: Boolean) : ConstValue(BooleanType)
-data class StringConstValue(val str: String) : ConstValue(StringType)
+data class StringConstValue(val label: Label, val str: String) : ConstValue(StringType)
 
 sealed interface MemoryLoc : ValueHolder
 data class LocalValue(val idx: Int, override val type: Type) : MemoryLoc

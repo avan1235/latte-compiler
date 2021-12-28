@@ -6,6 +6,7 @@ import ml.dev.kotlin.latte.util.ExceptionLocalizedMessage
 import ml.dev.kotlin.latte.util.IRException
 import ml.dev.kotlin.latte.util.StackTable
 import ml.dev.kotlin.latte.util.unit
+import java.util.*
 
 fun TypeCheckedProgram.toIR() = IRGenerator().run { this@toIR.generate() }
 
@@ -19,7 +20,7 @@ private data class IRGenerator(
 ) {
   fun TypeCheckedProgram.generate(): QuadruplesList {
     program.topDefs.onEach { it.addToFunEnv() }.forEach { it.generate() }
-    return QuadruplesList(quadruples, strings)
+    return QuadruplesList(quadruples.optimize(), strings)
   }
 
   private fun TopDef.addToFunEnv() {
@@ -124,7 +125,7 @@ private data class IRGenerator(
     is IdentExpr -> getVar(value)
     is BoolExpr -> value.bool
     is IntExpr -> value.int
-    is StringExpr -> addStringConst(value.str)
+    is StringExpr -> addStringConst(value)
     is UnOpExpr -> {
       val from = expr.generate()
       when (op) {
@@ -144,7 +145,7 @@ private data class IRGenerator(
         val rv = right.generate()
         when {
           lv is IntConstValue && rv is IntConstValue -> op.on(lv, rv)
-          lv is StringConstValue && rv is StringConstValue -> addStringConst(lv + rv)
+          lv is StringConstValue && rv is StringConstValue -> addStringConst(lv.str + rv.str)
           lv is BooleanConstValue && rv is BooleanConstValue -> op.on(lv, rv)
           else -> when {
             op == NumOp.PLUS && lv.type == IntType && rv.type == IntType -> IntType
@@ -197,10 +198,10 @@ private data class IRGenerator(
   }
 
   private fun freshTemp(type: Type, action: (TempValue) -> Unit = {}): TempValue =
-    TempValue(freshLabel(prefix = "T"), type).also(action)
+    TempValue(freshLabel(prefix = "T"), type).also { varEnv[it.label.name] = it }.also(action)
 
-  private fun addStringConst(value: StringConstValue): StringConstValue =
-    value.also { strings[it.str] = freshLabel(prefix = "S") }
+  private fun addStringConst(value: String): StringConstValue =
+    StringConstValue(strings[value] ?: freshLabel("S").also { strings[value] = it }, value)
 
   private fun freshLabel(prefix: String): Label = "$prefix$labelIdx".also { labelIdx += 1 }.label
 
@@ -242,3 +243,27 @@ private fun BinOp.on(lv: BooleanConstValue, rv: BooleanConstValue) = when (this)
 }
 
 private fun AstNode.err(message: String): Nothing = throw IRException(ExceptionLocalizedMessage(message, span?.from))
+
+private fun List<Quadruple>.optimize(): List<Quadruple> {
+  tailrec fun TreeMap<Int, Quadruple>.optimizeJumpToNextLabel(): List<Quadruple> {
+    if (isEmpty()) return emptyList()
+
+    var next = firstKey()
+    var removed = 0
+    while (true) {
+      val last = next
+      next = higherKey(next) ?: break
+      val goto = (this[last] as? JumpQ) ?: continue
+      val codeLabel = (this[next] as? CodeLabelQ) ?: continue
+      if (goto.label == codeLabel.label) next = higherKey(next)?.also {
+        this -= last
+        this -= next
+        removed += 1
+      } ?: break
+    }
+    return if (removed == 0) values.toList() else optimizeJumpToNextLabel()
+  }
+  return TreeMap<Int, Quadruple>().also { map ->
+    forEachIndexed { idx, q -> map[idx] = q }
+  }.optimizeJumpToNextLabel()
+}
