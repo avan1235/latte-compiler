@@ -1,26 +1,35 @@
 package ml.dev.kotlin.latte.quadruple
 
-import ml.dev.kotlin.latte.syntax.BinOp
-import ml.dev.kotlin.latte.syntax.RelOp
-import ml.dev.kotlin.latte.syntax.UnOp
+import ml.dev.kotlin.latte.syntax.*
 
-sealed interface ValueHolder
-data class Label(val name: String) : ValueHolder
-data class BooleanValue(val raw: Boolean) : ValueHolder
-data class IntValue(val raw: String) : ValueHolder
+data class Label(val name: String)
+sealed interface ValueHolder {
+  val type: Type
+}
 
-inline val String.label get() = Label(this)
+sealed class ConstValue(override val type: Type) : ValueHolder
+data class IntConstValue(val int: Int) : ConstValue(IntType)
+data class BooleanConstValue(val bool: Boolean) : ConstValue(BooleanType)
+data class StringConstValue(val str: String) : ConstValue(StringType)
+
+sealed interface MemoryLoc : ValueHolder
+data class LocalValue(val idx: Int, override val type: Type) : MemoryLoc
+data class ArgValue(val idx: Int, override val type: Type) : MemoryLoc
+data class TempValue(val label: Label, override val type: Type) : MemoryLoc
 
 sealed interface Quadruple
-
-data class BinOpQ(val to: Label, val left: Label, val op: BinOp, val right: Label) : Quadruple
-data class UnOpQ(val to: Label, val op: UnOp, val from: Label) : Quadruple
-data class AssignQ(val to: Label, val from: ValueHolder) : Quadruple
-data class IncQ(val label: Label) : Quadruple
-data class DecQ(val label: Label) : Quadruple
+data class BinOpQ(val to: MemoryLoc, val left: MemoryLoc, val op: BinOp, val right: MemoryLoc) : Quadruple
+data class UnOpQ(val to: MemoryLoc, val op: UnOp, val from: MemoryLoc) : Quadruple
+data class AssignQ(val to: MemoryLoc, val from: ValueHolder) : Quadruple
+data class IncQ(val label: MemoryLoc) : Quadruple
+data class DecQ(val label: MemoryLoc) : Quadruple
 data class JumpQ(val label: Label) : Quadruple
-data class RelCondJumpQ(val left: Label, val op: RelOp, val right: Label, val goto: Label) : Quadruple
-data class BoolCondJumpQ(val cond: Label, val goto: Label) : Quadruple
-data class RetQ(val valueHolder: Label? = null) : Quadruple
-data class FunCallQ(val to: Label, val funName: Label, val args: List<Label>) : Quadruple
-
+data class CondJumpQ(val cond: MemoryLoc, val onTrue: Label) : Quadruple
+data class BiCondJumpQ(val left: MemoryLoc, val op: RelOp, val right: MemoryLoc, val onTrue: Label) : Quadruple
+data class RetQ(val valueHolder: MemoryLoc? = null) : Quadruple
+data class FunCallQ(val to: MemoryLoc, val label: Label, val args: List<ValueHolder>) : Quadruple
+data class CodeFunLabelQ(override val label: Label, val args: List<ArgValue>) : LabelQuadruple
+data class CodeLabelQ(override val label: Label) : LabelQuadruple
+sealed interface LabelQuadruple : Quadruple {
+  val label: Label
+}

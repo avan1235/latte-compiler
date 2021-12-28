@@ -3,14 +3,17 @@ package ml.dev.kotlin.latte.syntax
 import ml.dev.kotlin.latte.util.Span
 
 enum class UnOp : AstNode {
-  Not, Neg;
+  NOT, NEG;
 
   override val span: Span? = null
 }
 
-sealed interface BinOp : AstNode
+sealed interface BinOp : AstNode {
+  val name: String
+}
+
 enum class NumOp : BinOp {
-  Plus, Minus, Times, Divide, Mod;
+  PLUS, MINUS, TIMES, DIVIDE, MOD;
 
   override val span: Span? = null
 }
@@ -22,7 +25,7 @@ enum class RelOp : BinOp {
 }
 
 enum class BooleanOp : BinOp {
-  And, Or;
+  AND, OR;
 
   override val span: Span? = null
 }

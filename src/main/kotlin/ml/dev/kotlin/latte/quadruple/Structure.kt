@@ -2,6 +2,11 @@ package ml.dev.kotlin.latte.quadruple
 
 import ml.dev.kotlin.latte.util.MutableDefaultMap
 
+data class QuadruplesList(
+  val list: List<Quadruple>,
+  val strings: Map<String, Label>,
+)
+
 data class BasicBlock(
   val label: Label,
   val instructions: List<Quadruple>,

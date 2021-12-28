@@ -64,10 +64,10 @@ object AstVisitor : LatteBaseVisitor<AstNode>() {
     BinOpExpr(ctx.expr(0).visit(), ctx.mulOp().visit(), ctx.expr(1).visit(), ctx.span())
 
   override fun visitEAnd(ctx: LatteParser.EAndContext) =
-    BinOpExpr(ctx.expr(0).visit(), BooleanOp.And, ctx.expr(1).visit(), ctx.span())
+    BinOpExpr(ctx.expr(0).visit(), BooleanOp.AND, ctx.expr(1).visit(), ctx.span())
 
   override fun visitEOr(ctx: LatteParser.EOrContext) =
-    BinOpExpr(ctx.expr(0).visit(), BooleanOp.Or, ctx.expr(1).visit(), ctx.span())
+    BinOpExpr(ctx.expr(0).visit(), BooleanOp.OR, ctx.expr(1).visit(), ctx.span())
 
   override fun visitEId(ctx: LatteParser.EIdContext) = IdentExpr(ctx.ID().visit(), ctx.span())
   override fun visitEStr(ctx: LatteParser.EStrContext) =
@@ -82,13 +82,13 @@ object AstVisitor : LatteBaseVisitor<AstNode>() {
   override fun visitStr(ctx: LatteParser.StrContext) = StringType
   override fun visitBool(ctx: LatteParser.BoolContext) = BooleanType
   override fun visitVoid(ctx: LatteParser.VoidContext) = VoidType
-  override fun visitNot(ctx: LatteParser.NotContext) = UnOp.Not
-  override fun visitNeg(ctx: LatteParser.NegContext) = UnOp.Neg
-  override fun visitPlus(ctx: LatteParser.PlusContext) = NumOp.Plus
-  override fun visitMinus(ctx: LatteParser.MinusContext) = NumOp.Minus
-  override fun visitTimes(ctx: LatteParser.TimesContext) = NumOp.Times
-  override fun visitDivide(ctx: LatteParser.DivideContext) = NumOp.Divide
-  override fun visitMod(ctx: LatteParser.ModContext) = NumOp.Mod
+  override fun visitNot(ctx: LatteParser.NotContext) = UnOp.NOT
+  override fun visitNeg(ctx: LatteParser.NegContext) = UnOp.NEG
+  override fun visitPlus(ctx: LatteParser.PlusContext) = NumOp.PLUS
+  override fun visitMinus(ctx: LatteParser.MinusContext) = NumOp.MINUS
+  override fun visitTimes(ctx: LatteParser.TimesContext) = NumOp.TIMES
+  override fun visitDivide(ctx: LatteParser.DivideContext) = NumOp.DIVIDE
+  override fun visitMod(ctx: LatteParser.ModContext) = NumOp.MOD
   override fun visitLT(ctx: LatteParser.LTContext) = RelOp.LT
   override fun visitLE(ctx: LatteParser.LEContext) = RelOp.LE
   override fun visitGT(ctx: LatteParser.GTContext) = RelOp.GT

@@ -3,6 +3,7 @@ package ml.dev.kotlin.latte.typecheck
 import ml.dev.kotlin.latte.syntax.IntType
 import ml.dev.kotlin.latte.syntax.StringType
 import ml.dev.kotlin.latte.syntax.Type
+import ml.dev.kotlin.latte.syntax.VoidType
 
 private val STD_LIB_FUNCTIONS = HashSet<FunctionSignature>().apply {
   add("printInt" withArgs listOf(IntType))
@@ -10,6 +11,14 @@ private val STD_LIB_FUNCTIONS = HashSet<FunctionSignature>().apply {
   add("error" withArgs listOf())
   add("readInt" withArgs listOf())
   add("readString" withArgs listOf())
+}
+
+fun stdLibFunctionTypes() = HashMap<String, Type>().apply {
+  put("printInt", VoidType)
+  put("printString", VoidType)
+  put("error", VoidType)
+  put("readInt", IntType)
+  put("readString", StringType)
 }
 
 infix fun String.mangled(args: List<Type>) =

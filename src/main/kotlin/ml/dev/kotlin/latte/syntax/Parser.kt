@@ -7,9 +7,10 @@ import ml.dev.kotlin.syntax.LatteLexer
 import ml.dev.kotlin.syntax.LatteParser
 import org.antlr.v4.runtime.*
 import java.io.InputStream
+import java.nio.charset.Charset
 
-fun InputStream.parse(): Program {
-  val streams = CharStreams.fromStream(this)
+fun InputStream.parse(charset: Charset = Charsets.UTF_8): Program {
+  val streams = CharStreams.fromStream(this, charset)
   val lexer = LatteLexer(streams).reportErrorsAsExceptions()
   val tokenStream = CommonTokenStream(lexer)
   val parser = LatteParser(tokenStream).reportErrorsAsExceptions()

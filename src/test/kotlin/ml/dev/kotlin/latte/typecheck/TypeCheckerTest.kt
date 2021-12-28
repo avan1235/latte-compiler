@@ -2,6 +2,7 @@ package ml.dev.kotlin.latte.typecheck
 
 import ml.dev.kotlin.latte.syntax.parse
 import ml.dev.kotlin.latte.util.FrontendException
+import ml.dev.kotlin.latte.util.eprintln
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
@@ -20,8 +21,10 @@ internal class TypeCheckerTest {
   @ParameterizedTest
   @MethodSource("badExamplesProvider")
   fun `should throw on invalid input files`(input: File) {
-    val exception = assertThrows<FrontendException> { input.inputStream().parse().typeCheck() }
-    println(exception.userMessage)
+    val program = input.readText()
+    val exception = assertThrows<FrontendException> { program.byteInputStream().parse().typeCheck() }
+    println(program)
+    eprintln(exception.userMessage)
   }
 
   companion object {

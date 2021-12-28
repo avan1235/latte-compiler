@@ -5,7 +5,10 @@ import ml.dev.kotlin.latte.util.ExceptionLocalizedMessage
 import ml.dev.kotlin.latte.util.StackTable
 import ml.dev.kotlin.latte.util.TypeCheckException
 
-fun Program.typeCheck() = TypeChecker().typeCheck(this)
+fun Program.typeCheck(): TypeCheckedProgram = TypeChecker().run { this@typeCheck.typeCheck() }
+
+@JvmInline
+value class TypeCheckedProgram(val program: Program)
 
 private data class TypeChecker(
   private val funEnv: MutableMap<String, Type> = stdLibFunctionTypes(),
@@ -13,57 +16,59 @@ private data class TypeChecker(
   private var expectedReturnType: Type? = null,
 ) {
 
-  fun typeCheck(program: Program) {
-    program.topDefs.onEach { addToFunEnv(it) }.forEach { typeCheck(it) }
+  fun Program.typeCheck(): TypeCheckedProgram {
+    topDefs.onEach { it.addToFunEnv() }.forEach { it.typeCheck() }
+    if ("main" !in funEnv) err("No main function defined")
+    return TypeCheckedProgram(this)
   }
 
-  private fun addToFunEnv(topDef: TopDef) {
-    val name = topDef.ident mangled topDef.args.list.map { it.type }
-    if (name in funEnv) topDef.err("Redefined function ${topDef.ident}")
-    funEnv[name] = topDef.type
-    topDef.mangledName = name
+  private fun TopDef.addToFunEnv() {
+    val name = ident mangled args.list.map { it.type }
+    if (name in funEnv) err("Redefined function $ident")
+    funEnv[name] = type
+    mangledName = name
   }
 
-  private fun typeCheck(topDef: TopDef) = varEnv.level {
-    expectedReturnType = topDef.type
-    topDef.args.list.forEach { topDef.args.addToVarEnv(it.type, it.ident) }
-    val last = typeCheck(topDef.block)
-    if (last != topDef.type && topDef.type != VoidType) topDef.err("Expected ${topDef.ident} to return ${topDef.type}")
+  private fun TopDef.typeCheck(): Unit = varEnv.level {
+    expectedReturnType = type
+    args.list.forEach { args.addToVarEnv(it.type, it.ident) }
+    val last = block.typeCheck()
+    if (last != type && type != VoidType) err("Expected $ident to return $type")
     expectedReturnType = null
   }
 
-  private fun typeCheck(block: Block): LastReturnType {
+  private fun Block.typeCheck(): LastReturnType {
     var last: LastReturnType = null
-    block.stmts.forEach { last = typeCheck(it) ?: last }
+    stmts.forEach { last = it.typeCheck() ?: last }
     return last
   }
 
-  private fun typeCheck(stmt: Stmt): LastReturnType = when (stmt) {
+  private fun Stmt.typeCheck(): LastReturnType = when (this) {
     EmptyStmt -> noReturn()
-    is ExprStmt -> noReturn { typeOf(stmt.expr) }
-    is BlockStmt -> varEnv.level { typeCheck(stmt.block) }
-    is AssStmt -> noReturn { typeCheck(stmt) }
-    is DeclStmt -> noReturn { stmt.items.forEach { typeCheck(it, stmt.type) } }
-    is DecrStmt -> noReturn { stmt.typeCheckUnOp(stmt.ident, IntType) }
-    is IncrStmt -> noReturn { stmt.typeCheckUnOp(stmt.ident, IntType) }
-    is WhileStmt -> noReturn { typeCheckCond(stmt.expr, stmt.onTrue) }
-    is CondStmt -> noReturn { typeCheckCond(stmt.expr, stmt.onTrue) }
-    is CondElseStmt -> typeCheckCondElse(stmt.expr, stmt.onTrue, stmt.onFalse)
-    is VRetStmt -> stmt.typeCheckReturn(VoidType)
-    is RetStmt -> stmt.typeCheckReturn(typeOf(stmt.expr))
+    is ExprStmt -> noReturn { expr.type() }
+    is BlockStmt -> varEnv.level { block.typeCheck() }
+    is AssStmt -> noReturn { typeCheckAss(this) }
+    is DeclStmt -> noReturn { items.forEach { typeCheckDecl(it, type) } }
+    is DecrStmt -> noReturn { typeCheckUnOp(ident, IntType) }
+    is IncrStmt -> noReturn { typeCheckUnOp(ident, IntType) }
+    is WhileStmt -> noReturn { typeCheckCond(expr, onTrue) }
+    is CondStmt -> noReturn { typeCheckCond(expr, onTrue) }
+    is CondElseStmt -> typeCheckCondElse(expr, onTrue, onFalse)
+    is VRetStmt -> typeCheckReturn(VoidType)
+    is RetStmt -> typeCheckReturn(expr.type())
   }
 
-  private fun typeCheck(assStmt: AssStmt) {
+  private fun typeCheckAss(assStmt: AssStmt) {
     val varType = varEnv[assStmt.ident] ?: assStmt.err("Cannot assign value to not declared variable")
-    val exprType = typeOf(assStmt.expr)
+    val exprType = assStmt.expr.type()
     if (varType != exprType) assStmt.err("Cannot assign value of type $exprType to variable of type $varType")
   }
 
-  private fun typeCheck(item: Item, type: Type) {
+  private fun typeCheckDecl(item: Item, type: Type) {
     item.addToVarEnv(type, item.ident)
     when (item) {
       is InitItem -> {
-        val exprType = typeOf(item.expr)
+        val exprType = item.expr.type()
         if (exprType != type) item.err("Cannot assign value of type $exprType to variable of type $type")
       }
       is NotInitItem -> Unit
@@ -74,20 +79,20 @@ private data class TypeChecker(
     if (varEnv[name] == type) null else err("Expected $type for operation")
 
   private fun AstNode.typeCheckReturn(type: Type): LastReturnType =
-    if (expectedReturnType != type) err("Expected to return $type") else type
+    if (expectedReturnType != type) err("Expected to return $expectedReturnType but got $type") else type
 
   private fun typeCheckCondElse(expr: Expr, onTrue: Stmt, onFalse: Stmt): LastReturnType {
-    val checkType = typeOf(expr)
+    val checkType = expr.type()
     if (checkType != BooleanType) expr.err("Expected condition to have $BooleanType type but found $checkType")
-    val onTrueRet = typeCheck(onTrue)
-    val onFalseRet = typeCheck(onFalse)
+    val onTrueRet = onTrue.typeCheck()
+    val onFalseRet = onFalse.typeCheck()
     return if (onTrueRet == onFalseRet) onTrueRet else null
   }
 
   private fun typeCheckCond(expr: Expr, stmt: Stmt) {
-    val checkType = typeOf(expr)
+    val checkType = expr.type()
     if (checkType != BooleanType) expr.err("Expected condition to have $BooleanType type but found $checkType")
-    typeCheck(stmt)
+    stmt.typeCheck()
   }
 
   private fun AstNode.addToVarEnv(type: Type, name: String) {
@@ -95,19 +100,19 @@ private data class TypeChecker(
     varEnv[name] = type
   }
 
-  private fun typeOf(expr: Expr): Type = when (expr) {
+  private fun Expr.type(): Type = when (this) {
     is BinOpExpr -> {
-      val left = typeOf(expr.left)
-      val right = typeOf(expr.right)
-      if (left != right) expr.err("Cannot define binary operation on $left and $right")
+      val left = left.type()
+      val right = right.type()
+      if (left != right) err("Cannot define binary operation on $left and $right")
       fun bothOf(vararg types: Type) = if (left !in types || right !in types)
-        expr.err(
+        err(
           "Cannot define binary operation on $left and $right, " +
             "as expected them to have one of types: ${types.joinToString(", ")}"
         ) else Unit
 
-      when (expr.opExpr) {
-        NumOp.Plus -> bothOf(IntType, StringType).let { left }
+      when (op) {
+        NumOp.PLUS -> bothOf(IntType, StringType).let { left }
         is BooleanOp -> bothOf(BooleanType).let { BooleanType }
         is NumOp -> bothOf(IntType).let { left }
         is RelOp -> bothOf(IntType, BooleanType).let { BooleanType }
@@ -115,33 +120,25 @@ private data class TypeChecker(
     }
     is BoolExpr -> BooleanType
     is FunCallExpr -> {
-      val argsTypes = expr.args.map { typeOf(it) }
-      val name = expr.name mangled argsTypes
-      expr.mangledName = name
-      funEnv[name] ?: expr.err("Not defined function ${expr.name}$argsTypes")
+      val argsTypes = args.map { it.type() }
+      val name = name mangled argsTypes
+      mangledName = name
+      funEnv[name] ?: err("Not defined function ${this.name}$argsTypes")
     }
-    is IdentExpr -> varEnv[expr.text] ?: expr.err("Not defined variable with name ${expr.text}")
+    is IdentExpr -> varEnv[value] ?: err("Not defined variable with name ${value}")
     is IntExpr -> IntType
     is StringExpr -> StringType
-    is UnOpExpr -> typeOf(expr.expr).let { type ->
+    is UnOpExpr -> expr.type().let { type ->
       when {
-        expr.op == UnOp.Neg && type == IntType -> type
-        expr.op == UnOp.Not && type == BooleanType -> type
-        else -> expr.err("Invalid unary operation types")
+        op == UnOp.NEG && type == IntType -> type
+        op == UnOp.NOT && type == BooleanType -> type
+        else -> err("Invalid unary operation types")
       }
     }
   }
 }
 
 private typealias LastReturnType = Type?
-
-private fun stdLibFunctionTypes() = HashMap<String, Type>().apply {
-  put("printInt", VoidType)
-  put("printString", VoidType)
-  put("error", VoidType)
-  put("readInt", IntType)
-  put("readString", StringType)
-}
 
 private fun AstNode.err(message: String): Nothing =
   throw TypeCheckException(ExceptionLocalizedMessage(message, span?.from))
