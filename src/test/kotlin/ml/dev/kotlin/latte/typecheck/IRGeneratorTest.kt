@@ -3,6 +3,7 @@ package ml.dev.kotlin.latte.typecheck
 import ml.dev.kotlin.latte.quadruple.*
 import ml.dev.kotlin.latte.syntax.parse
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
 internal class IRGeneratorTest {
@@ -21,57 +22,60 @@ internal class IRGeneratorTest {
     """
   )
 
-  @Test
-  fun `test simplify const int`() = testIRRepr(
-    program = """
+  @Nested
+  inner class ConstSimplifyTest {
+    @Test
+    fun `test simplify const int`() = testIRRepr(
+      program = """
     int main() {
-      int i = (100 + 2 * (3 - 1) / 2) % 49;
+      int i = (100 + 2 * (3 - 1) / 2 + 1) % 49;
       return i;
     }
     """,
-    ir = """
+      ir = """
     main():
-      V0 = 4
+      V0 = 5
       ret V0
     """
-  )
+    )
 
-  @Test
-  fun `test simplify const boolean`() = testIRRepr(
-    program = """
+    @Test
+    fun `test simplify const boolean`() = testIRRepr(
+      program = """
     int main() {
       boolean b = true && (false || (true && true));
       return 0;
     }
     """,
-    ir = """
+      ir = """
     main():
       V0 = true
       T0 = 0
       ret T0
     """
-  )
+    )
 
-  @Test
-  fun `test simplify const string`() = testIRRepr(
-    program = """
+    @Test
+    fun `test simplify const string`() = testIRRepr(
+      program = """
     int main() {
       string s = "left" + "<>" + "right";
       return 0;
     }
     """,
-    ir = """
+      ir = """
     main():
       V0 = "left<>right"
       T5 = 0
       ret T5
     """,
-    "left" to "S0",
-    "<>" to "S1",
-    "left<>" to "S2",
-    "right" to "S3",
-    "left<>right" to "S4",
-  )
+      "left" to "S0",
+      "<>" to "S1",
+      "left<>" to "S2",
+      "right" to "S3",
+      "left<>right" to "S4",
+    )
+  }
 }
 
 private fun testIRRepr(program: String, ir: String, vararg strings: Pair<String, String>) {
