@@ -30,7 +30,7 @@ private data class IRGenerator(
     funEnv[mangledName] = type
   }
 
-  private fun TopDef.generate() = varEnv.level {
+  private fun TopDef.generate() = varEnv.onLevel {
     val args = args.list.mapIndexed { idx, (type, name) -> addArg(name.label, type, idx) }
     emit { FunCodeLabelQ(mangledName.label, args) }
     block.generate()
@@ -40,7 +40,7 @@ private data class IRGenerator(
 
   private fun Stmt.generate(): Unit = when (this) {
     EmptyStmt -> Unit
-    is BlockStmt -> varEnv.level { block.generate() }
+    is BlockStmt -> varEnv.onLevel { block.generate() }
     is DeclStmt -> items.forEach { it.generate(type) }
     is AssStmt -> emit { AssignQ(getVar(ident), expr.generate()) }
     is DecrStmt -> emit { DecQ(getVar(ident)) }
@@ -53,7 +53,7 @@ private data class IRGenerator(
       generateCond(expr, trueLabel, endLabel)
 
       emit { CodeLabelQ(trueLabel) }
-      onTrue.generate()
+      varEnv.onLevel { onTrue.generate() }
 
       emit { CodeLabelQ(endLabel) }
     }
@@ -62,11 +62,11 @@ private data class IRGenerator(
       generateCond(expr, trueLabel, falseLabel)
 
       emit { CodeLabelQ(falseLabel) }
-      onFalse.generate()
+      varEnv.onLevel { onFalse.generate() }
       emit { JumpQ(endLabel) }
 
       emit { CodeLabelQ(trueLabel) }
-      onTrue.generate()
+      varEnv.onLevel { onTrue.generate() }
 
       emit { CodeLabelQ(endLabel) }
     }
@@ -75,7 +75,7 @@ private data class IRGenerator(
       emit { JumpQ(condition) }
 
       emit { CodeLabelQ(body) }
-      onTrue.generate()
+      varEnv.onLevel { onTrue.generate() }
 
       emit { CodeLabelQ(condition) }
       generateCond(expr, body, endWhile)

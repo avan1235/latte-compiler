@@ -31,12 +31,10 @@ data class StackTable<K, V>(
     return levelValues
   }
 
-  inline fun <U> level(action: () -> U): U {
+  inline fun <U> onLevel(action: () -> U): U {
     beginLevel()
     val result = action()
     endLevel()
     return result
   }
-
-  override fun toString(): String = "StackTable(level=$_level, levelValues=$levelValues, levelNames=$levelNames)"
 }

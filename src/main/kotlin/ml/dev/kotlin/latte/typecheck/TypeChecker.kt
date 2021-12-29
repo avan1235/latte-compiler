@@ -29,7 +29,7 @@ private data class TypeChecker(
     mangledName = name
   }
 
-  private fun TopDef.typeCheck(): Unit = varEnv.level {
+  private fun TopDef.typeCheck(): Unit = varEnv.onLevel {
     expectedReturnType = type
     args.list.forEach { args.addToVarEnv(it.type, it.ident) }
     val last = block.typeCheck()
@@ -46,7 +46,7 @@ private data class TypeChecker(
   private fun Stmt.typeCheck(): LastReturnType = when (this) {
     EmptyStmt -> noReturn()
     is ExprStmt -> noReturn { expr.type() }
-    is BlockStmt -> varEnv.level { block.typeCheck() }
+    is BlockStmt -> varEnv.onLevel { block.typeCheck() }
     is AssStmt -> noReturn { typeCheckAss(this) }
     is DeclStmt -> noReturn { items.forEach { typeCheckDecl(it, type) } }
     is DecrStmt -> noReturn { typeCheckUnOp(ident, IntType) }
@@ -84,15 +84,15 @@ private data class TypeChecker(
   private fun typeCheckCondElse(expr: Expr, onTrue: Stmt, onFalse: Stmt): LastReturnType {
     val checkType = expr.type()
     if (checkType != BooleanType) expr.err("Expected condition to have $BooleanType type but found $checkType")
-    val onTrueRet = onTrue.typeCheck()
-    val onFalseRet = onFalse.typeCheck()
+    val onTrueRet = varEnv.onLevel { onTrue.typeCheck() }
+    val onFalseRet = varEnv.onLevel { onFalse.typeCheck() }
     return if (onTrueRet == onFalseRet) onTrueRet else null
   }
 
   private fun typeCheckCond(expr: Expr, stmt: Stmt) {
     val checkType = expr.type()
     if (checkType != BooleanType) expr.err("Expected condition to have $BooleanType type but found $checkType")
-    stmt.typeCheck()
+    varEnv.onLevel { stmt.typeCheck() }
   }
 
   private fun AstNode.addToVarEnv(type: Type, name: String) {

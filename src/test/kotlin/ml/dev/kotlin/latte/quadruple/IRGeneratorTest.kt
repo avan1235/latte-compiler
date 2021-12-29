@@ -61,6 +61,228 @@ internal class IRGeneratorTest {
   }
 
   @Nested
+  inner class NestVariablesTest {
+    @Test
+    fun `variables in main scope have same index`() = testIRRepr(
+      program = """
+      int main() {
+        int a = 0;
+        int b = 1;
+        return a;
+      }
+      """,
+      irRepresentation = """
+      main():
+        a@1 = 0
+        b@1 = 1
+        ret a@1
+      """
+    )
+
+    @Test
+    fun `variables index increases with scope`() = testIRRepr(
+      program = """
+      int main() {
+        int a = 0;
+        {
+          int a = 1;
+        }
+        return a;
+      }
+      """,
+      irRepresentation = """
+      main():
+        a@1 = 0
+        a@2 = 1
+        ret a@1
+      """
+    )
+
+    @Test
+    fun `variables out of scope can be modified`() = testIRRepr(
+      program = """
+      int main() {
+        int a = 0;
+        {
+          a = 1;
+          int a = 2;
+          a = 3;
+        }
+        return a;
+      }
+      """,
+      irRepresentation = """
+      main():
+        a@1 = 0
+        a@1 = 1
+        a@2 = 2
+        a@2 = 3
+        ret a@1
+      """
+    )
+
+    @Test
+    fun `scope increases with if statement`() = testIRRepr(
+      program = """
+      int main() {
+        int a = 0;
+        if (a == 1) {
+          a = 1;
+          int a = 2;
+          a = 3;
+        }
+        return a;
+      }
+      """,
+      irRepresentation = """
+      main():
+        a@1 = 0
+        @T2 = 1
+        if a@1 eq @T2 goto @L0
+        goto @L1
+      @L0:
+        a@1 = 1
+        a@3 = 2
+        a@3 = 3
+      @L1:
+        ret a@1
+      """
+    )
+
+    @Test
+    fun `scope increases with if else statement`() = testIRRepr(
+      program = """
+      int main() {
+        int a = 0;
+        if (a == 1) {
+          a = 1;
+          int a = 2;
+          a = 3;
+        }
+        else {
+          a = 4;
+          int a = 5;
+          a = 6;
+        }
+        return a;
+      }
+      """,
+      irRepresentation = """
+      main():
+        a@1 = 0
+        @T3 = 1
+        if a@1 eq @T3 goto @L0
+        a@1 = 4
+        a@3 = 5
+        a@3 = 6
+        goto @L2
+      @L0:
+        a@1 = 1
+        a@3 = 2
+        a@3 = 3
+      @L2:
+        ret a@1
+      """
+    )
+
+    @Test
+    fun `scope increases with while statement`() = testIRRepr(
+      program = """
+      int main() {
+        int a = 0;
+        while (a < 1) {
+          a++;
+          int a = 1;
+          a = 2;
+        }
+        return a;
+      }
+      """,
+      irRepresentation = """
+      main():
+        a@1 = 0
+        goto @L1
+      @L0:
+        inc a@1
+        a@3 = 1
+        a@3 = 2
+      @L1:
+        @T3 = 1
+        if a@1 lt @T3 goto @L0
+        ret a@1
+      """
+    )
+
+    @Test
+    fun `scope increases with single line if statement`() = testIRRepr(
+      program = """
+      int main() {
+        int a = 0;
+        if (a == 1) int a = 2;
+        return a;
+      }
+      """,
+      irRepresentation = """
+      main():
+        a@1 = 0
+        @T2 = 1
+        if a@1 eq @T2 goto @L0
+        goto @L1
+      @L0:
+        a@2 = 2
+      @L1:
+        ret a@1
+      """
+    )
+
+    @Test
+    fun `scope increases with single line if else statement`() = testIRRepr(
+      program = """
+      int main() {
+        int a = 0;
+        if (a == 1) int a = 2;
+        else int a = 5;
+        return a;
+      }
+      """,
+      irRepresentation = """
+      main():
+        a@1 = 0
+        @T3 = 1
+        if a@1 eq @T3 goto @L0
+        a@2 = 5
+        goto @L2
+      @L0:
+        a@2 = 2
+      @L2:
+        ret a@1
+      """
+    )
+
+    @Test
+    fun `scope increases with single line while statement`() = testIRRepr(
+      program = """
+      int main() {
+        int a = 0;
+        while (a < 1) int a = 1;
+        return a;
+      }
+      """,
+      irRepresentation = """
+      main():
+        a@1 = 0
+        goto @L1
+      @L0:
+        a@2 = 1
+      @L1:
+        @T3 = 1
+        if a@1 lt @T3 goto @L0
+        ret a@1
+      """
+    )
+  }
+
+  @Nested
   inner class OpOnNotConstTest {
     @Test
     fun `test op on int`() = testIRRepr(
