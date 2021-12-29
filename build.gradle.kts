@@ -29,6 +29,17 @@ tasks.getByName<Test>("test") {
   useJUnitPlatform()
   ignoreFailures = true
   testLogging { events = setOf(PASSED, SKIPPED, FAILED) }
+  addTestListener(object : TestListener {
+    override fun beforeSuite(suite: TestDescriptor) {}
+    override fun beforeTest(testDescriptor: TestDescriptor) {}
+    override fun afterTest(testDescriptor: TestDescriptor, result: TestResult) {}
+    override fun afterSuite(suite: TestDescriptor, result: TestResult): Unit = println(
+      "TEST RESULTS: ${suite.displayName}\n" +
+        "Passed: ${result.successfulTestCount}/${result.testCount}\t" +
+        "Failed: ${result.failedTestCount}/${result.testCount}\t" +
+        "Skipped: ${result.skippedTestCount}/${result.testCount}"
+    )
+  })
 }
 
 tasks.withType<KotlinCompile> {
