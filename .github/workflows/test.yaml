@@ -16,6 +16,16 @@ jobs:
           cache: gradle
       - name: Make Gradle executable
         run: chmod u+x ./gradlew
+      - name: Qodana Scan
+        uses: JetBrains/qodana-action@v4.2.0
+        with:
+          linter: jetbrains/qodana-jvm
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ${{ runner.temp }}/qodana/results/report
+          destination_dir: ./
       - name: Test with Gradle
         run: ./gradlew test
       - name: Cleanup Gradle Cache
