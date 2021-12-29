@@ -1,7 +1,8 @@
-package ml.dev.kotlin.latte.typecheck
+package ml.dev.kotlin.latte.quadruple
 
-import ml.dev.kotlin.latte.quadruple.*
 import ml.dev.kotlin.latte.syntax.parse
+import ml.dev.kotlin.latte.typecheck.typeCheck
+import ml.dev.kotlin.latte.util.nlString
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -17,7 +18,7 @@ internal class IRGeneratorTest {
         return 0;
       }
       """,
-      ir = """
+      irRepresentation = """
       main():
         T0 = 0
         ret T0
@@ -33,7 +34,7 @@ internal class IRGeneratorTest {
         return 0;
       }
       """,
-      ir = """
+      irRepresentation = """
       main():
         a = 1
         T1 = 1
@@ -53,7 +54,7 @@ internal class IRGeneratorTest {
         return 0;
       }
       """,
-      ir = """
+      irRepresentation = """
       main():
         a = 1
         T1 = 1
@@ -77,7 +78,7 @@ internal class IRGeneratorTest {
         return x;
       }
       """,
-      ir = """
+      irRepresentation = """
       main():
         a = 42
         b = 24
@@ -105,19 +106,17 @@ internal class IRGeneratorTest {
         return 0;
       }
       """,
-      ir = """
+      irRepresentation = """
       main():
         a = true
         b = false
-        if a goto L1
-      M4:
-        if b goto L1
-      L2:
+        if a goto @L1
+        if b goto @L1
         T0 = false
-        goto L3
-      L1:
+        goto @L3
+      @L1:
         T0 = true
-      L3:
+      @L3:
         x = T0
         T5 = 0
         ret T5
@@ -134,20 +133,20 @@ internal class IRGeneratorTest {
         return 0;
       }
       """,
-      ir = """
+      irRepresentation = """
       main():
         a = true
         b = false
-        if a goto M4
-        goto L2
-      M4:
-        if b goto L1
-      L2:
+        if a goto @M4
+        goto @L2
+      @M4:
+        if b goto @L1
+      @L2:
         T0 = false
-        goto L3
-      L1:
+        goto @L3
+      @L1:
         T0 = true
-      L3:
+      @L3:
         x = T0
         T5 = 0
         ret T5
@@ -165,18 +164,55 @@ internal class IRGeneratorTest {
         return 0;
       }
       """,
-      ir = """
+      irRepresentation = """
       main():
-        a = S0
-        b = S1
+        a = @S0
+        b = @S1
         T2 = a plus b
         T3 = T2 plus a
         x = T3
         T4 = 0
         ret T4
       """,
-      "42" to "S0",
-      "24" to "S1",
+      "42" to "@S0",
+      "24" to "@S1",
+    )
+  }
+
+  @Nested
+  inner class CondSimplifyTest {
+    @Test
+    fun `test simplify const if boolean AND`() = testIRRepr(
+      program = """
+      int main() {
+        if (false && true) {
+          return 1;
+        }
+        return 0;
+      }
+      """,
+      irRepresentation = """
+      main():
+        T4 = 0
+        ret T4
+      """
+    )
+
+    @Test
+    fun `test simplify const if boolean OR`() = testIRRepr(
+      program = """
+      int main() {
+        if (false || false) {
+          return 1;
+        }
+        return 0;
+      }
+      """,
+      irRepresentation = """
+      main():
+        T4 = 0
+        ret T4
+      """
     )
   }
 
@@ -190,7 +226,7 @@ internal class IRGeneratorTest {
         return i;
       }
       """,
-      ir = """
+      irRepresentation = """
       main():
         i = 5
         ret i
@@ -205,7 +241,7 @@ internal class IRGeneratorTest {
         return 0;
       }
       """,
-      ir = """
+      irRepresentation = """
       main():
         b = true
         T0 = 0
@@ -221,26 +257,32 @@ internal class IRGeneratorTest {
         return 0;
       }
       """,
-      ir = """
+      irRepresentation = """
       main():
-        s = S4
+        s = @S4
         T5 = 0
         ret T5
       """,
-      "left" to "S0",
-      "<>" to "S1",
-      "left<>" to "S2",
-      "right" to "S3",
-      "left<>right" to "S4",
+      "left" to "@S0",
+      "<>" to "@S1",
+      "left<>" to "@S2",
+      "right" to "@S3",
+      "left<>right" to "@S4"
     )
   }
 }
 
-private fun testIRRepr(program: String, ir: String, vararg strings: Pair<String, String>) {
-  val quadruples = program.byteInputStream().parse().typeCheck().toIR()
-  val irRepr = quadruples.list.joinToString("\n", "\n", "\n") { it.repr() }
-  assertEquals("\n${ir.trimIndent()}\n", irRepr)
-  assertEquals(strings.toMap(), quadruples.strings.mapValues { it.value.name })
+private fun testIRRepr(
+  program: String,
+  irRepresentation: String,
+  vararg strings: Pair<String, String>,
+  optimize: Boolean = true
+) {
+  val (graph, str) = program.byteInputStream().parse().typeCheck().toIR()
+  val instructions = graph.orderedBlocks().flatMap { it.instructions }.run { if (optimize) optimize() else this }
+  val repr = instructions.nlString { it.repr() }
+  assertEquals("\n${irRepresentation.trimIndent()}\n", repr)
+  assertEquals(strings.toMap(), str.mapValues { it.value.name })
   // assert(quadruples.list.isSSA())
 }
 
@@ -252,7 +294,7 @@ private fun List<Quadruple>.isSSA(): Boolean = mapNotNull {
     is CondJumpQ -> null
     is FunCallQ -> it.to
     is JumpQ -> null
-    is CodeFunLabelQ -> null
+    is FunCodeLabelQ -> null
     is CodeLabelQ -> null
     is RetQ -> null
     is UnOpQ -> it.to
@@ -270,13 +312,13 @@ private fun ValueHolder.repr(): String = when (this) {
 
 private fun Quadruple.repr(): String = when (this) {
   is AssignQ -> "${to.repr()} = ${from.repr()}"
-  is BiCondJumpQ -> "if ${left.repr()} ${op.name.lowercase()} ${right.repr()} goto ${onTrue.name}"
+  is BiCondJumpQ -> "if ${left.repr()} ${op.name.lowercase()} ${right.repr()} goto ${toLabel.name}"
   is BinOpQ -> "${to.repr()} = ${left.repr()} ${op.name.lowercase()} ${right.repr()}"
   is UnOpQ -> "${to.repr()} = ${op.name.lowercase()} ${from.repr()}"
-  is CodeFunLabelQ -> "${label.name}(${args.joinToString { it.repr() }}):"
+  is FunCodeLabelQ -> "${label.name}(${args.joinToString { it.repr() }}):"
   is CodeLabelQ -> "${label.name}:"
-  is CondJumpQ -> "if ${cond.repr()} goto ${onTrue.name}"
-  is JumpQ -> "goto ${label.name}"
+  is CondJumpQ -> "if ${cond.repr()} goto ${toLabel.name}"
+  is JumpQ -> "goto ${toLabel.name}"
   is FunCallQ -> "${to.repr()} = call ${label.name} (${args.joinToString { it.repr() }})"
   is RetQ -> "ret${valueHolder?.let { " ${it.repr()}" } ?: ""}"
-}.let { if (this is LabelQuadruple) it else "  $it" }
+}.let { if (this is LabelQ) it else "  $it" }

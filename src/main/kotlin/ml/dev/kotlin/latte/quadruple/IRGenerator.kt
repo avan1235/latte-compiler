@@ -1,14 +1,17 @@
-package ml.dev.kotlin.latte.typecheck
+package ml.dev.kotlin.latte.quadruple
 
-import ml.dev.kotlin.latte.quadruple.*
+import ml.dev.kotlin.latte.quadruple.ControlFlowGraph.Companion.buildCFG
 import ml.dev.kotlin.latte.syntax.*
+import ml.dev.kotlin.latte.typecheck.TypeCheckedProgram
+import ml.dev.kotlin.latte.typecheck.stdLibFunctionTypes
 import ml.dev.kotlin.latte.util.ExceptionLocalizedMessage
 import ml.dev.kotlin.latte.util.IRException
 import ml.dev.kotlin.latte.util.StackTable
 import ml.dev.kotlin.latte.util.unit
-import java.util.*
 
-fun TypeCheckedProgram.toIR() = IRGenerator().run { this@toIR.generate() }
+fun TypeCheckedProgram.toIR(): IR = IRGenerator().run { this@toIR.generate() }
+
+data class IR(val graph: ControlFlowGraph, val strings: Map<String, Label>)
 
 private data class IRGenerator(
   private val funEnv: MutableMap<String, Type> = stdLibFunctionTypes(),
@@ -18,9 +21,10 @@ private data class IRGenerator(
   private var labelIdx: Int = 0,
   private var localIdx: Int = 0,
 ) {
-  fun TypeCheckedProgram.generate(): QuadruplesList {
+  fun TypeCheckedProgram.generate(): IR {
     program.topDefs.onEach { it.addToFunEnv() }.forEach { it.generate() }
-    return QuadruplesList(quadruples.optimize(), strings)
+    val cfg = quadruples.buildCFG { CodeLabelQ(freshLabel(prefix = "G")) }
+    return IR(cfg, strings)
   }
 
   private fun TopDef.addToFunEnv() {
@@ -29,7 +33,7 @@ private data class IRGenerator(
 
   private fun TopDef.generate() = varEnv.level {
     val args = args.list.mapIndexed { idx, (type, name) -> addArg(name.label, type, idx) }
-    emit { CodeFunLabelQ(mangledName.label, args) }
+    emit { FunCodeLabelQ(mangledName.label, args) }
     block.generate()
   }
 
@@ -206,7 +210,7 @@ private data class IRGenerator(
     StringConstValue(strings[value] ?: freshLabel(prefix = "S").also { strings[value] = it }, value)
 
   private fun freshIdx(): Int = labelIdx.also { labelIdx += 1 }
-  private fun freshLabel(prefix: String): Label = "$prefix${freshIdx()}".label
+  private fun freshLabel(prefix: String): Label = "@$prefix${freshIdx()}".label
   private fun freshLabels(count: Int, prefix: String = "L"): List<Label> = List(count) { freshLabel(prefix) }
 
   private fun addArg(label: Label, type: Type, idx: Int): ArgValue =
@@ -245,25 +249,3 @@ private fun BinOp.on(lv: BooleanConstValue, rv: BooleanConstValue) = when (this)
 }
 
 private fun AstNode.err(message: String): Nothing = throw IRException(ExceptionLocalizedMessage(message, span?.from))
-
-private fun List<Quadruple>.optimize(): List<Quadruple> {
-  tailrec fun TreeMap<Int, Quadruple>.optimizeJumpToNextLabel(): List<Quadruple> {
-    if (isEmpty()) return emptyList()
-
-    var next = firstKey()
-    var removed = 0
-    while (true) {
-      val last = next
-      next = higherKey(next) ?: break
-      val goto = (this[last] as? JumpQ) ?: continue
-      val codeLabel = (this[next] as? CodeLabelQ) ?: continue
-      if (goto.label != codeLabel.label) continue
-      this -= last
-      removed += 1
-    }
-    return if (removed == 0) values.toList() else optimizeJumpToNextLabel()
-  }
-  return TreeMap<Int, Quadruple>().also { map ->
-    forEachIndexed { idx, q -> map[idx] = q }
-  }.optimizeJumpToNextLabel()
-}

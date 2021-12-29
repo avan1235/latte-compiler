@@ -1,12 +1,26 @@
 package ml.dev.kotlin.latte.util
 
-inline fun <T> Iterable<T>.splitAt(crossinline separator: (T) -> Boolean): List<List<T>> = sequence {
+inline fun <T> Iterable<T>.splitAt(
+  crossinline first: (T) -> Boolean = { false },
+  crossinline last: (T) -> Boolean = { false },
+): Sequence<List<T>> = sequence {
   var curr = mutableListOf<T>()
   for (elem in this@splitAt) {
-    if (separator(elem)) {
-      yield(curr)
-      curr = mutableListOf(elem)
-    } else curr += elem
+    when {
+      first(elem) -> {
+        yield(curr)
+        curr = mutableListOf(elem)
+      }
+      last(elem) -> {
+        curr += elem
+        yield(curr)
+        curr = mutableListOf()
+      }
+      else -> curr += elem
+    }
   }
   yield(curr)
-}.filter { it.isNotEmpty() }.toList()
+}.filter { it.isNotEmpty() }
+
+fun <T> Iterable<T>.nlString(transform: ((T) -> CharSequence)? = null) =
+  joinToString("\n", "\n", "\n", transform = transform)

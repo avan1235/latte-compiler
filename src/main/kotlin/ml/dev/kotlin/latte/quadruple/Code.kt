@@ -22,16 +22,26 @@ data class ArgValue(override val name: String, override val idx: Int, override v
 data class TempValue(override val name: String, override val idx: Int, override val type: Type) : MemoryLoc
 
 sealed interface Quadruple
+sealed interface JumpingQ : Quadruple {
+  val toLabel: Label?
+}
+
+sealed interface LabelQ : Quadruple {
+  val label: Label
+}
+
 data class BinOpQ(val to: MemoryLoc, val left: MemoryLoc, val op: BinOp, val right: MemoryLoc) : Quadruple
 data class UnOpQ(val to: MemoryLoc, val op: UnOp, val from: MemoryLoc) : Quadruple
 data class AssignQ(val to: MemoryLoc, val from: ValueHolder) : Quadruple
-data class JumpQ(val label: Label) : Quadruple
-data class CondJumpQ(val cond: MemoryLoc, val onTrue: Label) : Quadruple
-data class BiCondJumpQ(val left: MemoryLoc, val op: RelOp, val right: MemoryLoc, val onTrue: Label) : Quadruple
-data class RetQ(val valueHolder: MemoryLoc? = null) : Quadruple
 data class FunCallQ(val to: MemoryLoc, val label: Label, val args: List<ValueHolder>) : Quadruple
-data class CodeFunLabelQ(override val label: Label, val args: List<ArgValue>) : LabelQuadruple
-data class CodeLabelQ(override val label: Label) : LabelQuadruple
-sealed interface LabelQuadruple : Quadruple {
-  val label: Label
+
+data class FunCodeLabelQ(override val label: Label, val args: List<ArgValue>) : LabelQ
+data class CodeLabelQ(override val label: Label) : LabelQ
+
+data class CondJumpQ(val cond: MemoryLoc, override val toLabel: Label) : JumpingQ
+data class BiCondJumpQ(val left: MemoryLoc, val op: RelOp, val right: MemoryLoc, override val toLabel: Label) : JumpingQ
+data class JumpQ(override val toLabel: Label) : JumpingQ
+data class RetQ(val valueHolder: MemoryLoc? = null) : JumpingQ {
+  override val toLabel: Label? = null
 }
+
