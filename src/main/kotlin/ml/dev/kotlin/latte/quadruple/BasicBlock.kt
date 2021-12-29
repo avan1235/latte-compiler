@@ -24,12 +24,12 @@ fun Iterable<Quadruple>.toBasicBlock(labelGenerator: () -> CodeLabelQ): BasicBlo
 
 private fun Quadruple.usedVars(): Sequence<String> = when (this) {
   is AssignQ -> sequenceOf(to, from as? MemoryLoc)
-  is BinOpQ -> sequenceOf(to, left, right)
+  is BinOpQ -> sequenceOf(to, left, right as? MemoryLoc)
   is UnOpQ -> sequenceOf(to, from)
   is DecQ -> sequenceOf(toFrom)
   is IncQ -> sequenceOf(toFrom)
   is FunCallQ -> sequenceOf(to) + args.asSequence().filterIsInstance<MemoryLoc>()
-  is BiCondJumpQ -> sequenceOf(left, right)
+  is BiCondJumpQ -> sequenceOf(left, right as? MemoryLoc)
   is CondJumpQ -> sequenceOf(cond)
   is RetQ -> sequenceOf(value as? MemoryLoc)
   is JumpQ -> emptySequence()

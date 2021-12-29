@@ -96,7 +96,7 @@ private data class IRGenerator(
       }
         ?.let { if (it.bool) emit { JumpQ(onTrue) } else emit { JumpQ(onFalse) } }
         ?: run {
-          emit { BiCondJumpQ(lv.inMemory(), expr.op, rv.inMemory(), onTrue) }
+          emit { BiCondJumpQ(lv.inMemory(), expr.op, rv, onTrue) }
           emit { JumpQ(onFalse) }
         }
     }
@@ -166,7 +166,7 @@ private data class IRGenerator(
             op is NumOp -> IntType
             op is RelOp -> BooleanType
             else -> err("Unknown binary operation $this")
-          }.let { type -> freshTemp(type) { to -> emit { BinOpQ(to, lv.inMemory(), op, rv.inMemory()) } } }
+          }.let { type -> freshTemp(type) { to -> emit { BinOpQ(to, lv.inMemory(), op, rv) } } }
         }
       }
     }

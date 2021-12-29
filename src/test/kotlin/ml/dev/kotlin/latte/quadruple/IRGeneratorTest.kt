@@ -144,8 +144,7 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         a@1 = 0
-        @T2 = 1
-        if a@1 eq @T2 goto @L0
+        if a@1 eq 1 goto @L0
         goto @L1
       @L0:
         a@1 = 1
@@ -177,8 +176,7 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         a@1 = 0
-        @T3 = 1
-        if a@1 eq @T3 goto @L0
+        if a@1 eq 1 goto @L0
         a@1 = 4
         a@3 = 5
         a@3 = 6
@@ -214,8 +212,7 @@ internal class IRGeneratorTest {
         a@3 = 1
         a@3 = 2
       @L1:
-        @T3 = 1
-        if a@1 lt @T3 goto @L0
+        if a@1 lt 1 goto @L0
         ret a@1
       """
     )
@@ -232,8 +229,7 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         a@1 = 0
-        @T2 = 1
-        if a@1 eq @T2 goto @L0
+        if a@1 eq 1 goto @L0
         goto @L1
       @L0:
         a@2 = 2
@@ -255,8 +251,7 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         a@1 = 0
-        @T3 = 1
-        if a@1 eq @T3 goto @L0
+        if a@1 eq 1 goto @L0
         a@2 = 5
         goto @L2
       @L0:
@@ -282,8 +277,7 @@ internal class IRGeneratorTest {
       @L0:
         a@2 = 1
       @L1:
-        @T3 = 1
-        if a@1 lt @T3 goto @L0
+        if a@1 lt 1 goto @L0
         ret a@1
       """
     )
@@ -310,11 +304,9 @@ internal class IRGeneratorTest {
         @T2 = b@1 times @T0
         @T3 = @T2 divide a@1
         @T4 = a@1 plus @T3
-        @T6 = 1
-        @T5 = @T4 plus @T6
-        @T8 = 49
-        @T7 = @T5 mod @T8
-        x@1 = @T7
+        @T5 = @T4 plus 1
+        @T6 = @T5 mod 49
+        x@1 = @T6
         ret x@1
       """
     )
