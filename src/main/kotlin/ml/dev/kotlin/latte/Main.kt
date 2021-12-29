@@ -7,7 +7,7 @@ import ml.dev.kotlin.latte.util.LatteException
 import ml.dev.kotlin.latte.util.eprintln
 import java.io.File
 
-fun main(args: Array<String>): Unit = args.forEach { path ->
+fun main(args: Array<String>): Unit = args.takeIf { it.isNotEmpty() }?.forEach { path ->
   try {
     File(path).runCompiler()
     println("OK")
@@ -18,7 +18,7 @@ fun main(args: Array<String>): Unit = args.forEach { path ->
     eprintln("Unknown error: $e")
     eprintln("ERROR")
   }
-}
+} ?: println("Usage: ./latte <input-file-paths>")
 
 private fun File.runCompiler() = takeIf { it.isFile }?.inputStream()
   ?.parse()?.also { println("AST:\n$it") }
