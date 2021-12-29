@@ -33,6 +33,8 @@ sealed interface LabelQ : Quadruple {
 data class BinOpQ(val to: MemoryLoc, val left: MemoryLoc, val op: BinOp, val right: MemoryLoc) : Quadruple
 data class UnOpQ(val to: MemoryLoc, val op: UnOp, val from: MemoryLoc) : Quadruple
 data class AssignQ(val to: MemoryLoc, val from: ValueHolder) : Quadruple
+data class IncQ(val to: MemoryLoc) : Quadruple
+data class DecQ(val to: MemoryLoc) : Quadruple
 data class FunCallQ(val to: MemoryLoc, val label: Label, val args: List<ValueHolder>) : Quadruple
 
 data class FunCodeLabelQ(override val label: Label, val args: List<ArgValue>) : LabelQ

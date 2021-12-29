@@ -44,8 +44,8 @@ private data class IRGenerator(
     is BlockStmt -> varEnv.level { block.generate() }
     is DeclStmt -> items.forEach { it.generate(type) }
     is AssStmt -> emit { AssignQ(getVar(ident), expr.generate()) }
-    is DecrStmt -> ident.oneOp(NumOp.MINUS)
-    is IncrStmt -> ident.oneOp(NumOp.PLUS)
+    is DecrStmt -> emit { DecQ(getVar(ident)) }
+    is IncrStmt -> emit { IncQ(getVar(ident)) }
     is ExprStmt -> expr.generate().unit()
     is RetStmt -> emit { RetQ(expr.generate().inMemory()) }
     is VRetStmt -> emit { RetQ() }
@@ -199,8 +199,6 @@ private data class IRGenerator(
     ).generate()
   }
 
-  private fun String.oneOp(op: NumOp): Unit = AssStmt(this, BinOpExpr(IdentExpr(this), op, IntExpr("1"))).generate()
-
   private inline fun emit(emit: () -> Quadruple) {
     quadruples += emit()
   }
@@ -239,7 +237,6 @@ private fun RelOp.rel(lv: IntConstValue, rv: IntConstValue): BooleanConstValue =
   RelOp.GE -> (lv >= rv).bool
   RelOp.EQ -> (lv == rv).bool
   RelOp.NE -> (lv != rv).bool
-  else -> err("Undefined $this for $lv and $rv")
 }
 
 private fun NumOp.num(lv: IntConstValue, rv: IntConstValue): IntConstValue = when (this) {

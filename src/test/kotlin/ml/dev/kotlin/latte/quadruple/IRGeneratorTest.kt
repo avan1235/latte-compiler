@@ -26,42 +26,36 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test decreases with bin op`() = testIRRepr(
+    fun `test decreases with special op`() = testIRRepr(
       program = """
       int main() {
         int a = 1;
         a--;
-        return 0;
+        return a;
       }
       """,
       irRepresentation = """
       main():
         a = 1
-        @T1 = 1
-        @T0 = a minus @T1
-        a = @T0
-        @T2 = 0
-        ret @T2
+        dec a
+        ret a
       """
     )
 
     @Test
-    fun `test increases with bin op`() = testIRRepr(
+    fun `test increases with special op`() = testIRRepr(
       program = """
       int main() {
-        int a = 1;
+        int a = -1;
         a++;
-        return 0;
+        return a;
       }
       """,
       irRepresentation = """
       main():
-        a = 1
-        @T1 = 1
-        @T0 = a plus @T1
-        a = @T0
-        @T2 = 0
-        ret @T2
+        a = -1
+        inc a
+        ret a
       """
     )
   }
@@ -320,6 +314,32 @@ internal class IRGeneratorTest {
     )
 
     @Test
+    fun `test simplify const while - on true`() = testIRRepr(
+      program = """
+      int main() {
+        int i = 0;
+        int j = 0;
+        while (false || (true == true)) {
+          i++;
+          j--;
+        }
+        return 0;
+      }
+      """,
+      irRepresentation = """
+      main():
+        i = 0
+        j = 0
+        goto @L1
+      @L0:
+        inc i
+        dec j
+      @L1:
+        goto @L0
+      """
+    )
+
+    @Test
     fun `test simplify const if else - on true`() = testIRRepr(
       program = """
       int main() {
@@ -373,6 +393,20 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         i = 5
+        ret i
+      """
+    )
+    @Test
+    fun `test simplify const neg int`() = testIRRepr(
+      program = """
+      int main() {
+        int i = -(-(-(-10)));
+        return i;
+      }
+      """,
+      irRepresentation = """
+      main():
+        i = 10
         ret i
       """
     )
@@ -442,6 +476,8 @@ private fun List<Quadruple>.isSSA(): Boolean = mapNotNull {
     is CodeLabelQ -> null
     is RetQ -> null
     is UnOpQ -> it.to
+    is DecQ -> it.to
+    is IncQ -> it.to
   }?.repr()
 }.let { it.size == it.toSet().size }
 
@@ -465,4 +501,6 @@ private fun Quadruple.repr(): String = when (this) {
   is JumpQ -> "goto ${toLabel.name}"
   is FunCallQ -> "${to.repr()} = call ${label.name} (${args.joinToString { it.repr() }})"
   is RetQ -> "ret${valueHolder?.let { " ${it.repr()}" } ?: ""}"
+  is DecQ -> "dec ${to.repr()}"
+  is IncQ -> "inc ${to.repr()}"
 }.let { if (this is LabelQ) it else "  $it" }
