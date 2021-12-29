@@ -1,4 +1,6 @@
-import org.gradle.api.tasks.testing.logging.TestLogEvent.*
+import org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED
+import org.gradle.api.tasks.testing.logging.TestLogEvent.PASSED
+import org.gradle.api.tasks.testing.logging.TestLogEvent.SKIPPED
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -29,11 +31,8 @@ tasks.getByName<Test>("test") {
   useJUnitPlatform()
   ignoreFailures = true
   testLogging { events = setOf(PASSED, SKIPPED, FAILED) }
-  addTestListener(object : TestListener {
-    override fun beforeSuite(suite: TestDescriptor) {}
-    override fun beforeTest(testDescriptor: TestDescriptor) {}
-    override fun afterTest(testDescriptor: TestDescriptor, result: TestResult) {}
-    override fun afterSuite(suite: TestDescriptor, result: TestResult): Unit = println(
+  afterSuite(closure<TestDescriptor, TestResult> { suite, result ->
+    if (suite.parent == null) println(
       "TEST RESULTS: ${suite.displayName}\n" +
         "Passed: ${result.successfulTestCount}/${result.testCount}\t" +
         "Failed: ${result.failedTestCount}/${result.testCount}\t" +
@@ -73,3 +72,5 @@ tasks.nativeImage {
     }
   }
 }
+
+fun <T, U> closure(c: (T, U) -> Unit): KotlinClosure2<T, U, Unit> = KotlinClosure2(c)
