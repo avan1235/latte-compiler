@@ -1,11 +1,10 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.gradle.api.tasks.testing.logging.TestLogEvent.*
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   kotlin("jvm") version "1.6.10"
   antlr
-  id("com.github.johnrengelman.shadow") version "7.0.0"
+  id("com.palantir.graal") version "0.10.0"
 }
 
 val jarName = "latte.jar"
@@ -48,11 +47,20 @@ java {
   targetCompatibility = JavaVersion.VERSION_1_8
 }
 
-val shadowJar = tasks.withType<ShadowJar> {
-  archiveFileName.set(jarName)
-  manifest {
-    attributes(mapOf("Main-Class" to "ml.dev.kotlin.latte.MainKt"))
-  }
+graal {
+  javaVersion("8")
+  graalVersion("21.2.0")
+  outputName("latte")
+  mainClass("ml.dev.kotlin.latte.MainKt")
+  option("--verbose")
+  option("--no-fallback")
 }
 
-
+tasks.nativeImage {
+  doLast {
+    copy {
+      from("$buildDir/graal/latte")
+      into("$projectDir")
+    }
+  }
+}
