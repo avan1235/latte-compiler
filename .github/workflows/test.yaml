@@ -1,11 +1,6 @@
-name: Build Native
+name: Test
 
-on:
-  workflow_run:
-    workflows: ["Test"]
-    branches: [master]
-    types:
-      - completed
+on: [push]
 
 jobs:
   build:
@@ -21,14 +16,9 @@ jobs:
           cache: gradle
       - name: Make Gradle executable
         run: chmod u+x ./gradlew
-      - name: Build with Gradle
-        run: ./gradlew nativeImage
+      - name: Test with Gradle
+        run: ./gradlew test
       - name: Cleanup Gradle Cache
         run: |
           rm -f ~/.gradle/caches/modules-2/modules-2.lock
           rm -f ~/.gradle/caches/modules-2/gc.properties
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: latte
-          path: latte
