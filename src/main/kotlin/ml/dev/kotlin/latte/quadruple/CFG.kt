@@ -52,7 +52,7 @@ data class ControlFlowGraph(
   }
 
   private fun transformToSSA() {
-//    val blockUsedVariables = MutableDefaultMap<Label, MutableSet<>>
+    val blockUsedVariables = byName.mapValues { it.value.usedVars }
   }
 
   companion object {

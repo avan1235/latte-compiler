@@ -10,8 +10,7 @@ data class BasicBlock(
   val label: Label,
   val jumpQ: JumpingQ?,
   val usedVars: Set<String>,
-) {
-}
+)
 
 fun Iterable<Quadruple>.toBasicBlock(labelGenerator: () -> CodeLabelQ): BasicBlock = toMutableList().run {
   val first = (firstOrNull() as? LabelQ) ?: labelGenerator().also { add(index = 0, it) }

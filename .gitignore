@@ -1,3 +1,6 @@
 .gradle/
 .idea/
 build/
+lib/runtime.o
+latte
+latc_x86

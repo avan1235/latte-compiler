@@ -7,8 +7,6 @@ plugins {
   id("com.palantir.graal") version "0.10.0"
 }
 
-val jarName = "latte.jar"
-
 group = "ml.dev.kotlin"
 version = "1.0"
 
@@ -50,7 +48,7 @@ java {
 graal {
   javaVersion("8")
   graalVersion("21.2.0")
-  outputName("latte")
+  outputName("latc_x86")
   mainClass("ml.dev.kotlin.latte.MainKt")
   option("--verbose")
   option("--no-fallback")
@@ -59,7 +57,7 @@ graal {
 tasks.nativeImage {
   doLast {
     copy {
-      from("$buildDir/graal/latte")
+      from("$buildDir/graal/latc_x86")
       into("$projectDir")
     }
   }

@@ -9,3 +9,5 @@ class ParseException(userMessage: ExceptionLocalizedMessage) : FrontendException
 class TypeCheckException(userMessage: ExceptionLocalizedMessage) : FrontendException(userMessage)
 
 class IRException(userMessage: ExceptionLocalizedMessage) : LatteException(userMessage)
+
+class CompileException(code: Int) : LatteException("Compilation process returned non zero code $code".msg)
