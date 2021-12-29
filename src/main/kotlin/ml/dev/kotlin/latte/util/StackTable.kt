@@ -2,31 +2,32 @@ package ml.dev.kotlin.latte.util
 
 import java.util.*
 
-private typealias StackLevel = UInt
+typealias StackLevel = Int
 
 data class StackTable<K, V>(
-  private var level: StackLevel = 0U,
+  private var _level: StackLevel = 0,
   private val levelValues: MutableDefaultMap<K, Stack<V>> = MutableDefaultMap({ Stack() }),
   private val levelNames: MutableDefaultMap<StackLevel, MutableSet<K>> = MutableDefaultMap({ hashSetOf() }),
 ) {
-  val currentLevelNames: Set<K> get() = levelNames[level]
+  val currentLevelNames: Set<K> get() = levelNames[_level]
+  val level: StackLevel get() = _level
 
   operator fun get(key: K): V? = levelValues[key].lastOrNull()
   operator fun set(key: K, value: V) {
     if (key in currentLevelNames) throw IllegalArgumentException("Cannot redefine $key with $value for $this")
     levelValues[key] += value
-    levelNames[level] += key
+    levelNames[_level] += key
   }
 
   fun beginLevel() {
-    level += 1U
+    _level += 1
   }
 
   fun endLevel(): List<Pair<K, V>> {
-    if (level == 0U) throw IllegalStateException("Ended too many levels for $this")
-    val levelNames = levelNames.remove(level)
+    if (_level == 0) throw IllegalStateException("Ended too many levels for $this")
+    val levelNames = levelNames.remove(_level)
     val levelValues = levelNames.map { it to levelValues[it].pop() }
-    level -= 1U
+    _level -= 1
     return levelValues
   }
 
@@ -37,5 +38,5 @@ data class StackTable<K, V>(
     return result
   }
 
-  override fun toString(): String = "StackTable(level=$level, levelValues=$levelValues, levelNames=$levelNames)"
+  override fun toString(): String = "StackTable(level=$_level, levelValues=$levelValues, levelNames=$levelNames)"
 }

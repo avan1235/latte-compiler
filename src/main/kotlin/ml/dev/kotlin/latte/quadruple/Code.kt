@@ -33,8 +33,8 @@ sealed interface LabelQ : Quadruple {
 data class BinOpQ(val to: MemoryLoc, val left: MemoryLoc, val op: BinOp, val right: MemoryLoc) : Quadruple
 data class UnOpQ(val to: MemoryLoc, val op: UnOp, val from: MemoryLoc) : Quadruple
 data class AssignQ(val to: MemoryLoc, val from: ValueHolder) : Quadruple
-data class IncQ(val to: MemoryLoc) : Quadruple
-data class DecQ(val to: MemoryLoc) : Quadruple
+data class IncQ(val toFrom: MemoryLoc) : Quadruple
+data class DecQ(val toFrom: MemoryLoc) : Quadruple
 data class FunCallQ(val to: MemoryLoc, val label: Label, val args: List<ValueHolder>) : Quadruple
 
 data class FunCodeLabelQ(override val label: Label, val args: List<ArgValue>) : LabelQ
@@ -43,7 +43,7 @@ data class CodeLabelQ(override val label: Label) : LabelQ
 data class CondJumpQ(val cond: MemoryLoc, override val toLabel: Label) : JumpingQ
 data class BiCondJumpQ(val left: MemoryLoc, val op: RelOp, val right: MemoryLoc, override val toLabel: Label) : JumpingQ
 data class JumpQ(override val toLabel: Label) : JumpingQ
-data class RetQ(val valueHolder: MemoryLoc? = null) : JumpingQ {
+data class RetQ(val value: MemoryLoc? = null) : JumpingQ {
   override val toLabel: Label? = null
 }
 

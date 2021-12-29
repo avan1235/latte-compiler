@@ -36,9 +36,9 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a = 1
-        dec a
-        ret a
+        a@1 = 1
+        dec a@1
+        ret a@1
       """
     )
 
@@ -53,9 +53,9 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a = -1
-        inc a
-        ret a
+        a@1 = -1
+        inc a@1
+        ret a@1
       """
     )
   }
@@ -74,19 +74,19 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a = 42
-        b = 24
+        a@1 = 42
+        b@1 = 24
         @T1 = 3
-        @T0 = @T1 minus b
-        @T2 = b times @T0
-        @T3 = @T2 divide a
-        @T4 = a plus @T3
+        @T0 = @T1 minus b@1
+        @T2 = b@1 times @T0
+        @T3 = @T2 divide a@1
+        @T4 = a@1 plus @T3
         @T6 = 1
         @T5 = @T4 plus @T6
         @T8 = 49
         @T7 = @T5 mod @T8
-        x = @T7
-        ret x
+        x@1 = @T7
+        ret x@1
       """
     )
 
@@ -102,16 +102,16 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a = true
-        b = false
-        if a goto @L1
-        if b goto @L1
+        a@1 = true
+        b@1 = false
+        if a@1 goto @L1
+        if b@1 goto @L1
         @T0 = false
         goto @L3
       @L1:
         @T0 = true
       @L3:
-        x = @T0
+        x@1 = @T0
         @T5 = 0
         ret @T5
       """
@@ -129,19 +129,19 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a = true
-        b = false
-        if a goto @M4
+        a@1 = true
+        b@1 = false
+        if a@1 goto @M4
         goto @L2
       @M4:
-        if b goto @L1
+        if b@1 goto @L1
       @L2:
         @T0 = false
         goto @L3
       @L1:
         @T0 = true
       @L3:
-        x = @T0
+        x@1 = @T0
         @T5 = 0
         ret @T5
       """
@@ -160,11 +160,11 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a = @S0
-        b = @S1
-        @T2 = a plus b
-        @T3 = @T2 plus a
-        x = @T3
+        a@1 = @S0
+        b@1 = @S1
+        @T2 = a@1 plus b@1
+        @T3 = @T2 plus a@1
+        x@1 = @T3
         @T4 = 0
         ret @T4
       """,
@@ -301,8 +301,8 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a = true
-        if a goto @L0
+        a@1 = true
+        if a@1 goto @L0
         goto @L1
       @L0:
         @T6 = 1
@@ -328,12 +328,12 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        i = 0
-        j = 0
+        i@1 = 0
+        j@1 = 0
         goto @L1
       @L0:
-        inc i
-        dec j
+        inc i@1
+        dec j@1
       @L1:
         goto @L0
       """
@@ -392,8 +392,8 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        i = 5
-        ret i
+        i@1 = 5
+        ret i@1
       """
     )
     @Test
@@ -406,8 +406,8 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        i = 10
-        ret i
+        i@1 = 10
+        ret i@1
       """
     )
 
@@ -421,7 +421,7 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        b = true
+        b@1 = true
         @T0 = 0
         ret @T0
       """
@@ -437,7 +437,7 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        s = @S4
+        s@1 = @S4
         @T5 = 0
         ret @T5
       """,
@@ -476,8 +476,8 @@ private fun List<Quadruple>.isSSA(): Boolean = mapNotNull {
     is CodeLabelQ -> null
     is RetQ -> null
     is UnOpQ -> it.to
-    is DecQ -> it.to
-    is IncQ -> it.to
+    is DecQ -> it.toFrom
+    is IncQ -> it.toFrom
   }?.repr()
 }.let { it.size == it.toSet().size }
 
@@ -500,7 +500,7 @@ private fun Quadruple.repr(): String = when (this) {
   is CondJumpQ -> "if ${cond.repr()} goto ${toLabel.name}"
   is JumpQ -> "goto ${toLabel.name}"
   is FunCallQ -> "${to.repr()} = call ${label.name} (${args.joinToString { it.repr() }})"
-  is RetQ -> "ret${valueHolder?.let { " ${it.repr()}" } ?: ""}"
-  is DecQ -> "dec ${to.repr()}"
-  is IncQ -> "inc ${to.repr()}"
+  is RetQ -> "ret${value?.let { " ${it.repr()}" } ?: ""}"
+  is DecQ -> "dec ${toFrom.repr()}"
+  is IncQ -> "inc ${toFrom.repr()}"
 }.let { if (this is LabelQ) it else "  $it" }

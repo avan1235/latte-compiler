@@ -19,7 +19,6 @@ private data class IRGenerator(
   private val varEnv: StackTable<String, MemoryLoc> = StackTable(),
   private val strings: MutableMap<String, Label> = hashMapOf(),
   private var labelIdx: Int = 0,
-  private var localIdx: Int = 0,
 ) {
   fun TypeCheckedProgram.generate(): IR {
     program.topDefs.onEach { it.addToFunEnv() }.forEach { it.generate() }
@@ -224,7 +223,7 @@ private data class IRGenerator(
     ArgValue(label.name, idx, type).also { varEnv[label.name] = it }
 
   private fun addLocal(label: Label, type: Type): LocalValue =
-    LocalValue(label.name, localIdx, type).also { varEnv[label.name] = it }.also { localIdx += 1 }
+    LocalValue("${label.name}@${varEnv.level}", varEnv.level, type).also { varEnv[label.name] = it }
 
   private fun AstNode.getVar(name: String): MemoryLoc = varEnv[name] ?: err("Not defined variable with name $name")
   private fun AstNode.getFunType(name: String): Type = funEnv[name] ?: err("Not defined function with name $name")
