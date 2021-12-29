@@ -14,7 +14,7 @@ jobs:
           distribution: 'adopt'
           cache: gradle
       - name: Build with Gradle
-        run: ./gradlew nativeImage
+        run: chmod u+x ./gradlew && ./gradlew nativeImage
       - name: Cleanup Gradle Cache
         run: |
           rm -f ~/.gradle/caches/modules-2/modules-2.lock
