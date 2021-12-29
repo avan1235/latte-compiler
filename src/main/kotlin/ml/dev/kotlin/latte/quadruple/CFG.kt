@@ -3,7 +3,7 @@ package ml.dev.kotlin.latte.quadruple
 import ml.dev.kotlin.latte.quadruple.BasicBlock.Companion.toBasicBlock
 import ml.dev.kotlin.latte.util.*
 
-class ControlFlowGraph private constructor(
+data class ControlFlowGraph(
   private val adj: MutableDefaultMap<Label, MutableSet<Label>> = MutableDefaultMap({ hashSetOf() }),
   private val byName: LinkedHashMap<Label, BasicBlock> = LinkedHashMap(),
   private val starts: MutableSet<Label> = HashSet()
@@ -48,7 +48,7 @@ class ControlFlowGraph private constructor(
   }
 }
 
-class BasicBlock private constructor(
+data class BasicBlock(
   val instructions: List<Quadruple>,
   val isStart: Boolean,
   val label: Label,
