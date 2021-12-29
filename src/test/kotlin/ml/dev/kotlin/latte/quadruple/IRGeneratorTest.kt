@@ -12,20 +12,6 @@ internal class IRGeneratorTest {
   @Nested
   inner class BaseConstructTest {
     @Test
-    fun `test returns using temp variables`() = testIRRepr(
-      program = """
-      int main() {
-        return 0;
-      }
-      """,
-      irRepresentation = """
-      main():
-        @T0 = 0
-        ret @T0
-      """
-    )
-
-    @Test
     fun `test decreases with special op`() = testIRRepr(
       program = """
       int main() {
@@ -57,6 +43,27 @@ internal class IRGeneratorTest {
         inc a@1
         ret a@1
       """
+    )
+  }
+
+  @Nested
+  inner class FunctionTest {
+    @Test
+    fun `test not change std lib functions names`() = testIRRepr(
+      program = """
+      int main() {
+        printString("str");
+        printInt(42);
+        return 0;
+      }
+      """,
+      irRepresentation = """
+      main():
+        @T0 = call printString (@S1)
+        @T2 = call printInt (42)
+        ret 0
+      """,
+      "str" to "@S1"
     )
   }
 
@@ -334,8 +341,7 @@ internal class IRGeneratorTest {
         @T0 = true
       @L3:
         x@1 = @T0
-        @T5 = 0
-        ret @T5
+        ret 0
       """
     )
 
@@ -364,8 +370,7 @@ internal class IRGeneratorTest {
         @T0 = true
       @L3:
         x@1 = @T0
-        @T5 = 0
-        ret @T5
+        ret 0
       """
     )
 
@@ -387,8 +392,7 @@ internal class IRGeneratorTest {
         @T2 = a@1 plus b@1
         @T3 = @T2 plus a@1
         x@1 = @T3
-        @T4 = 0
-        ret @T4
+        ret 0
       """,
       "42" to "@S0",
       "24" to "@S1",
@@ -409,8 +413,7 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        @T4 = 0
-        ret @T4
+        ret 0
       """
     )
 
@@ -426,8 +429,7 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        @T3 = 1
-        ret @T3
+        ret 1
       """
     )
 
@@ -443,8 +445,7 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        @T4 = 0
-        ret @T4
+        ret 0
       """
     )
 
@@ -460,8 +461,7 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        @T3 = 1
-        ret @T3
+        ret 1
       """
     )
 
@@ -482,8 +482,7 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        @T12 = 0
-        ret @T12
+        ret 0
       """
     )
 
@@ -502,8 +501,7 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        @T8 = 1
-        ret @T8
+        ret 1
       """
     )
 
@@ -527,11 +525,9 @@ internal class IRGeneratorTest {
         if a@1 goto @L0
         goto @L1
       @L0:
-        @T6 = 1
-        ret @T6
+        ret 1
       @L1:
-        @T7 = 0
-        ret @T7
+        ret 0
       """
     )
 
@@ -576,8 +572,7 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        @T6 = 2
-        ret @T6
+        ret 2
       """
     )
 
@@ -596,8 +591,7 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        @T5 = 1
-        ret @T5
+        ret 1
       """
     )
   }
@@ -618,6 +612,7 @@ internal class IRGeneratorTest {
         ret i@1
       """
     )
+
     @Test
     fun `test simplify const neg int`() = testIRRepr(
       program = """
@@ -644,8 +639,7 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         b@1 = true
-        @T0 = 0
-        ret @T0
+        ret 0
       """
     )
 
@@ -660,8 +654,7 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         s@1 = @S4
-        @T5 = 0
-        ret @T5
+        ret 0
       """,
       "left" to "@S0",
       "<>" to "@S1",

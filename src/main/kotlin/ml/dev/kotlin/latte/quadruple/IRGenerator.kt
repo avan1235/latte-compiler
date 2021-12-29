@@ -46,7 +46,7 @@ private data class IRGenerator(
     is DecrStmt -> emit { DecQ(getVar(ident)) }
     is IncrStmt -> emit { IncQ(getVar(ident)) }
     is ExprStmt -> expr.generate().unit()
-    is RetStmt -> emit { RetQ(expr.generate().inMemory()) }
+    is RetStmt -> emit { RetQ(expr.generate()) }
     is VRetStmt -> emit { RetQ() }
     is CondStmt -> {
       val (trueLabel, endLabel) = freshLabels(count = 2)

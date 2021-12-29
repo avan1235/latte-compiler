@@ -31,7 +31,7 @@ private fun Quadruple.usedVars(): Sequence<String> = when (this) {
   is FunCallQ -> sequenceOf(to) + args.asSequence().filterIsInstance<MemoryLoc>()
   is BiCondJumpQ -> sequenceOf(left, right)
   is CondJumpQ -> sequenceOf(cond)
-  is RetQ -> sequenceOf(value)
+  is RetQ -> sequenceOf(value as? MemoryLoc)
   is JumpQ -> emptySequence()
   is CodeLabelQ -> emptySequence()
   is FunCodeLabelQ -> emptySequence()

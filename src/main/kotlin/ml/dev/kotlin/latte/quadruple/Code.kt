@@ -43,7 +43,7 @@ data class CodeLabelQ(override val label: Label) : LabelQ
 data class CondJumpQ(val cond: MemoryLoc, override val toLabel: Label) : JumpingQ
 data class BiCondJumpQ(val left: MemoryLoc, val op: RelOp, val right: MemoryLoc, override val toLabel: Label) : JumpingQ
 data class JumpQ(override val toLabel: Label) : JumpingQ
-data class RetQ(val value: MemoryLoc? = null) : JumpingQ {
+data class RetQ(val value: ValueHolder? = null) : JumpingQ {
   override val toLabel: Label? = null
 }
 
