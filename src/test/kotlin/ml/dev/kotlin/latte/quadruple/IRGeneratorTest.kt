@@ -20,8 +20,8 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        T0 = 0
-        ret T0
+        @T0 = 0
+        ret @T0
       """
     )
 
@@ -37,11 +37,11 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         a = 1
-        T1 = 1
-        T0 = a minus T1
-        a = T0
-        T2 = 0
-        ret T2
+        @T1 = 1
+        @T0 = a minus @T1
+        a = @T0
+        @T2 = 0
+        ret @T2
       """
     )
 
@@ -57,11 +57,11 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         a = 1
-        T1 = 1
-        T0 = a plus T1
-        a = T0
-        T2 = 0
-        ret T2
+        @T1 = 1
+        @T0 = a plus @T1
+        a = @T0
+        @T2 = 0
+        ret @T2
       """
     )
   }
@@ -82,16 +82,16 @@ internal class IRGeneratorTest {
       main():
         a = 42
         b = 24
-        T1 = 3
-        T0 = T1 minus b
-        T2 = b times T0
-        T3 = T2 divide a
-        T4 = a plus T3
-        T6 = 1
-        T5 = T4 plus T6
-        T8 = 49
-        T7 = T5 mod T8
-        x = T7
+        @T1 = 3
+        @T0 = @T1 minus b
+        @T2 = b times @T0
+        @T3 = @T2 divide a
+        @T4 = a plus @T3
+        @T6 = 1
+        @T5 = @T4 plus @T6
+        @T8 = 49
+        @T7 = @T5 mod @T8
+        x = @T7
         ret x
       """
     )
@@ -112,14 +112,14 @@ internal class IRGeneratorTest {
         b = false
         if a goto @L1
         if b goto @L1
-        T0 = false
+        @T0 = false
         goto @L3
       @L1:
-        T0 = true
+        @T0 = true
       @L3:
-        x = T0
-        T5 = 0
-        ret T5
+        x = @T0
+        @T5 = 0
+        ret @T5
       """
     )
 
@@ -142,14 +142,14 @@ internal class IRGeneratorTest {
       @M4:
         if b goto @L1
       @L2:
-        T0 = false
+        @T0 = false
         goto @L3
       @L1:
-        T0 = true
+        @T0 = true
       @L3:
-        x = T0
-        T5 = 0
-        ret T5
+        x = @T0
+        @T5 = 0
+        ret @T5
       """
     )
 
@@ -168,11 +168,11 @@ internal class IRGeneratorTest {
       main():
         a = @S0
         b = @S1
-        T2 = a plus b
-        T3 = T2 plus a
-        x = T3
-        T4 = 0
-        ret T4
+        @T2 = a plus b
+        @T3 = @T2 plus a
+        x = @T3
+        @T4 = 0
+        ret @T4
       """,
       "42" to "@S0",
       "24" to "@S1",
@@ -182,7 +182,7 @@ internal class IRGeneratorTest {
   @Nested
   inner class CondSimplifyTest {
     @Test
-    fun `test simplify const if boolean AND`() = testIRRepr(
+    fun `test simplify const if boolean AND - remove`() = testIRRepr(
       program = """
       int main() {
         if (false && true) {
@@ -193,13 +193,30 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        T4 = 0
-        ret T4
+        @T4 = 0
+        ret @T4
       """
     )
 
     @Test
-    fun `test simplify const if boolean OR`() = testIRRepr(
+    fun `test simplify const if boolean AND - leave`() = testIRRepr(
+      program = """
+      int main() {
+        if (true && true) {
+          return 1;
+        }
+        return 0;
+      }
+      """,
+      irRepresentation = """
+      main():
+        @T3 = 1
+        ret @T3
+      """
+    )
+
+    @Test
+    fun `test simplify const if boolean OR - remove`() = testIRRepr(
       program = """
       int main() {
         if (false || false) {
@@ -210,8 +227,135 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        T4 = 0
-        ret T4
+        @T4 = 0
+        ret @T4
+      """
+    )
+
+    @Test
+    fun `test simplify const if boolean OR - leave`() = testIRRepr(
+      program = """
+      int main() {
+        if (false || true) {
+          return 1;
+        }
+        return 0;
+      }
+      """,
+      irRepresentation = """
+      main():
+        @T3 = 1
+        ret @T3
+      """
+    )
+
+    @Test
+    fun `test simplify const if nested - remove all`() = testIRRepr(
+      program = """
+      int main() {
+        if ((true && false) || 1 > 2) {
+          if ((2 >= 3) || 1 == 2) {
+            if (false || 1 != 1) {
+              return 1;
+            }
+          }
+          return 1;
+        }
+        return 0;
+      }
+      """,
+      irRepresentation = """
+      main():
+        @T12 = 0
+        ret @T12
+      """
+    )
+
+    @Test
+    fun `test simplify const if nested - remove only nested`() = testIRRepr(
+      program = """
+      int main() {
+        if ((true && false) || 3 > 2) {
+          if (!(2 < 3) || 1 == 2) {
+            return 2;
+          }
+          return 1;
+        }
+        return 0;
+      }
+      """,
+      irRepresentation = """
+      main():
+        @T8 = 1
+        ret @T8
+      """
+    )
+
+    @Test
+    fun `test simplify mixed if nested - remove only nested`() = testIRRepr(
+      program = """
+      int main() {
+        boolean a = (true && false) || 3 > 2;
+        if (a) {
+          if (!(2 < 3) || 1 == 2) {
+            return 2;
+          }
+          return 1;
+        }
+        return 0;
+      }
+      """,
+      irRepresentation = """
+      main():
+        a = true
+        if a goto @L0
+        goto @L1
+      @L0:
+        @T6 = 1
+        ret @T6
+      @L1:
+        @T7 = 0
+        ret @T7
+      """
+    )
+
+    @Test
+    fun `test simplify const if else - on true`() = testIRRepr(
+      program = """
+      int main() {
+        if (1 == 2 || (true && (4 > 3))) {
+          return 2;
+        }
+        else {
+          return 1;
+        }
+        return 0;
+      }
+      """,
+      irRepresentation = """
+      main():
+        @T6 = 2
+        ret @T6
+      """
+    )
+
+    @Test
+    fun `test simplify const if else - on false`() = testIRRepr(
+      program = """
+      int main() {
+        if (1 == 2 || (true && false)) {
+          return 2;
+        }
+        else {
+          return 1;
+        }
+        return 0;
+      }
+      """,
+      irRepresentation = """
+      main():
+        @T5 = 1
+        ret @T5
       """
     )
   }
@@ -244,8 +388,8 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         b = true
-        T0 = 0
-        ret T0
+        @T0 = 0
+        ret @T0
       """
     )
 
@@ -260,8 +404,8 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         s = @S4
-        T5 = 0
-        ret T5
+        @T5 = 0
+        ret @T5
       """,
       "left" to "@S0",
       "<>" to "@S1",

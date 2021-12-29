@@ -88,10 +88,18 @@ private data class IRGenerator(
   private fun generateCond(expr: Expr, onTrue: Label, onFalse: Label): Unit = when {
     expr is UnOpExpr && expr.op == UnOp.NOT -> generateCond(expr.expr, onFalse, onTrue)
     expr is BinOpExpr && expr.op is RelOp -> {
-      val lv = expr.left.generate().inMemory()
-      val rv = expr.right.generate().inMemory()
-      emit { BiCondJumpQ(lv, expr.op, rv, onTrue) }
-      emit { JumpQ(onFalse) }
+      val lv = expr.left.generate()
+      val rv = expr.right.generate()
+      when {
+        lv is BooleanConstValue && rv is BooleanConstValue -> expr.op.rel(lv, rv)
+        lv is IntConstValue && rv is IntConstValue -> expr.op.rel(lv, rv)
+        else -> null
+      }
+        ?.let { if (it.bool) emit { JumpQ(onTrue) } else emit { JumpQ(onFalse) } }
+        ?: run {
+          emit { BiCondJumpQ(lv.inMemory(), expr.op, rv.inMemory(), onTrue) }
+          emit { JumpQ(onFalse) }
+        }
     }
     expr is BinOpExpr && expr.op == BooleanOp.AND -> {
       val midLabel = freshLabel(prefix = "M")
@@ -148,9 +156,10 @@ private data class IRGenerator(
         val lv = left.generate()
         val rv = right.generate()
         when {
-          lv is IntConstValue && rv is IntConstValue -> op.on(lv, rv)
+          lv is IntConstValue && rv is IntConstValue && op is RelOp -> op.rel(lv, rv)
+          lv is IntConstValue && rv is IntConstValue && op is NumOp -> op.num(lv, rv)
           lv is StringConstValue && rv is StringConstValue -> addStringConst(lv.str + rv.str)
-          lv is BooleanConstValue && rv is BooleanConstValue -> op.on(lv, rv)
+          lv is BooleanConstValue && rv is BooleanConstValue && op is RelOp -> op.rel(lv, rv)
           else -> when {
             op == NumOp.PLUS && lv.type == IntType && rv.type == IntType -> IntType
             op == NumOp.PLUS && lv.type == StringType && rv.type == StringType -> StringType
@@ -204,7 +213,7 @@ private data class IRGenerator(
   }
 
   private fun freshTemp(type: Type, action: (TempValue) -> Unit = {}): TempValue =
-    freshIdx().let { TempValue("T$it", it, type) }.also { varEnv[it.name] = it }.also(action)
+    freshIdx().let { TempValue("@T$it", it, type) }.also { varEnv[it.name] = it }.also(action)
 
   private fun addStringConst(value: String): StringConstValue =
     StringConstValue(strings[value] ?: freshLabel(prefix = "S").also { strings[value] = it }, value)
@@ -223,12 +232,7 @@ private data class IRGenerator(
   private fun AstNode.getFunType(name: String): Type = funEnv[name] ?: err("Not defined function with name $name")
 }
 
-private fun BinOp.on(lv: IntConstValue, rv: IntConstValue) = when (this) {
-  NumOp.PLUS -> lv + rv
-  NumOp.MINUS -> lv - rv
-  NumOp.TIMES -> lv * rv
-  NumOp.DIVIDE -> lv / rv
-  NumOp.MOD -> lv % rv
+private fun RelOp.rel(lv: IntConstValue, rv: IntConstValue): BooleanConstValue = when (this) {
   RelOp.LT -> (lv < rv).bool
   RelOp.LE -> (lv <= rv).bool
   RelOp.GT -> (lv > rv).bool
@@ -238,14 +242,21 @@ private fun BinOp.on(lv: IntConstValue, rv: IntConstValue) = when (this) {
   else -> err("Undefined $this for $lv and $rv")
 }
 
-private fun BinOp.on(lv: BooleanConstValue, rv: BooleanConstValue) = when (this) {
+private fun NumOp.num(lv: IntConstValue, rv: IntConstValue): IntConstValue = when (this) {
+  NumOp.PLUS -> lv + rv
+  NumOp.MINUS -> lv - rv
+  NumOp.TIMES -> lv * rv
+  NumOp.DIVIDE -> lv / rv
+  NumOp.MOD -> lv % rv
+}
+
+private fun RelOp.rel(lv: BooleanConstValue, rv: BooleanConstValue): BooleanConstValue = when (this) {
   RelOp.LT -> (lv < rv).bool
   RelOp.LE -> (lv <= rv).bool
   RelOp.GT -> (lv > rv).bool
   RelOp.GE -> (lv >= rv).bool
   RelOp.EQ -> (lv == rv).bool
   RelOp.NE -> (lv != rv).bool
-  else -> err("Undefined $this for $lv and $rv")
 }
 
 private fun AstNode.err(message: String): Nothing = throw IRException(ExceptionLocalizedMessage(message, span?.from))
