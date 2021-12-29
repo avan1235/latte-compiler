@@ -230,30 +230,4 @@ private data class IRGenerator(
   private fun AstNode.getFunType(name: String): Type = funEnv[name] ?: err("Not defined function with name $name")
 }
 
-private fun RelOp.rel(lv: IntConstValue, rv: IntConstValue): BooleanConstValue = when (this) {
-  RelOp.LT -> (lv < rv).bool
-  RelOp.LE -> (lv <= rv).bool
-  RelOp.GT -> (lv > rv).bool
-  RelOp.GE -> (lv >= rv).bool
-  RelOp.EQ -> (lv == rv).bool
-  RelOp.NE -> (lv != rv).bool
-}
-
-private fun NumOp.num(lv: IntConstValue, rv: IntConstValue): IntConstValue = when (this) {
-  NumOp.PLUS -> lv + rv
-  NumOp.MINUS -> lv - rv
-  NumOp.TIMES -> lv * rv
-  NumOp.DIVIDE -> lv / rv
-  NumOp.MOD -> lv % rv
-}
-
-private fun RelOp.rel(lv: BooleanConstValue, rv: BooleanConstValue): BooleanConstValue = when (this) {
-  RelOp.LT -> (lv < rv).bool
-  RelOp.LE -> (lv <= rv).bool
-  RelOp.GT -> (lv > rv).bool
-  RelOp.GE -> (lv >= rv).bool
-  RelOp.EQ -> (lv == rv).bool
-  RelOp.NE -> (lv != rv).bool
-}
-
 private fun AstNode.err(message: String): Nothing = throw IRException(ExceptionLocalizedMessage(message, span?.from))

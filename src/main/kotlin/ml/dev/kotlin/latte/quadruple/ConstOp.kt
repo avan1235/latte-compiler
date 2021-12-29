@@ -1,5 +1,7 @@
 package ml.dev.kotlin.latte.quadruple
 
+import ml.dev.kotlin.latte.syntax.NumOp
+import ml.dev.kotlin.latte.syntax.RelOp
 import ml.dev.kotlin.latte.util.IRException
 import ml.dev.kotlin.latte.util.msg
 
@@ -16,3 +18,29 @@ operator fun IntConstValue.div(o: IntConstValue) = IntConstValue(int / o.int)
 operator fun IntConstValue.rem(o: IntConstValue) = IntConstValue(int % o.int)
 operator fun IntConstValue.compareTo(o: IntConstValue) = int.compareTo(o.int)
 operator fun BooleanConstValue.compareTo(o: BooleanConstValue) = bool.compareTo(o.bool)
+
+fun RelOp.rel(lv: IntConstValue, rv: IntConstValue): BooleanConstValue = when (this) {
+  RelOp.LT -> (lv < rv).bool
+  RelOp.LE -> (lv <= rv).bool
+  RelOp.GT -> (lv > rv).bool
+  RelOp.GE -> (lv >= rv).bool
+  RelOp.EQ -> (lv == rv).bool
+  RelOp.NE -> (lv != rv).bool
+}
+
+fun NumOp.num(lv: IntConstValue, rv: IntConstValue): IntConstValue = when (this) {
+  NumOp.PLUS -> lv + rv
+  NumOp.MINUS -> lv - rv
+  NumOp.TIMES -> lv * rv
+  NumOp.DIVIDE -> lv / rv
+  NumOp.MOD -> lv % rv
+}
+
+fun RelOp.rel(lv: BooleanConstValue, rv: BooleanConstValue): BooleanConstValue = when (this) {
+  RelOp.LT -> (lv < rv).bool
+  RelOp.LE -> (lv <= rv).bool
+  RelOp.GT -> (lv > rv).bool
+  RelOp.GE -> (lv >= rv).bool
+  RelOp.EQ -> (lv == rv).bool
+  RelOp.NE -> (lv != rv).bool
+}
