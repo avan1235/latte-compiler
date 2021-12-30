@@ -24,7 +24,7 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
   fun dominator(v: V): V = _doms[v] ?: err("Dominator not calculated for $v in $graph")
   fun dominanceFrontiers(v: V): Set<V> = _dfSet[v]
 
-  private fun calcDoms() {
+  private fun calcDominators() {
     _doms[root] = root
     var changed = true
     while (changed) {
@@ -62,7 +62,7 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
       if (predecessors.size < 2) continue
       for (p in predecessors) {
         var runner = p
-        while (runner !== _doms[b]) {
+        while (runner != _doms[b]) {
           _dfSet[runner] += b
           runner = _doms[runner]!!
         }
@@ -71,7 +71,7 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
   }
 
   init {
-    calcDoms()
+    calcDominators()
     calcDFSet()
   }
 }
