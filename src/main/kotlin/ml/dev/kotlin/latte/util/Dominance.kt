@@ -22,7 +22,7 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
   private val _dfSet: MutableDefaultMap<V, HashSet<V>> = MutableDefaultMap({ HashSet() })
 
   fun dominator(v: V): V = _doms[v] ?: err("Dominator not calculated for $v in $graph")
-  fun dominanceFrontier(v: V): Set<V> = _dfSet[v]
+  fun dominanceFrontiers(v: V): Set<V> = _dfSet[v]
 
   private fun calcDoms() {
     _doms[root] = root
@@ -46,6 +46,16 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
     }
   }
 
+  private fun intersect(b1: V, b2: V): V {
+    var finger1 = b1
+    var finger2 = b2
+    while (finger1 != finger2) {
+      while (postOderIdx[finger1]!! < postOderIdx[finger2]!!) finger1 = _doms[finger1]!!
+      while (postOderIdx[finger2]!! < postOderIdx[finger1]!!) finger2 = _doms[finger2]!!
+    }
+    return finger1
+  }
+
   private fun calcDFSet() {
     for (b in postOrder) {
       val predecessors = graph.predecessors(b)
@@ -58,16 +68,6 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
         }
       }
     }
-  }
-
-  private fun intersect(b1: V, b2: V): V {
-    var finger1 = b1
-    var finger2 = b2
-    while (finger1 != finger2) {
-      while (postOderIdx[finger1]!! < postOderIdx[finger2]!!) finger1 = _doms[finger1]!!
-      while (postOderIdx[finger2]!! < postOderIdx[finger1]!!) finger2 = _doms[finger2]!!
-    }
-    return finger1
   }
 
   init {
