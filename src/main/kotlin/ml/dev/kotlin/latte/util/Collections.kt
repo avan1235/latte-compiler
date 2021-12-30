@@ -5,19 +5,17 @@ inline fun <T> Iterable<T>.splitAt(
   crossinline last: (T) -> Boolean = { false },
 ): Sequence<List<T>> = sequence {
   var curr = mutableListOf<T>()
-  for (elem in this@splitAt) {
-    when {
-      first(elem) -> {
-        yield(curr)
-        curr = mutableListOf(elem)
-      }
-      last(elem) -> {
-        curr += elem
-        yield(curr)
-        curr = mutableListOf()
-      }
-      else -> curr += elem
+  for (elem in this@splitAt) when {
+    first(elem) -> {
+      yield(curr)
+      curr = mutableListOf(elem)
     }
+    last(elem) -> {
+      curr += elem
+      yield(curr)
+      curr = mutableListOf()
+    }
+    else -> curr += elem
   }
   yield(curr)
 }.filter { it.isNotEmpty() }
