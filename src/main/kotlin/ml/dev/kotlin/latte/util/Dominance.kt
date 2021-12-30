@@ -21,7 +21,18 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
   private val _doms: MutableMap<V, V> = HashMap()
   private val _dfSet: MutableDefaultMap<V, HashSet<V>> = MutableDefaultMap({ HashSet() })
 
+  /**
+   * For node v we define its dominator a node u such as u dominates v, so every path
+   * from root node to v goes through u. It's called strict dominator if u != v.
+   */
   fun dominator(v: V): V = _doms[v] ?: err("Dominator not calculated for $v in $graph")
+
+  /**
+   * For node v we define its dominance frontiers as a set of nodes, which has
+   * predecessors dominated by v, but they are not strictly dominated by v
+   * (so there exists some other path from root node to these nodes that don't
+   * go through v)
+   */
   fun dominanceFrontiers(v: V): Set<V> = _dfSet[v]
 
   private fun calcDominators() {
@@ -56,7 +67,7 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
     return finger1
   }
 
-  private fun calcDFSet() {
+  private fun calcDominanceFrontiers() {
     for (b in postOrder) {
       val predecessors = graph.predecessors(b)
       if (predecessors.size < 2) continue
@@ -72,7 +83,7 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
 
   init {
     calcDominators()
-    calcDFSet()
+    calcDominanceFrontiers()
   }
 }
 
