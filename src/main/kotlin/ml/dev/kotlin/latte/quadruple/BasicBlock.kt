@@ -9,7 +9,8 @@ data class BasicBlock(
   val isStart: Boolean,
   val label: Label,
   val jumpQ: JumpingQ?,
-  val usedVars: Set<String>,
+  val usedVars: Set<MemoryLoc>,
+  val definedVars: Set<MemoryLoc>,
 )
 
 fun Iterable<Quadruple>.toBasicBlock(labelGenerator: () -> CodeLabelQ): BasicBlock = toMutableList().run {
@@ -19,22 +20,8 @@ fun Iterable<Quadruple>.toBasicBlock(labelGenerator: () -> CodeLabelQ): BasicBlo
   if (count { it is LabelQ } != 1) err("Basic block contains invalid labels: ${nlString()}")
   val jumping = lastOrNull() as? JumpingQ
   val usedVars = flatMapTo(HashSet()) { it.usedVars() }
-  BasicBlock(this, first is FunCodeLabelQ, first.label, jumping, usedVars)
+  val definedVars = flatMapTo(HashSet()) { it.definedVars() }
+  BasicBlock(this, first is FunCodeLabelQ, first.label, jumping, usedVars, definedVars)
 }
-
-private fun Quadruple.usedVars(): Sequence<String> = when (this) {
-  is AssignQ -> sequenceOf(to, from as? MemoryLoc)
-  is BinOpQ -> sequenceOf(to, left, right as? MemoryLoc)
-  is UnOpQ -> sequenceOf(to, from)
-  is DecQ -> sequenceOf(toFrom)
-  is IncQ -> sequenceOf(toFrom)
-  is FunCallQ -> sequenceOf(to) + args.asSequence().filterIsInstance<MemoryLoc>()
-  is BiCondJumpQ -> sequenceOf(left, right as? MemoryLoc)
-  is CondJumpQ -> sequenceOf(cond)
-  is RetQ -> sequenceOf(value as? MemoryLoc)
-  is JumpQ -> emptySequence()
-  is CodeLabelQ -> emptySequence()
-  is FunCodeLabelQ -> emptySequence()
-}.filterNotNull().map { it.name }
 
 private fun err(message: String): Nothing = throw IRException(message.msg)

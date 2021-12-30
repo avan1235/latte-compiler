@@ -23,7 +23,7 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         a@1 = 1
-        dec a@1
+        a@1 = a@1 - 1
         ret a@1
       """
     )
@@ -40,7 +40,7 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         a@1 = -1
-        inc a@1
+        a@1 = a@1 + 1
         ret a@1
       """
     )
@@ -107,8 +107,6 @@ internal class IRGeneratorTest {
       """
     )
 
-
-
     @Test
     fun `test check rel op in cond with jumps`() = testIRRepr(
       program = """
@@ -135,6 +133,36 @@ internal class IRGeneratorTest {
         ret 0
       @L0:
         ret 1
+      """
+    )
+
+    @Test
+    fun `test generates functions other than main`() = testIRRepr(
+      program = """
+      int main() {
+        int a = f();
+        int b = g();
+        return a + b;
+      }
+      int f() {
+        return 42;
+      }
+      int g() {
+        return 24;
+      }
+      """,
+      irRepresentation = """
+      main():
+        @T0 = call f ()
+        a@1 = @T0
+        @T1 = call g ()
+        b@1 = @T1
+        @T2 = a@1 plus b@1
+        ret @T2
+      f():
+        ret 42
+      g():
+        ret 24
       """
     )
   }
@@ -301,7 +329,7 @@ internal class IRGeneratorTest {
         a@1 = 0
         goto @L1
       @L0:
-        inc a@1
+        a@1 = a@1 + 1
         a@3 = 1
         a@3 = 2
       @L1:
@@ -635,8 +663,8 @@ internal class IRGeneratorTest {
         j@1 = 0
         goto @L1
       @L0:
-        inc i@1
-        dec j@1
+        i@1 = i@1 + 1
+        j@1 = j@1 - 1
       @L1:
         goto @L0
       """
@@ -766,24 +794,24 @@ private fun testIRRepr(
 
 private fun List<Quadruple>.isSSA(): Boolean = mapNotNull {
   when (it) {
-    is AssignQ -> it.to
-    is BiCondJumpQ -> null
-    is BinOpQ -> it.to
+    is RelCondJumpQ -> null
     is CondJumpQ -> null
-    is FunCallQ -> it.to
     is JumpQ -> null
     is FunCodeLabelQ -> null
     is CodeLabelQ -> null
     is RetQ -> null
+    is AssignQ -> it.to
+    is BinOpQ -> it.to
+    is FunCallQ -> it.to
     is UnOpQ -> it.to
-    is DecQ -> it.toFrom
-    is IncQ -> it.toFrom
+    is DecQ -> it.to
+    is IncQ -> it.to
   }?.repr()
-}.let { it.size == it.toSet().size }
+}.let { it.size == it.toHashSet().size }
 
 private fun ValueHolder.repr(): String = when (this) {
   is BooleanConstValue -> "$bool"
-  is IntConstValue -> int.toString()
+  is IntConstValue -> "$int"
   is StringConstValue -> label.name
   is ArgValue -> name
   is LocalValue -> name
@@ -792,7 +820,7 @@ private fun ValueHolder.repr(): String = when (this) {
 
 private fun Quadruple.repr(): String = when (this) {
   is AssignQ -> "${to.repr()} = ${from.repr()}"
-  is BiCondJumpQ -> "if ${left.repr()} ${op.name.lowercase()} ${right.repr()} goto ${toLabel.name}"
+  is RelCondJumpQ -> "if ${left.repr()} ${op.name.lowercase()} ${right.repr()} goto ${toLabel.name}"
   is BinOpQ -> "${to.repr()} = ${left.repr()} ${op.name.lowercase()} ${right.repr()}"
   is UnOpQ -> "${to.repr()} = ${op.name.lowercase()} ${from.repr()}"
   is FunCodeLabelQ -> "${label.name}(${args.joinToString { it.repr() }}):"
@@ -801,6 +829,6 @@ private fun Quadruple.repr(): String = when (this) {
   is JumpQ -> "goto ${toLabel.name}"
   is FunCallQ -> "${to.repr()} = call ${label.name} (${args.joinToString { it.repr() }})"
   is RetQ -> "ret${value?.let { " ${it.repr()}" } ?: ""}"
-  is DecQ -> "dec ${toFrom.repr()}"
-  is IncQ -> "inc ${toFrom.repr()}"
+  is DecQ -> "${to.repr()} = ${from.repr()} - 1"
+  is IncQ -> "${to.repr()} = ${from.repr()} + 1"
 }.let { if (this is LabelQ) it else "  $it" }

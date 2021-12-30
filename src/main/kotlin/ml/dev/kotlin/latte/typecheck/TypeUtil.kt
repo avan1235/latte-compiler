@@ -1,5 +1,7 @@
 package ml.dev.kotlin.latte.typecheck
 
+import ml.dev.kotlin.latte.quadruple.Label
+import ml.dev.kotlin.latte.quadruple.label
 import ml.dev.kotlin.latte.syntax.IntType
 import ml.dev.kotlin.latte.syntax.StringType
 import ml.dev.kotlin.latte.syntax.Type
@@ -20,6 +22,8 @@ fun stdLibFunctionTypes() = HashMap<String, Type>().apply {
   put("readInt", IntType)
   put("readString", StringType)
 }
+
+private val ENTRY_LABEL: Label = "main".label
 
 infix fun String.mangled(args: List<Type>) =
   if (this withArgs args in STD_LIB_FUNCTIONS) this else "$this${args.joinToString("") { "@$it" }}"

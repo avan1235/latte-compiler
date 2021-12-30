@@ -22,3 +22,10 @@ inline fun <T> Iterable<T>.splitAt(
 
 fun <T> Iterable<T>.nlString(transform: ((T) -> CharSequence)? = null) =
   joinToString("\n", "\n", "\n", transform = transform)
+
+interface Graph<V> {
+  val nodes: Set<V>
+  val size: Int
+  fun successors(v: V): LinkedHashSet<V>
+  fun predecessors(v: V): LinkedHashSet<V>
+}

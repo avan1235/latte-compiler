@@ -1,27 +1,21 @@
 package ml.dev.kotlin.latte.quadruple
 
-import ml.dev.kotlin.latte.util.IRException
-import ml.dev.kotlin.latte.util.MutableDefaultMap
-import ml.dev.kotlin.latte.util.msg
-import ml.dev.kotlin.latte.util.splitAt
-import java.util.*
-import kotlin.collections.ArrayDeque
-import kotlin.collections.LinkedHashMap
+import ml.dev.kotlin.latte.util.*
 
 data class ControlFlowGraph(
-  private val jumpFrom: MutableDefaultMap<Label, MutableSet<Label>> = MutableDefaultMap({ hashSetOf() }),
-  private val jumpTo: MutableDefaultMap<Label, MutableSet<Label>> = MutableDefaultMap({ hashSetOf() }),
+  private val succ: MutableDefaultMap<Label, LinkedHashSet<Label>> = MutableDefaultMap({ LinkedHashSet() }),
+  private val pred: MutableDefaultMap<Label, LinkedHashSet<Label>> = MutableDefaultMap({ LinkedHashSet() }),
   private val byName: HashMap<Label, BasicBlock> = LinkedHashMap(),
   private val starts: MutableSet<Label> = HashSet(),
-) {
+) : Graph<Label> {
   fun orderedBlocks(): List<BasicBlock> = byName.values.toList()
 
   private fun addBlock(block: BasicBlock) {
     if (block.label in byName) err("CFG already contains a BasicBlock labeled ${block.label}")
     byName[block.label] = block
     block.jumpQ?.toLabel?.let { toLabel ->
-      jumpFrom[block.label] += toLabel
-      jumpTo[toLabel] += block.label
+      succ[block.label] += toLabel
+      pred[toLabel] += block.label
     }
     block.takeIf { it.isStart }?.label?.let { starts += it }
   }
@@ -29,31 +23,36 @@ data class ControlFlowGraph(
   private fun addJump(from: BasicBlock, to: BasicBlock) {
     if (to.isStart) return
     if (from.jumpQ is JumpQ || from.jumpQ is RetQ) return
-    jumpFrom[from.label] += to.label
-    jumpTo[to.label] += from.label
+    succ[from.label] += to.label
+    pred[to.label] += from.label
   }
 
   private fun removeNotReachableBlocks() {
-    val visited = starts.flatMapTo(HashSet()) { reachableFrom(it) }
+    val visited = starts.flatMapTo(HashSet()) { reachableBlocks(it) }
     val notVisited = byName.keys.toHashSet() - visited
-    jumpFrom -= notVisited
+    succ -= notVisited
+    pred -= notVisited
     byName -= notVisited
   }
 
-  private fun reachableFrom(label: Label): Set<Label> {
+  private fun reachableBlocks(from: Label): Set<Label> {
     val visited = HashSet<Label>()
     val queue = ArrayDeque<Label>()
     tailrec fun go(from: Label) {
       visited += from
-      jumpFrom[from].forEach { if (it !in visited) queue += it }
-      return go(queue.removeLastOrNull() ?: return)
+      succ[from].forEach { if (it !in visited) queue += it }
+      go(queue.removeLastOrNull() ?: return)
     }
-    return visited.also { go(label) }
+    return visited.also { go(from) }
   }
 
-  private fun transformToSSA() {
-    val blockUsedVariables = byName.mapValues { it.value.usedVars }
-  }
+  fun blockUsedVars(label: Label): Set<MemoryLoc> = byName[label]?.usedVars ?: emptySet()
+  fun blockDefinedVars(label: Label): Set<MemoryLoc> = byName[label]?.definedVars ?: emptySet()
+
+  override val size: Int get() = byName.size
+  override val nodes: Set<Label> get() = byName.keys.toHashSet()
+  override fun predecessors(v: Label): LinkedHashSet<Label> = pred[v]
+  override fun successors(v: Label): LinkedHashSet<Label> = succ[v]
 
   companion object {
     fun Iterable<Quadruple>.buildCFG(labelGenerator: () -> CodeLabelQ): ControlFlowGraph = ControlFlowGraph().apply {

@@ -43,8 +43,8 @@ private data class IRGenerator(
     is BlockStmt -> varEnv.onLevel { block.generate() }
     is DeclStmt -> items.forEach { it.generate(type) }
     is AssStmt -> emit { AssignQ(getVar(ident), expr.generate()) }
-    is DecrStmt -> emit { DecQ(getVar(ident)) }
-    is IncrStmt -> emit { IncQ(getVar(ident)) }
+    is DecrStmt -> emit { getVar(ident).let { DecQ(it, it) } }
+    is IncrStmt -> emit { getVar(ident).let { IncQ(it, it) } }
     is ExprStmt -> expr.generate().unit()
     is RetStmt -> emit { RetQ(expr.generate()) }
     is VRetStmt -> emit { RetQ() }
@@ -96,7 +96,7 @@ private data class IRGenerator(
       }
         ?.let { if (it.bool) emit { JumpQ(onTrue) } else emit { JumpQ(onFalse) } }
         ?: run {
-          emit { BiCondJumpQ(lv.inMemory(), expr.op, rv, onTrue) }
+          emit { RelCondJumpQ(lv.inMemory(), expr.op, rv, onTrue) }
           emit { JumpQ(onFalse) }
         }
     }
@@ -166,7 +166,7 @@ private data class IRGenerator(
             op is RelOp -> freshTemp(BooleanType) { to ->
               val falseLabel = freshLabel(prefix = "F")
               emit { AssignQ(to, false.bool) }
-              emit { BiCondJumpQ(lv.inMemory(), op.rev, rv, falseLabel) }
+              emit { RelCondJumpQ(lv.inMemory(), op.rev, rv, falseLabel) }
               emit { AssignQ(to, true.bool) }
               emit { CodeLabelQ(falseLabel) }
             }

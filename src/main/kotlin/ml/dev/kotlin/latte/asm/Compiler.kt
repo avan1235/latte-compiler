@@ -1,9 +1,7 @@
 package ml.dev.kotlin.latte.asm
 
 import ml.dev.kotlin.latte.quadruple.*
-import ml.dev.kotlin.latte.syntax.BooleanOp
 import ml.dev.kotlin.latte.syntax.NumOp
-import ml.dev.kotlin.latte.syntax.RelOp
 import ml.dev.kotlin.latte.util.AsmBuildException
 import ml.dev.kotlin.latte.util.msg
 import ml.dev.kotlin.latte.util.splitAt
@@ -37,33 +35,17 @@ private data class Compiler(
     is DecQ -> TODO()
     is FunCallQ -> TODO()
     is IncQ -> TODO()
-    is BiCondJumpQ -> TODO()
+    is RelCondJumpQ -> TODO()
     is CondJumpQ -> TODO()
     is JumpQ -> TODO()
     is RetQ -> TODO()
     is CodeLabelQ -> cmd(label, ":")
     is FunCodeLabelQ -> TODO()
     is UnOpQ -> TODO()
-    is BinOpQ -> TODO()//when (op) {
-//      NumOp.PLUS -> plus(to, left, right)
-//      is RelOp -> op.on(to, left, right)
-//      is NumOp -> op.on(to, left, right)
-//      is BooleanOp -> err(
-//        "Unexpected Boolean Binary Operation in Compiler - " +
-//          "should be transformed into lazy jumps by IR Generator: $this"
-//      )
-//    }
-  }
-
-  private fun RelOp.on(to: MemoryLoc, left: MemoryLoc, right: ValueHolder) {
-
+    is BinOpQ -> op.on(to, left, right)
   }
 
   private fun NumOp.on(to: MemoryLoc, left: MemoryLoc, right: ValueHolder) {
-
-  }
-
-  private fun plus(to: MemoryLoc, left: MemoryLoc, right: ValueHolder) {
 
   }
 

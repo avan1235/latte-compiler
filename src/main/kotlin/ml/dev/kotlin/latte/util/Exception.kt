@@ -12,3 +12,4 @@ class IRException(userMessage: LocalizedMessage) : LatteException(userMessage)
 
 class AsmBuildException(userMessage: LocalizedMessage) : LatteException(userMessage)
 class CompileException(code: Int) : LatteException("Compilation process returned non zero code $code".msg)
+class GraphException(userMessage: LocalizedMessage) : LatteException(userMessage)

@@ -37,15 +37,15 @@ sealed interface LabelQ : Quadruple {
 data class BinOpQ(val to: MemoryLoc, val left: MemoryLoc, val op: NumOp, val right: ValueHolder) : Quadruple
 data class UnOpQ(val to: MemoryLoc, val op: UnOp, val from: MemoryLoc) : Quadruple
 data class AssignQ(val to: MemoryLoc, val from: ValueHolder) : Quadruple
-data class IncQ(val toFrom: MemoryLoc) : Quadruple
-data class DecQ(val toFrom: MemoryLoc) : Quadruple
+data class IncQ(val to: MemoryLoc, val from: MemoryLoc) : Quadruple
+data class DecQ(val to: MemoryLoc, val from: MemoryLoc) : Quadruple
 data class FunCallQ(val to: MemoryLoc, val label: Label, val args: List<ValueHolder>) : Quadruple
 
 data class FunCodeLabelQ(override val label: Label, val args: List<ArgValue>) : LabelQ
 data class CodeLabelQ(override val label: Label) : LabelQ
 
 data class CondJumpQ(val cond: MemoryLoc, override val toLabel: Label) : JumpingQ
-data class BiCondJumpQ(val left: MemoryLoc, val op: RelOp, val right: ValueHolder, override val toLabel: Label) :
+data class RelCondJumpQ(val left: MemoryLoc, val op: RelOp, val right: ValueHolder, override val toLabel: Label) :
   JumpingQ
 
 data class JumpQ(override val toLabel: Label) : JumpingQ
@@ -53,3 +53,32 @@ data class RetQ(val value: ValueHolder? = null) : JumpingQ {
   override val toLabel: Label? = null
 }
 
+fun Quadruple.usedVars(): Sequence<MemoryLoc> = when (this) {
+  is RetQ -> sequenceOf(value as? MemoryLoc)
+  is CondJumpQ -> sequenceOf(cond)
+  is RelCondJumpQ -> sequenceOf(left, right as? MemoryLoc)
+  is BinOpQ -> sequenceOf(left, right as? MemoryLoc)
+  is AssignQ -> sequenceOf(from as? MemoryLoc)
+  is UnOpQ -> sequenceOf(from)
+  is DecQ -> sequenceOf(from)
+  is IncQ -> sequenceOf(from)
+  is FunCallQ -> args.asSequence().filterIsInstance<MemoryLoc>()
+  is JumpQ -> emptySequence()
+  is CodeLabelQ -> emptySequence()
+  is FunCodeLabelQ -> emptySequence()
+}.filterNotNull()
+
+fun Quadruple.definedVars(): Sequence<MemoryLoc> = when (this) {
+  is AssignQ -> sequenceOf(to)
+  is BinOpQ -> sequenceOf(to)
+  is UnOpQ -> sequenceOf(to)
+  is DecQ -> sequenceOf(to)
+  is IncQ -> sequenceOf(to)
+  is FunCallQ -> sequenceOf(to)
+  is RelCondJumpQ -> emptySequence()
+  is CondJumpQ -> emptySequence()
+  is RetQ -> emptySequence()
+  is JumpQ -> emptySequence()
+  is CodeLabelQ -> emptySequence()
+  is FunCodeLabelQ -> emptySequence()
+}
