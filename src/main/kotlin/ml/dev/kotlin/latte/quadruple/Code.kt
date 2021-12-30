@@ -2,7 +2,11 @@ package ml.dev.kotlin.latte.quadruple
 
 import ml.dev.kotlin.latte.syntax.*
 
-data class Label(val name: String)
+interface Named {
+  val name: String
+}
+
+data class Label(override val name: String) : Named
 sealed interface ValueHolder {
   val type: Type
 }
@@ -30,7 +34,7 @@ sealed interface LabelQ : Quadruple {
   val label: Label
 }
 
-data class BinOpQ(val to: MemoryLoc, val left: MemoryLoc, val op: BinOp, val right: ValueHolder) : Quadruple
+data class BinOpQ(val to: MemoryLoc, val left: MemoryLoc, val op: NumOp, val right: ValueHolder) : Quadruple
 data class UnOpQ(val to: MemoryLoc, val op: UnOp, val from: MemoryLoc) : Quadruple
 data class AssignQ(val to: MemoryLoc, val from: ValueHolder) : Quadruple
 data class IncQ(val toFrom: MemoryLoc) : Quadruple
@@ -41,7 +45,9 @@ data class FunCodeLabelQ(override val label: Label, val args: List<ArgValue>) : 
 data class CodeLabelQ(override val label: Label) : LabelQ
 
 data class CondJumpQ(val cond: MemoryLoc, override val toLabel: Label) : JumpingQ
-data class BiCondJumpQ(val left: MemoryLoc, val op: RelOp, val right: ValueHolder, override val toLabel: Label) : JumpingQ
+data class BiCondJumpQ(val left: MemoryLoc, val op: RelOp, val right: ValueHolder, override val toLabel: Label) :
+  JumpingQ
+
 data class JumpQ(override val toLabel: Label) : JumpingQ
 data class RetQ(val value: ValueHolder? = null) : JumpingQ {
   override val toLabel: Label? = null

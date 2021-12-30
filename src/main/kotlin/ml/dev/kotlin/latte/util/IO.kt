@@ -9,8 +9,8 @@ data class FileLocation(val line: Int, val charPositionInLine: Int) {
 
 data class Span(val from: FileLocation, val to: FileLocation)
 
-data class ExceptionLocalizedMessage(val description: String, val location: FileLocation? = null) {
+data class LocalizedMessage(val description: String, val location: FileLocation? = null) {
   override fun toString() = "${location?.let { "$it " } ?: ""}${description.lowercase()}"
 }
 
-inline val String.msg: ExceptionLocalizedMessage get() = ExceptionLocalizedMessage(this)
+inline val String.msg: LocalizedMessage get() = LocalizedMessage(this)

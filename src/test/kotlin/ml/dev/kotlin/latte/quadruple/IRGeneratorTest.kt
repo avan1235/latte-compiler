@@ -44,6 +44,99 @@ internal class IRGeneratorTest {
         ret a@1
       """
     )
+
+    @Test
+    fun `test check rel compare op with jumps`() = testIRRepr(
+      program = """
+      int main() {
+        int a = -1;
+        int b = 1;
+        boolean c = a < b;
+        if (c) {
+          return 1;
+        }
+        else {
+          return 0;
+        }
+      }
+      """,
+      irRepresentation = """
+      main():
+        a@1 = -1
+        b@1 = 1
+        @T0 = false
+        if a@1 ge b@1 goto @F1
+        @T0 = true
+      @F1:
+        c@1 = @T0
+        if c@1 goto @L2
+        ret 0
+      @L2:
+        ret 1
+      """
+    )
+
+    @Test
+    fun `test check rel equality op with jumps`() = testIRRepr(
+      program = """
+      int main() {
+        int a = -1;
+        int b = 1;
+        boolean c = a == b;
+        if (c) {
+          return 1;
+        }
+        else {
+          return 0;
+        }
+      }
+      """,
+      irRepresentation = """
+      main():
+        a@1 = -1
+        b@1 = 1
+        @T0 = false
+        if a@1 ne b@1 goto @F1
+        @T0 = true
+      @F1:
+        c@1 = @T0
+        if c@1 goto @L2
+        ret 0
+      @L2:
+        ret 1
+      """
+    )
+
+
+
+    @Test
+    fun `test check rel op in cond with jumps`() = testIRRepr(
+      program = """
+      int main() {
+        int a = -1;
+        int b = 1;
+        if (a < b && a == b) {
+          return 1;
+        }
+        else {
+          return 0;
+        }
+      }
+      """,
+      irRepresentation = """
+      main():
+        a@1 = -1
+        b@1 = 1
+        if a@1 lt b@1 goto @M3
+        goto @L1
+      @M3:
+        if a@1 eq b@1 goto @L0
+      @L1:
+        ret 0
+      @L0:
+        ret 1
+      """
+    )
   }
 
   @Nested

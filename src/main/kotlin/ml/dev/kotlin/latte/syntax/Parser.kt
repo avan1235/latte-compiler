@@ -1,6 +1,6 @@
 package ml.dev.kotlin.latte.syntax
 
-import ml.dev.kotlin.latte.util.ExceptionLocalizedMessage
+import ml.dev.kotlin.latte.util.LocalizedMessage
 import ml.dev.kotlin.latte.util.FileLocation
 import ml.dev.kotlin.latte.util.ParseException
 import ml.dev.kotlin.syntax.LatteLexer
@@ -23,6 +23,6 @@ private fun <T : Recognizer<*, *>> T.reportErrorsAsExceptions() = apply {
   addErrorListener(object : BaseErrorListener() {
     override fun syntaxError(
       r: Recognizer<*, *>?, symbol: Any?, line: Int, charPositionInLine: Int, msg: String, e: RecognitionException?
-    ) = throw ParseException(ExceptionLocalizedMessage(msg, FileLocation(line, charPositionInLine)))
+    ) = throw ParseException(LocalizedMessage(msg, FileLocation(line, charPositionInLine)))
   })
 }

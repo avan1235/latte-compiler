@@ -1,7 +1,7 @@
 package ml.dev.kotlin.latte.typecheck
 
 import ml.dev.kotlin.latte.syntax.*
-import ml.dev.kotlin.latte.util.ExceptionLocalizedMessage
+import ml.dev.kotlin.latte.util.LocalizedMessage
 import ml.dev.kotlin.latte.util.StackTable
 import ml.dev.kotlin.latte.util.TypeCheckException
 
@@ -141,7 +141,7 @@ private data class TypeChecker(
 private typealias LastReturnType = Type?
 
 private fun AstNode.err(message: String): Nothing =
-  throw TypeCheckException(ExceptionLocalizedMessage(message, span?.from))
+  throw TypeCheckException(LocalizedMessage(message, span?.from))
 
 private inline fun noReturn(action: () -> Unit = {}): LastReturnType {
   action()

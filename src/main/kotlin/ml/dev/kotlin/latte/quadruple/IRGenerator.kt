@@ -4,8 +4,8 @@ import ml.dev.kotlin.latte.quadruple.ControlFlowGraph.Companion.buildCFG
 import ml.dev.kotlin.latte.syntax.*
 import ml.dev.kotlin.latte.typecheck.TypeCheckedProgram
 import ml.dev.kotlin.latte.typecheck.stdLibFunctionTypes
-import ml.dev.kotlin.latte.util.ExceptionLocalizedMessage
 import ml.dev.kotlin.latte.util.IRException
+import ml.dev.kotlin.latte.util.LocalizedMessage
 import ml.dev.kotlin.latte.util.StackTable
 import ml.dev.kotlin.latte.util.unit
 
@@ -160,13 +160,18 @@ private data class IRGenerator(
           lv is StringConstValue && rv is StringConstValue -> addStringConst(lv.str + rv.str)
           lv is BooleanConstValue && rv is BooleanConstValue && op is RelOp -> op.rel(lv, rv)
           else -> when {
-            op == NumOp.PLUS && lv.type == IntType && rv.type == IntType -> IntType
-            op == NumOp.PLUS && lv.type == StringType && rv.type == StringType -> StringType
-            op is BooleanOp -> BooleanType
-            op is NumOp -> IntType
-            op is RelOp -> BooleanType
+            op is NumOp && op == NumOp.PLUS && lv.type == StringType && rv.type == StringType ->
+              freshTemp(StringType) { to -> emit { BinOpQ(to, lv.inMemory(), op, rv) } }
+            op is NumOp -> freshTemp(IntType) { to -> emit { BinOpQ(to, lv.inMemory(), op, rv) } }
+            op is RelOp -> freshTemp(BooleanType) { to ->
+              val falseLabel = freshLabel(prefix = "F")
+              emit { AssignQ(to, false.bool) }
+              emit { BiCondJumpQ(lv.inMemory(), op.rev, rv, falseLabel) }
+              emit { AssignQ(to, true.bool) }
+              emit { CodeLabelQ(falseLabel) }
+            }
             else -> err("Unknown binary operation $this")
-          }.let { type -> freshTemp(type) { to -> emit { BinOpQ(to, lv.inMemory(), op, rv) } } }
+          }
         }
       }
     }
@@ -229,4 +234,4 @@ private data class IRGenerator(
   private fun AstNode.getFunType(name: String): Type = funEnv[name] ?: err("Not defined function with name $name")
 }
 
-private fun AstNode.err(message: String): Nothing = throw IRException(ExceptionLocalizedMessage(message, span?.from))
+private fun AstNode.err(message: String): Nothing = throw IRException(LocalizedMessage(message, span?.from))
