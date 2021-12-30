@@ -32,7 +32,7 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
       for (b in reversePostOrder) {
         if (b == root) continue
         val predecessors = graph.predecessors(b)
-        val firstPredecessor = predecessors.first()
+        val firstPredecessor = predecessors.first { _doms[it] != null }
         var idom = firstPredecessor
         for (pred in predecessors) {
           if (pred == firstPredecessor) continue
@@ -64,12 +64,8 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
     var finger1 = b1
     var finger2 = b2
     while (finger1 != finger2) {
-      while (postOderIdx[finger1]!! < postOderIdx[finger2]!!) {
-        finger1 = _doms[finger1]!!
-      }
-      while (postOderIdx[finger2]!! < postOderIdx[finger1]!!) {
-        finger2 = _doms[finger2]!!
-      }
+      while (postOderIdx[finger1]!! < postOderIdx[finger2]!!) finger1 = _doms[finger1]!!
+      while (postOderIdx[finger2]!! < postOderIdx[finger1]!!) finger2 = _doms[finger2]!!
     }
     return finger1
   }
