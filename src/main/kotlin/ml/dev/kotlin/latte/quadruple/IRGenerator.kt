@@ -90,15 +90,17 @@ private data class IRGenerator(
       val lv = expr.left.generate()
       val rv = expr.right.generate()
       when {
-        lv is BooleanConstValue && rv is BooleanConstValue -> expr.op.rel(lv, rv)
-        lv is IntConstValue && rv is IntConstValue -> expr.op.rel(lv, rv)
-        else -> null
-      }
-        ?.let { if (it.bool) emit { JumpQ(onTrue) } else emit { JumpQ(onFalse) } }
-        ?: run {
+        lv is MemoryLoc && rv is MemoryLoc && lv == rv && expr.op == RelOp.EQ -> emit { JumpQ(onTrue) }
+        lv is MemoryLoc && rv is MemoryLoc && lv == rv && expr.op == RelOp.NE -> emit { JumpQ(onFalse) }
+        lv is BooleanConstValue && rv is BooleanConstValue ->
+          if (expr.op.rel(lv, rv).bool) emit { JumpQ(onTrue) } else emit { JumpQ(onFalse) }
+        lv is IntConstValue && rv is IntConstValue ->
+          if (expr.op.rel(lv, rv).bool) emit { JumpQ(onTrue) } else emit { JumpQ(onFalse) }
+        else -> {
           emit { RelCondJumpQ(lv.inMemory(), expr.op, rv, onTrue) }
           emit { JumpQ(onFalse) }
         }
+      }
     }
     expr is BinOpExpr && expr.op == BooleanOp.AND -> {
       val midLabel = freshLabel(prefix = "M")

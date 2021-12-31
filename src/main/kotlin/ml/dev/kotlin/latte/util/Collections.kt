@@ -29,3 +29,5 @@ interface Graph<V> {
   fun successors(v: V): LinkedHashSet<V>
   fun predecessors(v: V): LinkedHashSet<V>
 }
+
+inline fun <U> get(count: Int, produce: (Int) -> U): List<U> = List(count, produce)

@@ -27,12 +27,18 @@ data class ControlFlowGraph(
     pred[to.label] += from.label
   }
 
+  private fun removeBlock(label: Label) {
+    succ[label].forEach { pred[it] -= label }
+    pred[label].forEach { succ[it] -= label }
+    succ -= label
+    pred -= label
+    byName -= label
+  }
+
   private fun removeNotReachableBlocks() {
     val visited = starts.flatMapTo(HashSet()) { reachableBlocks(it) }
     val notVisited = byName.keys.toHashSet() - visited
-    succ -= notVisited
-    pred -= notVisited
-    byName -= notVisited
+    notVisited.forEach { removeBlock(it) }
   }
 
   private fun reachableBlocks(from: Label): Set<Label> {
@@ -46,8 +52,34 @@ data class ControlFlowGraph(
     return visited.also { go(from) }
   }
 
-  fun blockUsedVars(label: Label): Set<MemoryLoc> = byName[label]?.usedVars ?: emptySet()
-  fun blockDefinedVars(label: Label): Set<MemoryLoc> = byName[label]?.definedVars ?: emptySet()
+  private fun blockUsedVars(label: Label): Set<MemoryLoc> = byName[label]?.usedVars ?: emptySet()
+  private fun blockDefinedVars(label: Label): Set<MemoryLoc> = byName[label]?.definedVars ?: emptySet()
+
+  private fun insertPhony() {
+    for (f in starts) {
+      val reachableFrom = reachableBlocks(f)
+      val variableDefinedIn = MutableDefaultMap<MemoryLoc, HashSet<Label>>({ HashSet() }).also { definedIn ->
+        reachableFrom.forEach { block -> blockDefinedVars(block).forEach { v -> definedIn[v] += block } }
+      }
+      val allVariables = reachableBlocks(f).flatMapTo(HashSet()) { blockDefinedVars(it) }
+      val dominance = Dominance(f, this)
+      for (v in allVariables) {
+        val (workList, visited, alreadyHasPhiForV) = get(count = 3) { HashSet<Label>() }
+        variableDefinedIn[v].also { workList += it }.also { visited += it }
+
+        while (workList.isNotEmpty()) {
+          val n = workList.first().also { workList -= it }
+          for (d in dominance.frontiers(n)) {
+            if (d !in alreadyHasPhiForV) {
+              // TODO insert phi for v at d block
+              alreadyHasPhiForV += d
+              if (d !in visited) d.also { workList += it }.also { visited += it }
+            }
+          }
+        }
+      }
+    }
+  }
 
   override val size: Int get() = byName.size
   override val nodes: Set<Label> get() = byName.keys.toHashSet()

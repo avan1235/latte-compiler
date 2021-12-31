@@ -127,7 +127,7 @@ private fun testDominators(root: Int, graph: Graph<Int>, vararg dominators: Pair
   val expectedDominanceFrontiers = dominators.toMap().mapValues { it.value.second }
   val dom = Dominance(root, graph)
   val dominator = graph.nodes.associateWith { dom.dominator(it) }
-  val dominateFrontiers = graph.nodes.associateWith { dom.dominanceFrontiers(it) }
+  val dominateFrontiers = graph.nodes.associateWith { dom.frontiers(it) }
   assertEquals(expectedDominator, dominator, "Dominator")
   assertEquals(expectedDominanceFrontiers, dominateFrontiers, "Dominate frontiers")
 }

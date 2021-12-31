@@ -33,7 +33,7 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
    * (so there exists some other path from root node to these nodes that don't
    * go through v)
    */
-  fun dominanceFrontiers(v: V): Set<V> = _frontiers[v]
+  fun frontiers(v: V): Set<V> = _frontiers[v]
 
   private fun calcDominators() {
     _dominator[root] = root

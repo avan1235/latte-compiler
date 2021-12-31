@@ -512,6 +512,106 @@ internal class IRGeneratorTest {
     )
   }
 
+
+  @Nested
+  inner class CondStructureTest {
+    @Test
+    fun `test structure of if`() = testIRRepr(
+      program = """
+      int main() {
+        boolean b = true;
+        if (b) return 1;
+        return 0;
+      }
+      """,
+      irRepresentation = """
+      main():
+        b@1 = true
+        if b@1 goto @L0
+        goto @L1
+      @L0:
+        ret 1
+      @L1:
+        ret 0
+      """
+    )
+
+    @Test
+    fun `test structure of if else`() = testIRRepr(
+      program = """
+      int main() {
+        boolean b = true;
+        if (b) return 1;
+        else return 0;
+      }
+      """,
+      irRepresentation = """
+      main():
+        b@1 = true
+        if b@1 goto @L0
+        ret 0
+      @L0:
+        ret 1
+      """
+    )
+
+    @Test
+    fun `test structure of while`() = testIRRepr(
+      program = """
+      int main() {
+        boolean b = true;
+        int i = 0;
+        while (b) i++;
+        return 0;
+      }
+      """,
+      irRepresentation = """
+      main():
+        b@1 = true
+        i@1 = 0
+        goto @L1
+      @L0:
+        i@1 = i@1 + 1
+      @L1:
+        if b@1 goto @L0
+        ret 0
+      """
+    )
+
+    @Test
+    fun `test structure of nested if else`() = testIRRepr(
+      program = """
+      int main() {
+        boolean a = true;
+        boolean b = true;
+        if (b) {
+          if (a) return 3;
+          else return 2;
+        }
+        else {
+          if (a) return 1;
+          else return 0;
+        }
+      }
+      """,
+      irRepresentation = """
+      main():
+        a@1 = true
+        b@1 = true
+        if b@1 goto @L0
+        if a@1 goto @L3
+        ret 0
+      @L3:
+        ret 1
+      @L0:
+        if a@1 goto @L6
+        ret 2
+      @L6:
+        ret 3
+      """
+    )
+  }
+
   @Nested
   inner class CondSimplifyTest {
     @Test
@@ -705,6 +805,42 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         ret 1
+      """
+    )
+
+    @Test
+    fun `test simplify identity equal memory locations`() = testIRRepr(
+      program = """
+      int main() {
+        int a = 42;
+        if (a == a) {
+          return 1;
+        }
+        return 0;
+      }
+      """,
+      irRepresentation = """
+      main():
+        a@1 = 42
+        ret 1
+      """
+    )
+
+    @Test
+    fun `test simplify identity not equal memory locations`() = testIRRepr(
+      program = """
+      int main() {
+        int a = 42;
+        if (a != a) {
+          return 1;
+        }
+        return 0;
+      }
+      """,
+      irRepresentation = """
+      main():
+        a@1 = 42
+        ret 0
       """
     )
   }

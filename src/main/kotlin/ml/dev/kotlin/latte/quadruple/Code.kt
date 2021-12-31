@@ -19,11 +19,18 @@ data class StringConstValue(val label: Label, val str: String) : ConstValue(Stri
 sealed interface MemoryLoc : ValueHolder {
   val name: String
   val idx: Int
+  fun rename(name: String): MemoryLoc
 }
 
-data class LocalValue(override val name: String, override val idx: Int, override val type: Type) : MemoryLoc
-data class ArgValue(override val name: String, override val idx: Int, override val type: Type) : MemoryLoc
-data class TempValue(override val name: String, override val idx: Int, override val type: Type) : MemoryLoc
+data class LocalValue(override val name: String, override val idx: Int, override val type: Type) : MemoryLoc {
+  override fun rename(name: String): MemoryLoc = copy(name = name)
+}
+data class ArgValue(override val name: String, override val idx: Int, override val type: Type) : MemoryLoc {
+  override fun rename(name: String): MemoryLoc = copy(name = name)
+}
+data class TempValue(override val name: String, override val idx: Int, override val type: Type) : MemoryLoc {
+  override fun rename(name: String): MemoryLoc = copy(name = name)
+}
 
 sealed interface Quadruple
 sealed interface JumpingQ : Quadruple {

@@ -13,6 +13,16 @@ data class BasicBlock(
   val definedVars: Set<MemoryLoc>,
 )
 
+data class SSABasicBlock(
+  val instructions: List<Quadruple>,
+  val phonies: List<Phony>,
+  val isStart: Boolean,
+  val label: Label,
+  val jumpQ: JumpingQ?,
+  val usedVars: Set<MemoryLoc>,
+  val definedVars: Set<MemoryLoc>,
+)
+
 fun Iterable<Quadruple>.toBasicBlock(labelGenerator: () -> CodeLabelQ): BasicBlock = toMutableList().run {
   val first = (firstOrNull() as? LabelQ) ?: labelGenerator().also { add(index = 0, it) }
   val jumpingIdx = indexOfFirst { it is JumpingQ }
