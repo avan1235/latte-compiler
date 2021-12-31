@@ -43,8 +43,8 @@ private data class IRGenerator(
     is BlockStmt -> varEnv.onLevel { block.generate() }
     is DeclStmt -> items.forEach { it.generate(type) }
     is AssStmt -> emit { AssignQ(getVar(ident), expr.generate()) }
-    is DecrStmt -> emit { getVar(ident).let { DecQ(it, it) } }
-    is IncrStmt -> emit { getVar(ident).let { IncQ(it, it) } }
+    is DecrStmt -> emit { getVar(ident).let { UnOpModQ(it, UnOpMod.DEC, it) } }
+    is IncrStmt -> emit { getVar(ident).let { UnOpModQ(it, UnOpMod.INC, it) } }
     is ExprStmt -> expr.generate().unit()
     is RetStmt -> emit { RetQ(expr.generate()) }
     is VRetStmt -> emit { RetQ() }

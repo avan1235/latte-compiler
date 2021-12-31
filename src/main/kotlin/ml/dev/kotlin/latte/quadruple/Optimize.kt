@@ -10,7 +10,7 @@ fun Iterable<Quadruple>.optimize(
   .toList()
 
 private fun Iterable<Quadruple>.optimizeNoJumps(): List<Quadruple> {
-  val usedLabels = mapNotNullTo(hashSetOf()) { if (it is JumpingQ) it.toLabel else null }
+  val usedLabels = mapNotNullTo(hashSetOf()) { if (it is Jumping) it.toLabel else null }
   return filter { it !is CodeLabelQ || it.label in usedLabels }
 }
 
@@ -23,8 +23,8 @@ private fun Iterable<Quadruple>.optimizeJumpToNext(): List<Quadruple> {
     while (true) {
       val last = next
       next = higherKey(next) ?: break
-      val jump = (this[last] as? JumpingQ) ?: continue
-      val codeLabel = (this[next] as? LabelQ) ?: continue
+      val jump = (this[last] as? Jumping) ?: continue
+      val codeLabel = (this[next] as? Labeled) ?: continue
       if (jump.toLabel != codeLabel.label) continue
       this -= last
       removed += 1

@@ -20,6 +20,5 @@ internal fun Quadruple.repr(): String = when (this) {
   is JumpQ -> "goto ${toLabel.name}"
   is FunCallQ -> "${to.repr()} = call ${label.name} (${args.joinToString { it.repr() }})"
   is RetQ -> "ret${value?.let { " ${it.repr()}" } ?: ""}"
-  is DecQ -> "${to.repr()} = ${from.repr()} - 1"
-  is IncQ -> "${to.repr()} = ${from.repr()} + 1"
-}.let { if (this is LabelQ) it else "  $it" }
+  is UnOpModQ -> "${to.repr()} = ${op.name.lowercase()} ${from.repr()}"
+}.let { if (this is Labeled) it else "  $it" }

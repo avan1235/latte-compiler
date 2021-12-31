@@ -32,9 +32,7 @@ private data class Compiler(
 
   private fun Quadruple.compile(): Unit = when (this) {
     is AssignQ -> TODO()
-    is DecQ -> TODO()
     is FunCallQ -> TODO()
-    is IncQ -> TODO()
     is RelCondJumpQ -> TODO()
     is CondJumpQ -> TODO()
     is JumpQ -> TODO()
@@ -43,6 +41,7 @@ private data class Compiler(
     is FunCodeLabelQ -> TODO()
     is UnOpQ -> TODO()
     is BinOpQ -> op.on(to, left, right)
+    is UnOpModQ -> TODO()
   }
 
   private fun NumOp.on(to: MemoryLoc, left: MemoryLoc, right: ValueHolder) {

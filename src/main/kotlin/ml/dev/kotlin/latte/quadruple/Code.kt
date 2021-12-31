@@ -19,73 +19,125 @@ data class StringConstValue(val label: Label, val str: String) : ConstValue(Stri
 sealed interface MemoryLoc : ValueHolder {
   val name: String
   val idx: Int
-  fun rename(name: String): MemoryLoc
 }
 
-data class LocalValue(override val name: String, override val idx: Int, override val type: Type) : MemoryLoc {
-  override fun rename(name: String): MemoryLoc = copy(name = name)
-}
-data class ArgValue(override val name: String, override val idx: Int, override val type: Type) : MemoryLoc {
-  override fun rename(name: String): MemoryLoc = copy(name = name)
-}
-data class TempValue(override val name: String, override val idx: Int, override val type: Type) : MemoryLoc {
-  override fun rename(name: String): MemoryLoc = copy(name = name)
-}
+data class LocalValue(override val name: String, override val idx: Int, override val type: Type) : MemoryLoc
+data class ArgValue(override val name: String, override val idx: Int, override val type: Type) : MemoryLoc
+data class TempValue(override val name: String, override val idx: Int, override val type: Type) : MemoryLoc
 
 sealed interface Quadruple
-sealed interface JumpingQ : Quadruple {
+sealed interface Jumping {
   val toLabel: Label?
 }
 
-sealed interface LabelQ : Quadruple {
+sealed interface Labeled {
   val label: Label
 }
 
-data class BinOpQ(val to: MemoryLoc, val left: MemoryLoc, val op: NumOp, val right: ValueHolder) : Quadruple
-data class UnOpQ(val to: MemoryLoc, val op: UnOp, val from: MemoryLoc) : Quadruple
-data class AssignQ(val to: MemoryLoc, val from: ValueHolder) : Quadruple
-data class IncQ(val to: MemoryLoc, val from: MemoryLoc) : Quadruple
-data class DecQ(val to: MemoryLoc, val from: MemoryLoc) : Quadruple
-data class FunCallQ(val to: MemoryLoc, val label: Label, val args: List<ValueHolder>) : Quadruple
+typealias CurrIndex = (MemoryLoc) -> Int
+typealias UpdateIndex = (MemoryLoc) -> Unit
 
-data class FunCodeLabelQ(override val label: Label, val args: List<ArgValue>) : LabelQ
-data class CodeLabelQ(override val label: Label) : LabelQ
-
-data class CondJumpQ(val cond: MemoryLoc, override val toLabel: Label) : JumpingQ
-data class RelCondJumpQ(val left: MemoryLoc, val op: RelOp, val right: ValueHolder, override val toLabel: Label) :
-  JumpingQ
-
-data class JumpQ(override val toLabel: Label) : JumpingQ
-data class RetQ(val value: ValueHolder? = null) : JumpingQ {
-  override val toLabel: Label? = null
+sealed interface Rename {
+  fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple
 }
 
-fun Quadruple.usedVars(): Sequence<MemoryLoc> = when (this) {
-  is RetQ -> sequenceOf(value as? MemoryLoc)
-  is CondJumpQ -> sequenceOf(cond)
-  is RelCondJumpQ -> sequenceOf(left, right as? MemoryLoc)
-  is BinOpQ -> sequenceOf(left, right as? MemoryLoc)
-  is AssignQ -> sequenceOf(from as? MemoryLoc)
-  is UnOpQ -> sequenceOf(from)
-  is DecQ -> sequenceOf(from)
-  is IncQ -> sequenceOf(from)
-  is FunCallQ -> args.asSequence().filterIsInstance<MemoryLoc>()
-  is JumpQ -> emptySequence()
-  is CodeLabelQ -> emptySequence()
-  is FunCodeLabelQ -> emptySequence()
-}.filterNotNull()
+private fun MemoryLoc.renameUsage(currIndex: CurrIndex): MemoryLoc = when (this) {
+  is ArgValue -> copy(name = "$name#${currIndex(this)}")
+  is LocalValue -> copy(name = "$name#${currIndex(this)}")
+  is TempValue -> copy(name = "$name#${currIndex(this)}")
+}
 
-fun Quadruple.definedVars(): Sequence<MemoryLoc> = when (this) {
-  is AssignQ -> sequenceOf(to)
-  is BinOpQ -> sequenceOf(to)
-  is UnOpQ -> sequenceOf(to)
-  is DecQ -> sequenceOf(to)
-  is IncQ -> sequenceOf(to)
-  is FunCallQ -> sequenceOf(to)
-  is RelCondJumpQ -> emptySequence()
-  is CondJumpQ -> emptySequence()
-  is RetQ -> emptySequence()
-  is JumpQ -> emptySequence()
-  is CodeLabelQ -> emptySequence()
-  is FunCodeLabelQ -> emptySequence()
+private fun MemoryLoc.renameDefinition(currIndex: CurrIndex, updateIndex: UpdateIndex): MemoryLoc {
+  updateIndex(this)
+  return renameUsage(currIndex)
+}
+
+data class BinOpQ(val to: MemoryLoc, val left: MemoryLoc, val op: NumOp, val right: ValueHolder) :
+  Quadruple, Rename {
+  override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): BinOpQ {
+    val right = if (right is MemoryLoc) right.renameUsage(currIndex) else right
+    val left = left.renameUsage(currIndex)
+    val to = to.renameDefinition(currIndex, updateIndex)
+    return BinOpQ(to, left, op, right)
+  }
+}
+
+data class UnOpQ(val to: MemoryLoc, val op: UnOp, val from: MemoryLoc) : Quadruple, Rename {
+  override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): UnOpQ {
+    val from = from.renameUsage(currIndex)
+    val to = to.renameDefinition(currIndex, updateIndex)
+    return UnOpQ(to, op, from)
+  }
+}
+
+data class UnOpModQ(val to: MemoryLoc, val op: UnOpMod, val from: MemoryLoc) : Quadruple, Rename {
+  override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): UnOpModQ {
+    val from = from.renameUsage(currIndex)
+    val to = to.renameDefinition(currIndex, updateIndex)
+    return UnOpModQ(to, op, from)
+  }
+}
+
+data class AssignQ(val to: MemoryLoc, val from: ValueHolder) : Quadruple, Rename {
+  override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): AssignQ {
+    val from = if (from is MemoryLoc) from.renameUsage(currIndex) else from
+    val to = to.renameDefinition(currIndex, updateIndex)
+    return AssignQ(to, from)
+  }
+}
+
+data class FunCallQ(val to: MemoryLoc, val label: Label, val args: List<ValueHolder>) : Quadruple, Rename {
+  override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): FunCallQ {
+    val args = args.map { if (it is MemoryLoc) it.renameUsage(currIndex) else it }
+    val to = to.renameDefinition(currIndex, updateIndex)
+    return FunCallQ(to, label, args)
+  }
+}
+
+data class FunCodeLabelQ(override val label: Label, val args: List<ArgValue>) : Quadruple, Labeled, Rename {
+  override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): FunCodeLabelQ {
+    val args = args.map { it.renameUsage(currIndex) as ArgValue }
+    return FunCodeLabelQ(label, args)
+  }
+}
+
+data class CodeLabelQ(override val label: Label) : Quadruple, Labeled
+
+data class CondJumpQ(val cond: MemoryLoc, override val toLabel: Label) : Quadruple, Jumping, Rename {
+  override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): CondJumpQ {
+    val cond = cond.renameUsage(currIndex)
+    return CondJumpQ(cond, toLabel)
+  }
+}
+
+data class RelCondJumpQ(val left: MemoryLoc, val op: RelOp, val right: ValueHolder, override val toLabel: Label) :
+  Quadruple, Jumping, Rename {
+  override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): RelCondJumpQ {
+    val right = if (right is MemoryLoc) right.renameUsage(currIndex) else right
+    val left = left.renameUsage(currIndex)
+    return RelCondJumpQ(left, op, right, toLabel)
+  }
+}
+
+data class JumpQ(override val toLabel: Label) : Quadruple, Jumping
+data class RetQ(val value: ValueHolder? = null) : Quadruple, Jumping, Rename {
+  override val toLabel: Label? = null
+  override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): RetQ {
+    val value = value?.let { if (it is MemoryLoc) it.renameUsage(currIndex) else it }
+    return RetQ(value)
+  }
+}
+
+fun Quadruple.definedVar(): MemoryLoc? = when (this) {
+  is AssignQ -> to
+  is BinOpQ -> to
+  is UnOpQ -> to
+  is UnOpModQ -> to
+  is FunCallQ -> to
+  is RelCondJumpQ -> null
+  is CondJumpQ -> null
+  is RetQ -> null
+  is JumpQ -> null
+  is CodeLabelQ -> null
+  is FunCodeLabelQ -> null
 }

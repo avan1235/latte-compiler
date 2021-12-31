@@ -1,6 +1,8 @@
 package ml.dev.kotlin.latte.quadruple
 
 import ml.dev.kotlin.latte.util.*
+import java.util.*
+import kotlin.collections.ArrayDeque
 
 data class ControlFlowGraph(
   private val jumpPred: MutableDefaultMap<Label, LinkedHashSet<Label>> = MutableDefaultMap({ LinkedHashSet() }),
@@ -47,33 +49,55 @@ data class ControlFlowGraph(
     return visited.also { go(from) }
   }
 
-  private fun blockUsedVars(label: Label): Set<MemoryLoc> = byName[label]?.usedVars ?: emptySet()
-  private fun blockDefinedVars(label: Label): Set<MemoryLoc> = byName[label]?.definedVars ?: emptySet()
+  private fun blockDefinedVars(label: Label): Set<MemoryLoc> =
+    byName[label]?.instructions?.mapNotNullTo(HashSet()) { it.definedVar() } ?: emptySet()
 
-  private fun insertPhony() {
-    for (f in starts) {
-      val reachableFrom = reachableBlocks(f)
-      val variableDefinedIn = MutableDefaultMap<MemoryLoc, HashSet<Label>>({ HashSet() }).also { definedIn ->
-        reachableFrom.forEach { block -> blockDefinedVars(block).forEach { v -> definedIn[v] += block } }
-      }
-      val allVariables = reachableBlocks(f).flatMapTo(HashSet()) { blockDefinedVars(it) }
-      val dominance = Dominance(f, this)
-      for (v in allVariables) {
-        val (workList, visited, alreadyHasPhiForV) = get(count = 3) { HashSet<Label>() }
-        variableDefinedIn[v].also { workList += it }.also { visited += it }
-
-        while (workList.isNotEmpty()) {
-          val n = workList.first().also { workList -= it }
-          for (d in dominance.frontiers(n)) {
-            if (d !in alreadyHasPhiForV) {
-              // TODO insert phi for v at d block
-              alreadyHasPhiForV += d
-              if (d !in visited) d.also { workList += it }.also { visited += it }
-            }
-          }
+  private fun insertPhonyIn(functionBlocks: Set<Label>, dominance: Dominance<Label>) {
+    val inBlocks = MutableDefaultMap<MemoryLoc, HashSet<Label>>({ HashSet() }).also { inBlocks ->
+      functionBlocks.forEach { block -> blockDefinedVars(block).forEach { v -> inBlocks[v] += block } }
+    }
+    val functionVariables = inBlocks.keys.toHashSet()
+    for (v in functionVariables) {
+      val (workList, visited, phiInserted) = get(count = 3) { HashSet<Label>() }
+      inBlocks[v].also { workList += it }.also { visited += it }
+      while (workList.isNotEmpty()) {
+        val n = workList.first().also { workList -= it }
+        for (d in dominance.frontiers(n)) {
+          if (d in phiInserted) continue
+          phiInserted += d
+          byName[d]?.phony?.add(Phony(v))
+          if (d !in visited) d.also { workList += it }.also { visited += it }
         }
       }
     }
+  }
+
+  private fun renameVariablesIn(function: Label, functionBlocks: Set<Label>, dominanceTree: DominanceTree<Label>) {
+    val succ = MutableDefaultMap<Label, Set<Label>>({ successors(it) })
+    val counters = MutableDefaultMap<MemoryLoc, Int>({ 0 })
+    val stacks = MutableDefaultMap<MemoryLoc, Stack<Int>>({ Stack() })
+    val renamed = HashSet<Label>()
+
+    val nameGen = fun(v: MemoryLoc) {
+      val i = counters[v]
+      stacks[v].push(i)
+      counters[v] = i + 1
+    }
+
+    fun rename(block: Label) {
+      if (block in renamed) return
+      renamed += block
+
+      val basicBlock = byName[block] ?: return
+
+    }
+  }
+
+  private fun toSSA(function: Label) {
+    val functionBlocks = reachableBlocks(function)
+    val dominance = Dominance(function, this)
+    insertPhonyIn(functionBlocks, dominance)
+    renameVariablesIn(function, functionBlocks, dominance.dominanceTree)
   }
 
   override val size: Int get() = byName.size
@@ -90,7 +114,7 @@ data class ControlFlowGraph(
 
   companion object {
     fun Iterable<Quadruple>.buildCFG(labelGenerator: () -> CodeLabelQ): ControlFlowGraph = ControlFlowGraph().apply {
-      splitAt(first = { it is LabelQ }, last = { it is JumpingQ })
+      splitAt(first = { it is Labeled }, last = { it is Jumping })
         .map { it.toBasicBlock(labelGenerator) }
         .onEach { addBlock(it) }
         .windowed(2).forEach { (from, to) -> addLinearJump(from, to) }

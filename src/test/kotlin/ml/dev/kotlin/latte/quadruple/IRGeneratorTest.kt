@@ -23,7 +23,7 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         a@1 = 1
-        a@1 = a@1 - 1
+        a@1 = dec a@1
         ret a@1
       """
     )
@@ -40,7 +40,7 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         a@1 = -1
-        a@1 = a@1 + 1
+        a@1 = inc a@1
         ret a@1
       """
     )
@@ -329,7 +329,7 @@ internal class IRGeneratorTest {
         a@1 = 0
         goto @L1
       @L0:
-        a@1 = a@1 + 1
+        a@1 = inc a@1
         a@3 = 1
         a@3 = 2
       @L1:
@@ -571,7 +571,7 @@ internal class IRGeneratorTest {
         i@1 = 0
         goto @L1
       @L0:
-        i@1 = i@1 + 1
+        i@1 = inc i@1
       @L1:
         if b@1 goto @L0
         ret 0
@@ -763,8 +763,8 @@ internal class IRGeneratorTest {
         j@1 = 0
         goto @L1
       @L0:
-        i@1 = i@1 + 1
-        j@1 = j@1 - 1
+        i@1 = inc i@1
+        j@1 = dec j@1
       @L1:
         goto @L0
       """
@@ -928,19 +928,5 @@ private fun testIRRepr(
   // assert(quadruples.list.isSSA())
 }
 
-private fun List<Quadruple>.isSSA(): Boolean = mapNotNull {
-  when (it) {
-    is RelCondJumpQ -> null
-    is CondJumpQ -> null
-    is JumpQ -> null
-    is FunCodeLabelQ -> null
-    is CodeLabelQ -> null
-    is RetQ -> null
-    is AssignQ -> it.to
-    is BinOpQ -> it.to
-    is FunCallQ -> it.to
-    is UnOpQ -> it.to
-    is DecQ -> it.to
-    is IncQ -> it.to
-  }?.repr()
-}.let { it.size == it.toHashSet().size }
+private fun List<Quadruple>.isSSA(): Boolean =
+  mapNotNull { it.definedVar()?.repr() }.let { it.size == it.toHashSet().size }

@@ -4,27 +4,31 @@ import ml.dev.kotlin.latte.util.IRException
 import ml.dev.kotlin.latte.util.msg
 import ml.dev.kotlin.latte.util.nlString
 
+data class Phony(val to: MemoryLoc, val from: HashMap<Label, MemoryLoc> = HashMap())
+
 data class BasicBlock(
-  val instructions: List<Quadruple>,
+  private val _instructions: MutableList<Quadruple>,
   val isStart: Boolean,
   val label: Label,
-  val jumpQ: JumpingQ?,
-  val usedVars: Set<MemoryLoc>,
-  val definedVars: Set<MemoryLoc>,
+  val jumpQ: Jumping?,
   var linPred: BasicBlock? = null,
   var linSucc: BasicBlock? = null,
-  private val phony: MutableSet<Phony> = HashSet(),
-)
+  val phony: HashSet<Phony> = HashSet(),
+) {
+  val instructions: List<Quadruple> = _instructions
+  fun mapInstructions(f: (Quadruple) -> Quadruple) {
+    val mappedInstructions = _instructions.map(f)
+    _instructions.apply { clear() }.apply { addAll(mappedInstructions) }
+  }
+}
 
 fun Iterable<Quadruple>.toBasicBlock(labelGenerator: () -> CodeLabelQ): BasicBlock = toMutableList().run {
-  val first = (firstOrNull() as? LabelQ) ?: labelGenerator().also { add(index = 0, it) }
-  val jumpingIdx = indexOfFirst { it is JumpingQ }
+  val first = (firstOrNull() as? Labeled) ?: labelGenerator().also { add(index = 0, it) }
+  val jumpingIdx = indexOfFirst { it is Jumping }
   if (jumpingIdx != -1 && jumpingIdx != size - 1) err("Basic block contains invalid jumps: ${nlString()}")
-  if (count { it is LabelQ } != 1) err("Basic block contains invalid labels: ${nlString()}")
-  val jumping = lastOrNull() as? JumpingQ
-  val usedVars = flatMapTo(HashSet()) { it.usedVars() }
-  val definedVars = flatMapTo(HashSet()) { it.definedVars() }
-  BasicBlock(this, first is FunCodeLabelQ, first.label, jumping, usedVars, definedVars)
+  if (count { it is Labeled } != 1) err("Basic block contains invalid labels: ${nlString()}")
+  val jumping = lastOrNull() as? Jumping
+  BasicBlock(this, first is FunCodeLabelQ, first.label, jumping)
 }
 
 private fun err(message: String): Nothing = throw IRException(message.msg)

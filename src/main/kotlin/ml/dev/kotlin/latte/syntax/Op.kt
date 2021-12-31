@@ -8,6 +8,12 @@ enum class UnOp : AstNode {
   override val span: Span? = null
 }
 
+enum class UnOpMod : AstNode {
+  INC, DEC;
+
+  override val span: Span? = null
+}
+
 sealed interface BinOp : AstNode {
   val name: String
 }
