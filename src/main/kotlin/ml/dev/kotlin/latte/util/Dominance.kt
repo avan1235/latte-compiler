@@ -5,17 +5,18 @@ package ml.dev.kotlin.latte.util
  */
 class Dominance<V>(private val root: V, private val graph: Graph<V>) {
 
+  private val cachedPredecessors: DefaultMap<V, Set<V>> = MutableDefaultMap({ graph.predecessors(it) })
+  private val cachedSuccessors: DefaultMap<V, Set<V>> = MutableDefaultMap({ graph.successors(it) })
   private val postOrder: List<V> = ArrayList<V>(graph.size).also { postOrder ->
     val visited = HashSet<V>()
     fun go(v: V) {
       if (v in visited) return
       visited += v
-      graph.successors(v).forEach { go(it) }
+      cachedSuccessors[v].forEach { go(it) }
       postOrder += v
     }
     go(root)
   }
-
   private val postOderIdx: Map<V, Int> = postOrder.mapIndexed { idx, v -> v to idx }.toMap()
   private val reversePostOrder: List<V> = postOrder.reversed()
   private val _dominator: MutableMap<V, V> = HashMap()
@@ -42,7 +43,7 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
       changed = false
       for (b in reversePostOrder) {
         if (b == root) continue
-        val predecessors = graph.predecessors(b)
+        val predecessors = cachedPredecessors[b]
         val firstPredecessor = predecessors.first { _dominator[it] != null }
         var idom = firstPredecessor
         for (pred in predecessors) {
@@ -69,7 +70,7 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
 
   private fun calcDominanceFrontiers() {
     for (b in postOrder) {
-      val predecessors = graph.predecessors(b)
+      val predecessors = cachedPredecessors[b]
       if (predecessors.size < 2) continue
       for (p in predecessors) {
         var runner = p

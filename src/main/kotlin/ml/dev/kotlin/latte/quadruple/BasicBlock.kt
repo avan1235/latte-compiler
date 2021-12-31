@@ -11,16 +11,9 @@ data class BasicBlock(
   val jumpQ: JumpingQ?,
   val usedVars: Set<MemoryLoc>,
   val definedVars: Set<MemoryLoc>,
-)
-
-data class SSABasicBlock(
-  val instructions: List<Quadruple>,
-  val phonies: List<Phony>,
-  val isStart: Boolean,
-  val label: Label,
-  val jumpQ: JumpingQ?,
-  val usedVars: Set<MemoryLoc>,
-  val definedVars: Set<MemoryLoc>,
+  var linPred: BasicBlock? = null,
+  var linSucc: BasicBlock? = null,
+  private val phony: MutableSet<Phony> = HashSet(),
 )
 
 fun Iterable<Quadruple>.toBasicBlock(labelGenerator: () -> CodeLabelQ): BasicBlock = toMutableList().run {

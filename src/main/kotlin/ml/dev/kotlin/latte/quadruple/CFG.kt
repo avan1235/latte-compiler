@@ -3,9 +3,8 @@ package ml.dev.kotlin.latte.quadruple
 import ml.dev.kotlin.latte.util.*
 
 data class ControlFlowGraph(
-  private val succ: MutableDefaultMap<Label, LinkedHashSet<Label>> = MutableDefaultMap({ LinkedHashSet() }),
-  private val pred: MutableDefaultMap<Label, LinkedHashSet<Label>> = MutableDefaultMap({ LinkedHashSet() }),
-  private val byName: HashMap<Label, BasicBlock> = LinkedHashMap(),
+  private val jumpPred: MutableDefaultMap<Label, LinkedHashSet<Label>> = MutableDefaultMap({ LinkedHashSet() }),
+  private val byName: MutableMap<Label, BasicBlock> = LinkedHashMap(),
   private val starts: MutableSet<Label> = HashSet(),
 ) : Graph<Label> {
   fun orderedBlocks(): List<BasicBlock> = byName.values.toList()
@@ -13,32 +12,28 @@ data class ControlFlowGraph(
   private fun addBlock(block: BasicBlock) {
     if (block.label in byName) err("CFG already contains a BasicBlock labeled ${block.label}")
     byName[block.label] = block
-    block.jumpQ?.toLabel?.let { toLabel ->
-      succ[block.label] += toLabel
-      pred[toLabel] += block.label
-    }
+    block.jumpQ?.toLabel?.let { to -> jumpPred[to] += block.label }
     block.takeIf { it.isStart }?.label?.let { starts += it }
   }
 
-  private fun addJump(from: BasicBlock, to: BasicBlock) {
+  private fun addLinearJump(from: BasicBlock, to: BasicBlock) {
     if (to.isStart) return
     if (from.jumpQ is JumpQ || from.jumpQ is RetQ) return
-    succ[from.label] += to.label
-    pred[to.label] += from.label
-  }
-
-  private fun removeBlock(label: Label) {
-    succ[label].forEach { pred[it] -= label }
-    pred[label].forEach { succ[it] -= label }
-    succ -= label
-    pred -= label
-    byName -= label
+    from.linSucc = to
+    to.linPred = from
   }
 
   private fun removeNotReachableBlocks() {
     val visited = starts.flatMapTo(HashSet()) { reachableBlocks(it) }
     val notVisited = byName.keys.toHashSet() - visited
-    notVisited.forEach { removeBlock(it) }
+    notVisited.forEach { block ->
+      val linPred = byName[block]?.linPred
+      val linSucc = byName[block]?.linSucc
+      linPred?.linSucc = linSucc
+      linSucc?.linPred = linPred
+      byName[block]?.jumpQ?.toLabel?.let { jumpPred[it] -= block }
+      byName -= block
+    }
   }
 
   private fun reachableBlocks(from: Label): Set<Label> {
@@ -46,7 +41,7 @@ data class ControlFlowGraph(
     val queue = ArrayDeque<Label>()
     tailrec fun go(from: Label) {
       visited += from
-      succ[from].forEach { if (it !in visited) queue += it }
+      successors(from).forEach { if (it !in visited) queue += it }
       go(queue.removeLastOrNull() ?: return)
     }
     return visited.also { go(from) }
@@ -83,15 +78,22 @@ data class ControlFlowGraph(
 
   override val size: Int get() = byName.size
   override val nodes: Set<Label> get() = byName.keys.toHashSet()
-  override fun predecessors(v: Label): LinkedHashSet<Label> = pred[v]
-  override fun successors(v: Label): LinkedHashSet<Label> = succ[v]
+  override fun predecessors(v: Label): Set<Label> = buildSet {
+    addAll(jumpPred[v])
+    byName[v]?.linPred?.label?.let { add(it) }
+  }
+
+  override fun successors(v: Label): Set<Label> = buildSet {
+    byName[v]?.linSucc?.label?.let { add(it) }
+    byName[v]?.jumpQ?.toLabel?.let { add(it) }
+  }
 
   companion object {
     fun Iterable<Quadruple>.buildCFG(labelGenerator: () -> CodeLabelQ): ControlFlowGraph = ControlFlowGraph().apply {
       splitAt(first = { it is LabelQ }, last = { it is JumpingQ })
         .map { it.toBasicBlock(labelGenerator) }
         .onEach { addBlock(it) }
-        .windowed(2).forEach { (from, to) -> addJump(from, to) }
+        .windowed(2).forEach { (from, to) -> addLinearJump(from, to) }
       removeNotReachableBlocks()
     }
   }

@@ -20,9 +20,9 @@ internal class DominanceTest {
       5 to 1,
     ),
     1 to (6 withFrontiers setOf(2)),
-    2 to (6 withFrontiers setOf(1,3)),
+    2 to (6 withFrontiers setOf(1, 3)),
     3 to (6 withFrontiers setOf(2)),
-    4 to (6 withFrontiers setOf(2,3)),
+    4 to (6 withFrontiers setOf(2, 3)),
     5 to (6 withFrontiers setOf(1)),
     6 to (6 withFrontiers setOf()),
   )
@@ -136,15 +136,15 @@ private infix fun Int.withFrontiers(s: Set<Int>): Pair<Int, Set<Int>> = this to 
 
 private class TestGraph(vararg edge: Pair<Int, Int>) : Graph<Int> {
 
-  private val succ = MutableDefaultMap<Int, LinkedHashSet<Int>>({ LinkedHashSet() }).also { map ->
+  private val succ = MutableDefaultMap<Int, HashSet<Int>>({ HashSet() }).also { map ->
     edge.forEach { (from, to) -> map[from] += to }
   }
-  private val pred = MutableDefaultMap<Int, LinkedHashSet<Int>>({ LinkedHashSet() }).also { map ->
+  private val pred = MutableDefaultMap<Int, HashSet<Int>>({ HashSet() }).also { map ->
     edge.forEach { (from, to) -> map[to] += from }
   }
   override val size: Int = succ.keys.size
   override val nodes: Set<Int> get() = succ.keys + pred.keys
-  override fun successors(v: Int): LinkedHashSet<Int> = succ[v]
-  override fun predecessors(v: Int): LinkedHashSet<Int> = pred[v]
+  override fun successors(v: Int): Set<Int> = succ[v]
+  override fun predecessors(v: Int): Set<Int> = pred[v]
   override fun toString(): String = "TestGraph(succ=$succ, pred=$pred, size=$size)"
 }

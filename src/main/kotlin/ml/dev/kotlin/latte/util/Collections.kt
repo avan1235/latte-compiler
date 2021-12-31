@@ -26,8 +26,8 @@ fun <T> Iterable<T>.nlString(transform: ((T) -> CharSequence)? = null) =
 interface Graph<V> {
   val nodes: Set<V>
   val size: Int
-  fun successors(v: V): LinkedHashSet<V>
-  fun predecessors(v: V): LinkedHashSet<V>
+  fun successors(v: V): Set<V>
+  fun predecessors(v: V): Set<V>
 }
 
 inline fun <U> get(count: Int, produce: (Int) -> U): List<U> = List(count, produce)
