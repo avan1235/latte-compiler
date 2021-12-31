@@ -158,6 +158,10 @@ private data class IRGenerator(
           lv is IntConstValue && rv is IntConstValue && op is NumOp -> op.num(lv, rv)
           lv is StringConstValue && rv is StringConstValue -> addStringConst(lv.str + rv.str)
           lv is BooleanConstValue && rv is BooleanConstValue && op is RelOp -> op.rel(lv, rv)
+          rv is IntConstValue && rv.int == 0 && (op == NumOp.PLUS || op == NumOp.MINUS) -> lv
+          rv is IntConstValue && rv.int == 1 && (op == NumOp.TIMES || op == NumOp.DIVIDE) -> lv
+          lv is IntConstValue && lv.int == 0 && op == NumOp.PLUS -> rv
+          lv is IntConstValue && lv.int == 1 && op == NumOp.TIMES -> rv
           else -> when {
             op is NumOp && op == NumOp.PLUS && lv.type == StringType && rv.type == StringType ->
               freshTemp(StringType) { to -> emit { BinOpQ(to, lv.inMemory(), op, rv) } }
