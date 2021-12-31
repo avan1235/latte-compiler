@@ -19,11 +19,29 @@ data class StringConstValue(val label: Label, val str: String) : ConstValue(Stri
 sealed interface MemoryLoc : ValueHolder {
   val name: String
   val idx: Int
+  val original: MemoryLoc?
 }
 
-data class LocalValue(override val name: String, override val idx: Int, override val type: Type) : MemoryLoc
-data class ArgValue(override val name: String, override val idx: Int, override val type: Type) : MemoryLoc
-data class TempValue(override val name: String, override val idx: Int, override val type: Type) : MemoryLoc
+data class LocalValue(
+  override val name: String,
+  override val idx: Int,
+  override val type: Type,
+  override val original: MemoryLoc? = null,
+) : MemoryLoc
+
+data class ArgValue(
+  override val name: String,
+  override val idx: Int,
+  override val type: Type,
+  override val original: MemoryLoc? = null,
+) : MemoryLoc
+
+data class TempValue(
+  override val name: String,
+  override val idx: Int,
+  override val type: Type,
+  override val original: MemoryLoc? = null,
+) : MemoryLoc
 
 sealed interface Quadruple
 sealed interface Jumping {
@@ -34,20 +52,26 @@ sealed interface Labeled {
   val label: Label
 }
 
-typealias CurrIndex = (MemoryLoc) -> Int
+typealias CurrIndex = (MemoryLoc) -> Int?
 typealias UpdateIndex = (MemoryLoc) -> Unit
 
 sealed interface Rename {
   fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple
 }
 
-private fun MemoryLoc.renameUsage(currIndex: CurrIndex): MemoryLoc = when (this) {
-  is ArgValue -> copy(name = "$name#${currIndex(this)}")
-  is LocalValue -> copy(name = "$name#${currIndex(this)}")
-  is TempValue -> copy(name = "$name#${currIndex(this)}")
-}
+fun MemoryLoc.renameUsage(currIndex: CurrIndex): MemoryLoc =
+  if (original != null) throw IllegalStateException("Already renamed $this")
+  else {
+    val idx = currIndex(this) ?: throw IllegalStateException("Cannot rename with null index: $this")
+    val name = "$name#$idx"
+    when (this) {
+      is ArgValue -> copy(name = name, original = this)
+      is LocalValue -> copy(name = name, original = this)
+      is TempValue -> copy(name = name, original = this)
+    }
+  }
 
-private fun MemoryLoc.renameDefinition(currIndex: CurrIndex, updateIndex: UpdateIndex): MemoryLoc {
+fun MemoryLoc.renameDefinition(currIndex: CurrIndex, updateIndex: UpdateIndex): MemoryLoc {
   updateIndex(this)
   return renameUsage(currIndex)
 }
@@ -134,6 +158,7 @@ fun Quadruple.definedVar(): MemoryLoc? = when (this) {
   is UnOpQ -> to
   is UnOpModQ -> to
   is FunCallQ -> to
+  is Phony -> to
   is RelCondJumpQ -> null
   is CondJumpQ -> null
   is RetQ -> null

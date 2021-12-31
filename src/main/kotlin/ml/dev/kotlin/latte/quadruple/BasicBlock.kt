@@ -4,21 +4,48 @@ import ml.dev.kotlin.latte.util.IRException
 import ml.dev.kotlin.latte.util.msg
 import ml.dev.kotlin.latte.util.nlString
 
-data class Phony(val to: MemoryLoc, val from: HashMap<Label, MemoryLoc> = HashMap())
+data class Phony(private var _to: MemoryLoc, private val _from: HashMap<Label, MemoryLoc> = HashMap()) : Quadruple {
+  private val original: MemoryLoc = _to
+  val to: MemoryLoc get() = _to
+  val from: Map<Label, MemoryLoc> get() = _from
+  fun renameDefinition(currIndex: CurrIndex, updateIndex: UpdateIndex): Unit =
+    if (_to == original) _to = _to.renameDefinition(currIndex, updateIndex)
+    else throw IllegalStateException("Cannot rename Phony multiple times")
+
+  fun renamePathUsage(from: Label, currIndex: CurrIndex): Unit =
+    if (currIndex(original) != null) _from[from] = original.renameUsage(currIndex)
+    else Unit
+}
 
 data class BasicBlock(
-  private val _instructions: MutableList<Quadruple>,
+  private var _statements: List<Quadruple>,
   val isStart: Boolean,
   val label: Label,
   val jumpQ: Jumping?,
-  var linPred: BasicBlock? = null,
-  var linSucc: BasicBlock? = null,
-  val phony: HashSet<Phony> = HashSet(),
+  private var _phony: HashSet<Phony> = HashSet(),
 ) {
-  val instructions: List<Quadruple> = _instructions
-  fun mapInstructions(f: (Quadruple) -> Quadruple) {
-    val mappedInstructions = _instructions.map(f)
-    _instructions.apply { clear() }.apply { addAll(mappedInstructions) }
+  val statements: List<Quadruple> get() = _statements
+  val phony: Set<Phony> get() = _phony
+
+  var linPred: BasicBlock? = null
+    set(value) {
+      if (value != this) field = value
+    }
+  var linSucc: BasicBlock? = null
+    set(value) {
+      if (value != this) field = value
+    }
+
+  fun mapStatements(f: (Quadruple) -> Quadruple) {
+    _statements = _statements.map(f)
+  }
+
+  fun filterPhony(f: (Phony) -> Boolean) {
+    _phony = _phony.filterTo(HashSet(), f)
+  }
+
+  operator fun plusAssign(phony: Phony) {
+    _phony += phony
   }
 }
 

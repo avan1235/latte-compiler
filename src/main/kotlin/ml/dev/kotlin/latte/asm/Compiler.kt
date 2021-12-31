@@ -27,7 +27,7 @@ private data class Compiler(
       locals = 0
       usedRegisters.clear()
     }
-    instructions.forEach { it.compile() }
+    statements.forEach { it.compile() }
   }
 
   private fun Quadruple.compile(): Unit = when (this) {
@@ -42,6 +42,7 @@ private data class Compiler(
     is UnOpQ -> TODO()
     is BinOpQ -> op.on(to, left, right)
     is UnOpModQ -> TODO()
+    is Phony -> TODO()
   }
 
   private fun NumOp.on(to: MemoryLoc, left: MemoryLoc, right: ValueHolder) {

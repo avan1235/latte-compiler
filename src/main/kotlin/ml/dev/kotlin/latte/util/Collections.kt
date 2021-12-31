@@ -28,6 +28,17 @@ interface Graph<V> {
   val size: Int
   fun successors(v: V): Set<V>
   fun predecessors(v: V): Set<V>
+
+  fun reachable(from: V): Set<V> {
+    val visited = HashSet<V>()
+    val queue = ArrayDeque<V>()
+    tailrec fun go(from: V) {
+      visited += from
+      successors(from).forEach { if (it !in visited) queue += it }
+      go(queue.removeLastOrNull() ?: return)
+    }
+    return visited.also { go(from) }
+  }
 }
 
 inline fun <U> get(count: Int, produce: (Int) -> U): List<U> = List(count, produce)

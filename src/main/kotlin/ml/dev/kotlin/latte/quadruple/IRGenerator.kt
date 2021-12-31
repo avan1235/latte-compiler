@@ -4,10 +4,7 @@ import ml.dev.kotlin.latte.quadruple.ControlFlowGraph.Companion.buildCFG
 import ml.dev.kotlin.latte.syntax.*
 import ml.dev.kotlin.latte.typecheck.TypeCheckedProgram
 import ml.dev.kotlin.latte.typecheck.stdLibFunctionTypes
-import ml.dev.kotlin.latte.util.IRException
-import ml.dev.kotlin.latte.util.LocalizedMessage
-import ml.dev.kotlin.latte.util.StackTable
-import ml.dev.kotlin.latte.util.unit
+import ml.dev.kotlin.latte.util.*
 
 fun TypeCheckedProgram.toIR(): IR = IRGenerator().run { this@toIR.generate() }
 
@@ -49,7 +46,7 @@ private data class IRGenerator(
     is RetStmt -> emit { RetQ(expr.generate()) }
     is VRetStmt -> emit { RetQ() }
     is CondStmt -> {
-      val (trueLabel, endLabel) = freshLabels(count = 2)
+      val (trueLabel, endLabel) = get(count = 2) { freshLabel(prefix = "L") }
       generateCond(expr, trueLabel, endLabel)
 
       emit { CodeLabelQ(trueLabel) }
@@ -58,7 +55,7 @@ private data class IRGenerator(
       emit { CodeLabelQ(endLabel) }
     }
     is CondElseStmt -> {
-      val (trueLabel, falseLabel, endLabel) = freshLabels(count = 3)
+      val (trueLabel, falseLabel, endLabel) = get(count = 3) { freshLabel(prefix = "L") }
       generateCond(expr, trueLabel, falseLabel)
 
       emit { CodeLabelQ(falseLabel) }
@@ -71,7 +68,7 @@ private data class IRGenerator(
       emit { CodeLabelQ(endLabel) }
     }
     is WhileStmt -> {
-      val (body, condition, endWhile) = freshLabels(count = 3)
+      val (body, condition, endWhile) = get(count = 3) { freshLabel(prefix = "L") }
       emit { JumpQ(condition) }
 
       emit { CodeLabelQ(body) }
@@ -224,7 +221,6 @@ private data class IRGenerator(
 
   private fun freshIdx(): Int = labelIdx.also { labelIdx += 1 }
   private fun freshLabel(prefix: String): Label = "@$prefix${freshIdx()}".label
-  private fun freshLabels(count: Int, prefix: String = "L"): List<Label> = List(count) { freshLabel(prefix) }
 
   private fun addArg(label: Label, type: Type, idx: Int): ArgValue =
     ArgValue(label.name, idx, type).also { varEnv[label.name] = it }

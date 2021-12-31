@@ -2,7 +2,7 @@ package ml.dev.kotlin.latte.quadruple
 
 import java.util.*
 
-fun Iterable<Quadruple>.optimize(
+fun Iterable<Quadruple>.peepHoleOptimize(
   jumpToNext: Boolean = true,
   noJumpsToLabel: Boolean = true,
 ): List<Quadruple> = run { if (jumpToNext) optimizeJumpToNext() else this }
@@ -10,7 +10,13 @@ fun Iterable<Quadruple>.optimize(
   .toList()
 
 private fun Iterable<Quadruple>.optimizeNoJumps(): List<Quadruple> {
-  val usedLabels = mapNotNullTo(hashSetOf()) { if (it is Jumping) it.toLabel else null }
+  val usedLabels = asSequence().flatMap {
+    when (it) {
+      is Phony -> it.from.keys.asSequence()
+      is Jumping -> sequenceOf(it.toLabel)
+      else -> emptySequence()
+    }
+  }.filterNotNullTo(HashSet())
   return filter { it !is CodeLabelQ || it.label in usedLabels }
 }
 
