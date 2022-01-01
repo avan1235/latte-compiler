@@ -314,8 +314,8 @@ internal class IRGeneratorTest {
         a@3#0 = 2
         a@3#1 = 3
       @L2:
-        a@3#2 = phi (@L0:a@3#1, @L1:a@3#4)
         a@1#2 = phi (@L0:a@1#1, @L1:a@1#3)
+        a@3#2 = phi (@L0:a@3#1, @L1:a@3#4)
         ret a@1#2
       """
     )

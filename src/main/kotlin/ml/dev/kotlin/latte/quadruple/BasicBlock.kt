@@ -22,7 +22,7 @@ data class BasicBlock(
   val isStart: Boolean,
   val label: Label,
   val jumpQ: Jumping?,
-  private var _phony: HashSet<Phony> = HashSet(),
+  private var _phony: LinkedHashSet<Phony> = LinkedHashSet(),
 ) {
   val statements: List<Quadruple> get() = _statements
   val phony: Set<Phony> get() = _phony
@@ -41,7 +41,7 @@ data class BasicBlock(
   }
 
   fun filterPhony(f: (Phony) -> Boolean) {
-    _phony = _phony.filterTo(HashSet(), f)
+    _phony = _phony.filterTo(LinkedHashSet(), f)
   }
 
   operator fun plusAssign(phony: Phony) {
