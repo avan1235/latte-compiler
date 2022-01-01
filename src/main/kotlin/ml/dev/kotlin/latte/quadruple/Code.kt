@@ -166,3 +166,18 @@ fun Quadruple.definedVar(): MemoryLoc? = when (this) {
   is CodeLabelQ -> null
   is FunCodeLabelQ -> null
 }
+
+fun Quadruple.usedVar(): Sequence<MemoryLoc> = when (this) {
+  is AssignQ -> sequenceOf(from as? MemoryLoc)
+  is BinOpQ -> sequenceOf(left, right as? MemoryLoc)
+  is UnOpQ -> sequenceOf(from)
+  is UnOpModQ -> sequenceOf(from)
+  is FunCallQ -> args.asSequence().filterIsInstance<MemoryLoc>()
+  is Phony -> from.values.asSequence().filterIsInstance<MemoryLoc>()
+  is RelCondJumpQ -> sequenceOf(left, right as? MemoryLoc)
+  is CondJumpQ -> sequenceOf(cond)
+  is RetQ -> sequenceOf(value as? MemoryLoc)
+  is FunCodeLabelQ -> args.asSequence()
+  is CodeLabelQ -> emptySequence()
+  is JumpQ -> emptySequence()
+}.filterNotNull()

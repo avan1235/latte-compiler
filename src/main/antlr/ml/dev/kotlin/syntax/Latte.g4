@@ -5,11 +5,22 @@ program
     ;
 
 topDef
-    : type_ ID '(' arg? ')' block
+    : type ID '(' arg? ')' block                    # Fun
+    | classDef                                      # Class
+    ;
+
+classDef
+    : 'class' ID '{' classBodyDef+ '}'              # ClassNotExtendingDef
+    | 'class' ID 'extends' ID '{' classBodyDef+ '}' # ClassExtendingDef
+    ;
+
+classBodyDef
+    : type ID ';'                   # ClassField
+    | type ID '(' arg? ')' block    # ClassMethod
     ;
 
 arg
-    : type_ ID ( ',' type_ ID )*
+    : type ID ( ',' type ID )*
     ;
 
 block
@@ -19,7 +30,8 @@ block
 stmt
     : ';'                                # Empty
     | block                              # BlockStmt
-    | type_ item ( ',' item )* ';'       # Decl
+    | type item ( ',' item )* ';'        # Decl
+    | expr '.' ID '=' expr ';'           # RefAss
     | ID '=' expr ';'                    # Ass
     | ID '++' ';'                        # Incr
     | ID '--' ';'                        # Decr
@@ -31,11 +43,12 @@ stmt
     | expr ';'                           # SExp
     ;
 
-type_
+type
     : 'int'     # Int
     | 'string'  # Str
     | 'boolean' # Bool
     | 'void'    # Void
+    | ID        # Ref
     ;
 
 item
@@ -44,19 +57,24 @@ item
     ;
 
 expr
-    : unOp expr                           # EUnOp
-    | expr mulOp expr                     # EMulOp
-    | expr addOp expr                     # EAddOp
-    | expr relOp expr                     # ERelOp
-    | <assoc=right> expr '&&' expr        # EAnd
-    | <assoc=right> expr '||' expr        # EOr
-    | ID                                  # EId
-    | INT                                 # EInt
-    | 'true'                              # ETrue
-    | 'false'                             # EFalse
-    | ID '(' ( expr ( ',' expr )* )? ')'  # EFunCall
-    | STR                           # EStr
-    | '(' expr ')'                  # EParen
+    : unOp expr                                    # EUnOp
+    | expr mulOp expr                              # EMulOp
+    | expr addOp expr                              # EAddOp
+    | expr relOp expr                              # ERelOp
+    | <assoc=right> expr '&&' expr                 # EAnd
+    | <assoc=right> expr '||' expr                 # EOr
+    | 'new' type                                   # EClassConstructorCall
+    | 'null'                                       # ENull
+    | 'true'                                       # ETrue
+    | 'false'                                      # EFalse
+    | '(' type ')' expr                            # ECast
+    | ID                                           # EId
+    | INT                                          # EInt
+    | ID '(' ( expr ( ',' expr )* )? ')'           # EFunCall
+    | STR                                          # EStr
+    | '(' expr ')'                                 # EParen
+    | expr '.' ID                                  # EClassField
+    | expr '.' ID '(' ( expr ( ',' expr )* )? ')'  # EClassMethodCall
     ;
 
 addOp

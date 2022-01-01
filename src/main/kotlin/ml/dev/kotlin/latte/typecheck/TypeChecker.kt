@@ -17,19 +17,19 @@ private data class TypeChecker(
 ) {
 
   fun Program.typeCheck(): TypeCheckedProgram {
-    topDefs.onEach { it.addToFunEnv() }.forEach { it.typeCheck() }
+    topDefs.onEach { if (it is FunDef) it.addToFunEnv() }.forEach { if (it is FunDef) it.typeCheck() }
     if ("main" !in funEnv) err("No main function defined")
     return TypeCheckedProgram(this)
   }
 
-  private fun TopDef.addToFunEnv() {
+  private fun FunDef.addToFunEnv() {
     val name = ident mangled args.list.map { it.type }
     if (name in funEnv) err("Redefined function $ident")
     funEnv[name] = type
     mangledName = name
   }
 
-  private fun TopDef.typeCheck(): Unit = varEnv.onLevel {
+  private fun FunDef.typeCheck(): Unit = varEnv.onLevel {
     expectedReturnType = type
     args.list.forEach { args.addToVarEnv(it.type, it.ident) }
     val last = block.typeCheck()
@@ -56,6 +56,7 @@ private data class TypeChecker(
     is CondElseStmt -> typeCheckCondElse(expr, onTrue, onFalse)
     is VRetStmt -> typeCheckReturn(VoidType)
     is RetStmt -> typeCheckReturn(expr.type())
+    is RefAssStmt -> TODO()
   }
 
   private fun typeCheckAss(assStmt: AssStmt) {
@@ -125,7 +126,7 @@ private data class TypeChecker(
       mangledName = name
       funEnv[name] ?: err("Not defined function ${this.name}$argsTypes")
     }
-    is IdentExpr -> varEnv[value] ?: err("Not defined variable with name ${value}")
+    is IdentExpr -> varEnv[value] ?: err("Not defined variable with name $value")
     is IntExpr -> IntType
     is StringExpr -> StringType
     is UnOpExpr -> expr.type().let { type ->
@@ -135,6 +136,11 @@ private data class TypeChecker(
         else -> err("Invalid unary operation types")
       }
     }
+    is FieldExpr -> TODO("Handle field expressions for classes")
+    is ConstructorCallExpr -> TODO("Handle constructor calls for classes")
+    is MethodCallExpr -> TODO()
+    is CastExpr -> TODO()
+    is NullExpr -> TODO()
   }
 }
 

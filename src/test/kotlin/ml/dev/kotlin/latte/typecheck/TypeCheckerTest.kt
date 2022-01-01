@@ -7,8 +7,8 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import java.io.File
-import java.util.*
 import java.util.stream.Stream
+import java.util.stream.StreamSupport
 
 internal class TypeCheckerTest {
 
@@ -16,6 +16,12 @@ internal class TypeCheckerTest {
   @MethodSource("goodExamplesProvider")
   fun `should accept valid input files`(input: File) {
     input.inputStream().parse().typeCheck()
+  }
+
+  @ParameterizedTest
+  @MethodSource("extensionsExamplesProvider")
+  fun `should accept valid extension input files`(input: File) {
+    input.inputStream().parse()
   }
 
   @ParameterizedTest
@@ -32,8 +38,12 @@ internal class TypeCheckerTest {
     fun goodExamplesProvider(): Stream<File> = File("src/test/resources/good").testLatteFilesStream()
 
     @JvmStatic
+    fun extensionsExamplesProvider(): Stream<File> = File("src/test/resources/extensions").testLatteFilesStream()
+
+    @JvmStatic
     fun badExamplesProvider(): Stream<File> = File("src/test/resources/bad").testLatteFilesStream()
 
-    private fun File.testLatteFilesStream() = listFiles().let { Arrays.stream(it) }.filter { it.extension == "lat" }
+    private fun File.testLatteFilesStream(): Stream<File> =
+      StreamSupport.stream(walkTopDown().toList().spliterator(), false).filter { it.isFile && it.extension == "lat" }
   }
 }

@@ -18,16 +18,16 @@ private data class IRGenerator(
   private var labelIdx: Int = 0,
 ) {
   fun TypeCheckedProgram.generate(): IR {
-    program.topDefs.onEach { it.addToFunEnv() }.forEach { it.generate() }
+    program.topDefs.onEach { if (it is FunDef) it.addToFunEnv() }.forEach { if (it is FunDef) it.generate() }
     val cfg = quadruples.buildCFG { CodeLabelQ(freshLabel(prefix = "G")) }
     return IR(cfg, strings)
   }
 
-  private fun TopDef.addToFunEnv() {
+  private fun FunDef.addToFunEnv() {
     funEnv[mangledName] = type
   }
 
-  private fun TopDef.generate() = varEnv.onLevel {
+  private fun FunDef.generate() = varEnv.onLevel {
     val args = args.list.mapIndexed { idx, (type, name) -> addArg(name.label, type, idx) }
     emit { FunCodeLabelQ(mangledName.label, args) }
     block.generate()
@@ -79,6 +79,7 @@ private data class IRGenerator(
 
       emit { CodeLabelQ(endWhile) }
     }
+    is RefAssStmt -> TODO()
   }
 
   private fun generateCond(expr: Expr, onTrue: Label, onFalse: Label): Unit = when {
@@ -178,6 +179,11 @@ private data class IRGenerator(
         }
       }
     }
+    is FieldExpr -> TODO("Not implemented fields accessing")
+    is ConstructorCallExpr -> TODO("Not implemented constructor calls")
+    is MethodCallExpr -> TODO("Not implemented class method calls")
+    is CastExpr -> TODO()
+    is NullExpr -> TODO()
   }
 
   private infix fun Expr.lazyAnd(right: Expr): ValueHolder {

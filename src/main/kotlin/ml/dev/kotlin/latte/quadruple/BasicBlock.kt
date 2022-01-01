@@ -4,10 +4,10 @@ import ml.dev.kotlin.latte.util.IRException
 import ml.dev.kotlin.latte.util.msg
 import ml.dev.kotlin.latte.util.nlString
 
-data class Phony(private var _to: MemoryLoc, private val _from: HashMap<Label, MemoryLoc> = HashMap()) : Quadruple {
+data class Phony(private var _to: MemoryLoc, private val _from: HashMap<Label, ValueHolder> = HashMap()) : Quadruple {
   private val original: MemoryLoc = _to
   val to: MemoryLoc get() = _to
-  val from: Map<Label, MemoryLoc> get() = _from
+  val from: Map<Label, ValueHolder> get() = _from
   fun renameDefinition(currIndex: CurrIndex, updateIndex: UpdateIndex): Unit =
     if (_to == original) _to = _to.renameDefinition(currIndex, updateIndex)
     else throw IllegalStateException("Cannot rename Phony multiple times")
