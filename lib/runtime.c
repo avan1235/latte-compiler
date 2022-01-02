@@ -78,12 +78,12 @@ int32_t __readInt() {
 
 char* __concatString(char* l, char* r) {
     size_t length = 0;
-    for (char* c = l; c != 0; c++) length++;
-    for (char* c = r; c != 0; c++) length++;
+    for (char* c = l; *c != 0; c++) length++;
+    for (char* c = r; *c != 0; c++) length++;
     char *data = checked_malloc(length + 1);
     size_t idx = 0;
-    for (char* c = l; c != 0; c++) data[idx++] = *c;
-    for (char* c = r; c != 0; c++) data[idx++] = *c;
+    for (char* c = l; *c != 0; c++) data[idx++] = *c;
+    for (char* c = r; *c != 0; c++) data[idx++] = *c;
     data[length] = 0;
     return data;
 }
