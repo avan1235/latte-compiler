@@ -8,11 +8,6 @@ static const size_t INIT_STRING_BUFFER_SIZE = 8;
 
 static const int RUNTIME_ERROR_CODE = 1;
 
-typedef struct string_t {
-    char *data;
-    size_t length;
-} string_t;
-
 static void error_exit(char *message, int exit_code) {
     fprintf(stderr, "%s", message);
     exit(exit_code);
@@ -42,11 +37,11 @@ void __printInt(int32_t value) {
     fprintf(stdout, "%" PRId32 "\n", value);
 }
 
-void __printString(string_t* value) {
-    fprintf(stdout, "%s", value->data);
+void __printString(char* value) {
+    fprintf(stdout, "%s", value);
 }
 
-string_t* __readString() {
+char* __readString() {
     size_t size = INIT_STRING_BUFFER_SIZE;
     char *data = checked_malloc(size + 1);
     size_t length = 0;
@@ -61,14 +56,11 @@ string_t* __readString() {
         length += 1;
     }
     *(data + length) = '\0';
-    string_t* result = checked_malloc(sizeof(string_t));
-    result->data = data;
-    result->length = length;
-    return result;
+    return data;
 }
 
 int32_t __readInt() {
-    char *data = __readString()->data;
+    char *data = __readString();
     char *end_ptr;
     long long int v = strtoll(data, &end_ptr, 10);
     if ((errno == ERANGE && (v == LONG_MAX || v == LONG_MIN)) || (errno != 0 && v == 0)) {
@@ -84,17 +76,15 @@ int32_t __readInt() {
     return (int32_t) v;
 }
 
-string_t* __concatString(string_t* l, string_t* r) {
-    size_t length = l->length + r->length;
+char* __concatString(char* l, char* r) {
+    size_t length = 0;
+    for (char* c = l; c != 0; c++) length++;
+    for (char* c = r; c != 0; c++) length++;
     char *data = checked_malloc(length + 1);
-    char* lc = l->data;
     size_t idx = 0;
-    for (char* c = l->data; c != 0; c++) data[idx++] = *c;
-    for (char* c = r->data; c != 0; c++) data[idx++] = *c;
-    data[idx] = 0;
-    string_t* result = checked_malloc(sizeof(string_t));
-    result->data = data;
-    result->length = length;
-    return result;
+    for (char* c = l; c != 0; c++) data[idx++] = *c;
+    for (char* c = r; c != 0; c++) data[idx++] = *c;
+    data[length] = 0;
+    return data;
 }
 
