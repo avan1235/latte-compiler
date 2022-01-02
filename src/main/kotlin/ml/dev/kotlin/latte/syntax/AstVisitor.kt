@@ -54,7 +54,7 @@ object AstVisitor : LatteBaseVisitor<AstNode>() {
   )
 
   override fun visitBlock(ctx: LatteParser.BlockContext) =
-    Block(ctx.stmt().map { it.visit() }.filter { it != EmptyStmt }, ctx.span())
+    Block(ctx.stmt().map { it.visit() }.filterTo(ArrayList()) { it != EmptyStmt }, ctx.span())
 
   override fun visitEmpty(ctx: LatteParser.EmptyContext) = EmptyStmt
   override fun visitBlockStmt(ctx: LatteParser.BlockStmtContext) = BlockStmt(visitBlock(ctx.block()), ctx.span())

@@ -1,5 +1,6 @@
 package ml.dev.kotlin.latte
 
+import ml.dev.kotlin.latte.asm.compile
 import ml.dev.kotlin.latte.quadruple.toIR
 import ml.dev.kotlin.latte.syntax.parse
 import ml.dev.kotlin.latte.typecheck.typeCheck
@@ -20,7 +21,8 @@ fun main(args: Array<String>): Unit = args.takeIf { it.isNotEmpty() }?.forEach {
   }
 } ?: println("Usage: ./latte <input-file-paths>")
 
-private fun File.runCompiler() = takeIf { it.isFile }?.inputStream()
-  ?.parse()?.also { println("AST:\n$it") }
-  ?.typeCheck()
-  ?.toIR()?.also { println("IR:\n$it") }
+internal fun File.runCompiler(): String = inputStream()
+  .parse()
+  .typeCheck()
+  .toIR()
+  .compile()

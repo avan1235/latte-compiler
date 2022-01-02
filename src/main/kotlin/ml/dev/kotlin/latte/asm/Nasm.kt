@@ -6,14 +6,17 @@ import ml.dev.kotlin.latte.util.exeFile
 import ml.dev.kotlin.latte.util.invoke
 import java.io.File
 
-fun nasm(assembly: File, libFile: File = DEFAULT_LIB_FILE) {
+fun nasm(assembly: File, libFile: File = DEFAULT_LIB_FILE): CompilationResult {
   val asmDir = assembly.dir.absolutePath
   val name = assembly.nameWithoutExtension
   val o = File(asmDir, "$name.o")
   val result = File(asmDir, name)
   "nasm -f elf32 ${assembly.absolutePath} -o ${o.absolutePath}".checkCode()
   "gcc -m32 ${libFile.absolutePath} ${o.absolutePath} -o ${result.absolutePath}".checkCode()
+  return CompilationResult(o, result)
 }
+
+data class CompilationResult(val oFile: File, val binFile: File)
 
 private fun String.checkCode(): Unit = this().let { if (it != 0) throw CompileException(this, it) else Unit }
 

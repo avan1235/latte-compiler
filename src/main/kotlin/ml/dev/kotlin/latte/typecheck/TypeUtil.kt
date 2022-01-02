@@ -24,7 +24,7 @@ val STD_LIB_FUNCTIONS = mapOf(
   "__concatString" to StringType,
 )
 
-private val ENTRY_LABEL: Label = "main".label // TODO check if exists
+val ENTRY_LABEL: String = "main"
 
 infix fun String.mangled(args: List<Type>) =
   if (this withArgs args in STD_LIB_FUNCTIONS_SIGNATURES) "__$this" else "$this${args.joinToString("") { "@$it" }}"

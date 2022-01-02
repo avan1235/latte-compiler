@@ -184,8 +184,8 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        @T0#0 = call printString (@S1)
-        @T2#0 = call printInt (42)
+        @T0#0 = call __printString (@S1)
+        @T2#0 = call __printInt (42)
         ret 0
       """,
       "str" to "@S1"
@@ -476,29 +476,45 @@ internal class IRGeneratorTest {
     fun `test op on boolean AND`() = testIRRepr(
       program = """
       int main() {
-        boolean a = true;
-        boolean b = false;
-        boolean x = a && b;
+        boolean x = id(positive(1) && positive(-1));
         return 0;
+      }
+      boolean id(boolean a) {
+        return a;
+      }
+      boolean positive(int a) {
+        return a > 0;
       }
       """,
       irRepresentation = """
       main():
-        a@1#0 = true
-        b@1#0 = false
-        if a@1#0 goto @M4
-        goto @L2
-      @M4:
-        if b@1#0 goto @L1
-      @L2:
-        @T0#0 = false
+        @T6#0 = call positive@int (1)
+        if @T6#0 goto @M5
         goto @L3
-      @L1:
-        @T0#1 = true
+      @M5:
+        @T7#1 = call positive@int (-1)
+        if @T7#1 goto @L2
       @L3:
-        @T0#2 = phi (@L1:@T0#1, @L2:@T0#0)
-        x@1#0 = @T0#2
+        @T1#0 = false
+        goto @L4
+      @L2:
+        @T1#1 = true
+      @L4:
+        @T1#2 = phi (@L2:@T1#1, @L3:@T1#0)
+        @T7#2 = phi (@L2:@T7#1, @L3:@T7#0)
+        @T0#0 = call id@boolean (@T1#2)
+        x@1#0 = @T0#0
         ret 0
+      id@boolean(a#0):
+        ret a#0
+      positive@int(a#0):
+        @T8#0 = false
+        if a#0 le 0 goto @F9
+      @G12:
+        @T8#2 = true
+      @F9:
+        @T8#1 = phi (@G12:@T8#2, positive@int:@T8#0)
+        ret @T8#1
       """
     )
 
@@ -517,8 +533,8 @@ internal class IRGeneratorTest {
       main():
         a@1#0 = @S0
         b@1#0 = @S1
-        @T2#0 = a@1#0 plus b@1#0
-        @T3#0 = @T2#0 plus a@1#0
+        @T2#0 = call __concatString (a@1#0, b@1#0)
+        @T3#0 = call __concatString (@T2#0, a@1#0)
         x@1#0 = @T3#0
         ret 0
       """,
@@ -750,12 +766,13 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = true
-        if a@1#0 goto @L0
-        goto @L1
-      @L0:
+        @T0#0 = true
+        a@1#0 = @T0#0
+        if a@1#0 goto @L6
+        goto @L7
+      @L6:
         ret 1
-      @L1:
+      @L7:
         ret 0
       """
     )
@@ -782,8 +799,8 @@ internal class IRGeneratorTest {
         i@1#2 = inc i@1#1
         j@1#2 = dec j@1#1
       @L1:
-        i@1#1 = phi (@L0:i@1#2, main:i@1#0)
         j@1#1 = phi (@L0:j@1#2, main:j@1#0)
+        i@1#1 = phi (@L0:i@1#2, main:i@1#0)
         goto @L0
       """
     )
@@ -905,7 +922,8 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        b@1#0 = true
+        @T0#0 = true
+        b@1#0 = @T0#0
         ret 0
       """
     )
@@ -958,7 +976,7 @@ private fun testIRRepr(
   val instructions = graph.orderedBlocks().flatMap { it.statements }.asSequence().flatMap {
     sequence {
       yield(it)
-      if (it is Labeled) phony[it.label]?.forEach { yield(it) }
+      if (it is Labeled) phony[it.label]?.sortedBy { it.to.idx }?.forEach { yield(it) }
     }
   }.asIterable().run { if (optimize) peepHoleOptimize() else this }
   val repr = instructions.nlString { it.repr() }

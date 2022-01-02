@@ -1,8 +1,6 @@
 package ml.dev.kotlin.latte.asm
 
-import ml.dev.kotlin.latte.quadruple.toIR
-import ml.dev.kotlin.latte.syntax.parse
-import ml.dev.kotlin.latte.typecheck.typeCheck
+import ml.dev.kotlin.latte.runCompiler
 import ml.dev.kotlin.latte.util.dir
 import ml.dev.kotlin.latte.util.invoke
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -19,15 +17,16 @@ internal class CompilerTest {
   @MethodSource("goodExamplesProvider")
   fun `should accept valid input files`(input: File) {
     val expected = File(input.dir, "${input.nameWithoutExtension}.output").readText()
-    val compiled = input.inputStream().parse().typeCheck().toIR().compile()
+    val inputFile = File(input.dir, "${input.nameWithoutExtension}.input").takeIf { it.exists() }
+    val compiled = input.runCompiler()
     val asmFile = createTempFile(input.dir.toPath(), "generated", ".asm").toFile().apply { writeText(compiled) }
-    val libFile = File("lib/runtime.o")
-    nasm(asmFile, libFile)
-    val exe = File(asmFile.dir, asmFile.nameWithoutExtension).absolutePath
+    val (o, exe) = nasm(asmFile, libFile = File("lib/runtime.o"))
     val outFile = createTempFile(input.dir.toPath(), "test", ".out").toFile()
     val errFile = createTempFile(input.dir.toPath(), "test", ".err").toFile()
-    exe(outFile, errFile)
+    exe.absolutePath(inputFile, outFile, errFile)
     assertEquals(expected, outFile.readText())
+    assertEquals("", errFile.readText())
+    listOf(asmFile, o, exe, outFile, errFile).forEach { it.delete() }
   }
 
   companion object {

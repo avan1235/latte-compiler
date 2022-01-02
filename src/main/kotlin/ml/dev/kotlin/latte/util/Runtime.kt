@@ -3,11 +3,18 @@ package ml.dev.kotlin.latte.util
 import java.io.File
 import java.nio.file.Files.createTempFile
 
-operator fun String.invoke(outFile: File? = null, errFile: File? = null, workingDir: File = exeFile()): Int {
+operator fun String.invoke(
+  inputFile: File? = null,
+  outFile: File? = null,
+  errFile: File? = null,
+  workingDir: File = exeFile()
+): Int {
+  val input = inputFile ?: createTempFile(workingDir.dir.toPath(), null, null).toFile()
   val out = outFile ?: createTempFile(workingDir.dir.toPath(), null, null).toFile()
   val err = outFile ?: createTempFile(workingDir.dir.toPath(), null, null).toFile()
   return try {
     ProcessBuilder(*split(" ").toTypedArray()).directory(workingDir.dir)
+      .redirectInput(input)
       .redirectOutput(out)
       .redirectError(err)
       .start()
@@ -19,8 +26,9 @@ operator fun String.invoke(outFile: File? = null, errFile: File? = null, working
     eprintln(e.message)
     -1
   } finally {
-      if (outFile == null) out.delete()
-      if (errFile == null) err.delete()
+    if (inputFile == null) input.delete()
+    if (outFile == null) out.delete()
+    if (errFile == null) err.delete()
   }
 }
 

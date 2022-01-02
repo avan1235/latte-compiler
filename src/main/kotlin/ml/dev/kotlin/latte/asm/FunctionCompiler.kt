@@ -39,7 +39,7 @@ internal class FunctionCompiler(
     is TempValue -> locations[name]
     is BooleanConstValue -> Literal(if (bool) "1" else "0")
     is IntConstValue -> Literal("$int")
-    is StringConstValue -> Literal(strings[str]?.name?.let { "word $it" } ?: err("Used not labeled string $this"))
+    is StringConstValue -> Literal(strings[str]?.name ?: err("Used not labeled string $this"))
   } ?: err("Used not defined variable $this")
 
   private fun Quadruple.compile(): Unit = when (this@compile) {
@@ -72,6 +72,7 @@ internal class FunctionCompiler(
       cmd(SUB, ESP, locals * SIZE_BYTES) { locals > 0 }
     }
     is RetQ -> {
+      value?.let { cmd(MOV, EAX, it.get()) }
       cmd(MOV, ESP, EBP) { locals > 0 }
       cmd(POP, EBP)
       cmd(RET)
@@ -93,7 +94,7 @@ internal class FunctionCompiler(
     NumOp.PLUS -> {
       cmd(MOV, EAX, left.get())
       cmd(ADD, EAX, right.get())
-      cmd(MOV, to.get(), EAX) // TODO plus on strings
+      cmd(MOV, to.get(), EAX)
     }
     NumOp.MINUS -> {
       cmd(MOV, EAX, left.get())
@@ -107,14 +108,14 @@ internal class FunctionCompiler(
     }
     NumOp.DIVIDE -> {
       cmd(MOV, EAX, left.get())
-      cmd(ADD, ECX, right.get())
+      cmd(MOV, ECX, right.get())
       cmd(CDQ)
       cmd(IDIV, ECX)
       cmd(MOV, to.get(), EAX)
     }
     NumOp.MOD -> {
       cmd(MOV, EAX, left.get())
-      cmd(ADD, ECX, right.get())
+      cmd(MOV, ECX, right.get())
       cmd(CDQ)
       cmd(IDIV, ECX)
       cmd(MOV, to.get(), EDX)

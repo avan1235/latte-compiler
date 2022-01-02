@@ -18,7 +18,7 @@ private data class TypeChecker(
 
   fun Program.typeCheck(): TypeCheckedProgram {
     topDefs.onEach { if (it is FunDef) it.addToFunEnv() }.forEach { if (it is FunDef) it.typeCheck() }
-    if ("main" !in funEnv) err("No main function defined")
+    if (ENTRY_LABEL !in funEnv) err("No main function defined")
     return TypeCheckedProgram(this)
   }
 
@@ -34,6 +34,7 @@ private data class TypeChecker(
     args.list.forEach { args.addToVarEnv(it.type, it.ident) }
     val last = block.typeCheck()
     if (last != type && type != VoidType) err("Expected $ident to return $type")
+    if (last == null && type == VoidType) block.stmts += VRetStmt()
     expectedReturnType = null
   }
 

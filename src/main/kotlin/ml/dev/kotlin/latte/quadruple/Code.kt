@@ -120,7 +120,7 @@ data class FunCallQ(val to: VirtualReg, val label: Label, val args: List<ValueHo
 
 data class FunCodeLabelQ(override val label: Label, val args: List<ArgValue>) : Quadruple, Labeled, Rename {
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): FunCodeLabelQ {
-    val args = args.map { it.renameUsage(currIndex) as ArgValue }
+    val args = args.map { it.renameDefinition(currIndex, updateIndex) as ArgValue }
     return FunCodeLabelQ(label, args)
   }
 }

@@ -17,6 +17,7 @@ private class Compiler(
     result.appendLine(STD_LIB_FUNCTIONS.keys.nlString { "extern $it" })
     val functions = graph.orderedBlocks().splitAt(first = { it.isStart })
     functions.forEach { it.firstOrNull()?.label?.defineGlobal() }
+    result.appendLine("section .data")
     strings.defineDbStrings()
     result.appendLine("section .text")
     functions.forEach { FunctionCompiler(it, strings, result, labelGenerator).compile() }

@@ -38,7 +38,7 @@ void __printInt(int32_t value) {
 }
 
 void __printString(char* value) {
-    fprintf(stdout, "%s", value);
+    fprintf(stdout, "%s\n", value);
 }
 
 char* __readString() {

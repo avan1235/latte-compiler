@@ -43,7 +43,7 @@ data class FunDef(
 
 data class Args(val list: List<Arg>, override val span: Span? = null) : AstNode
 data class Arg(val type: Type, val ident: String)
-data class Block(val stmts: List<Stmt>, override val span: Span? = null) : AstNode
+data class Block(val stmts: MutableList<Stmt>, override val span: Span? = null) : AstNode
 
 sealed interface Item : AstNode {
   val ident: String

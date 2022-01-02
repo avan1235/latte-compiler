@@ -14,15 +14,16 @@ private data class IRGenerator(
   private val funEnv: MutableMap<String, Type> = STD_LIB_FUNCTIONS.toMutableMap(),
   private val quadruples: MutableList<Quadruple> = mutableListOf(),
   private val varEnv: StackTable<String, VirtualReg> = StackTable(),
-  private val strings: MutableMap<String, Label> = hashMapOf(),
+  private val strings: MutableMap<String, Label> = hashMapOf("" to EMPTY_STRING_LABEL),
   private var labelIdx: Int = 0,
+  private var emitting: Boolean = true,
 ) {
   fun TypeCheckedProgram.generate(): IR {
     program.topDefs.onEach { if (it is FunDef) it.addToFunEnv() }.forEach { if (it is FunDef) it.generate() }
     val labelGenerator = { freshLabel(prefix = "G") }
     val cfg = quadruples.buildCFG(labelGenerator).apply {
       removeNotReachableBlocks()
-      // transformToSSA()
+//      transformToSSA()
     }
     return IR(cfg, strings, labelGenerator)
   }
@@ -51,7 +52,7 @@ private data class IRGenerator(
     is VRetStmt -> emit { RetQ() }
     is CondStmt -> {
       val (trueLabel, endLabel) = get(count = 2) { freshLabel(prefix = "L") }
-      generateCond(expr, trueLabel, endLabel)
+      generateCondElse(expr, trueLabel, endLabel)
 
       emit { CodeLabelQ(trueLabel) }
       varEnv.onLevel { onTrue.generate() }
@@ -60,7 +61,7 @@ private data class IRGenerator(
     }
     is CondElseStmt -> {
       val (trueLabel, falseLabel, endLabel) = get(count = 3) { freshLabel(prefix = "L") }
-      generateCond(expr, trueLabel, falseLabel)
+      generateCondElse(expr, trueLabel, falseLabel)
 
       emit { CodeLabelQ(falseLabel) }
       varEnv.onLevel { onFalse.generate() }
@@ -79,54 +80,59 @@ private data class IRGenerator(
       varEnv.onLevel { onTrue.generate() }
 
       emit { CodeLabelQ(condition) }
-      generateCond(expr, body, endWhile)
+      generateCondElse(expr, body, endWhile)
 
       emit { CodeLabelQ(endWhile) }
     }
     is RefAssStmt -> TODO()
   }
 
-  private fun generateCond(expr: Expr, onTrue: Label, onFalse: Label): Unit = when {
-    expr is UnOpExpr && expr.op == UnOp.NOT -> generateCond(expr.expr, onFalse, onTrue)
-    expr is BinOpExpr && expr.op is RelOp -> {
-      val lv = expr.left.generate()
-      val rv = expr.right.generate()
-      when {
-        lv is VirtualReg && rv is VirtualReg && lv == rv && expr.op == RelOp.EQ -> emit { JumpQ(onTrue) }
-        lv is VirtualReg && rv is VirtualReg && lv == rv && expr.op == RelOp.NE -> emit { JumpQ(onFalse) }
-        lv is BooleanConstValue && rv is BooleanConstValue ->
-          if (expr.op.rel(lv, rv).bool) emit { JumpQ(onTrue) } else emit { JumpQ(onFalse) }
-        lv is IntConstValue && rv is IntConstValue ->
-          if (expr.op.rel(lv, rv).bool) emit { JumpQ(onTrue) } else emit { JumpQ(onFalse) }
-        else -> {
-          emit { RelCondJumpQ(lv.inMemory(), expr.op, rv, onTrue) }
-          emit { JumpQ(onFalse) }
+  private fun generateCondElse(expr: Expr, onTrue: Label, onFalse: Label): Unit {
+    when {
+      expr is UnOpExpr && expr.op == UnOp.NOT -> generateCondElse(expr.expr, onFalse, onTrue)
+      expr is BinOpExpr && expr.op is RelOp -> {
+        val lv = expr.left.generate()
+        val rv = expr.right.generate()
+        when {
+          lv is VirtualReg && rv is VirtualReg && lv == rv && expr.op == RelOp.EQ -> emit { JumpQ(onTrue) }
+          lv is VirtualReg && rv is VirtualReg && lv == rv && expr.op == RelOp.NE -> emit { JumpQ(onFalse) }
+          lv is BooleanConstValue && rv is BooleanConstValue ->
+            if (expr.op.rel(lv, rv).bool) emit { JumpQ(onTrue) } else emit { JumpQ(onFalse) }
+          lv is IntConstValue && rv is IntConstValue ->
+            if (expr.op.rel(lv, rv).bool) emit { JumpQ(onTrue) } else emit { JumpQ(onFalse) }
+          else -> {
+            emit { RelCondJumpQ(lv.inMemory(), expr.op, rv, onTrue) }
+            emit { JumpQ(onFalse) }
+          }
         }
       }
-    }
-    expr is BinOpExpr && expr.op == BooleanOp.AND -> {
-      val midLabel = freshLabel(prefix = "M")
-      generateCond(expr.left, midLabel, onFalse)
-      emit { CodeLabelQ(midLabel) }
-      generateCond(expr.right, onTrue, onFalse)
-    }
-    expr is BinOpExpr && expr.op == BooleanOp.OR -> {
-      val midLabel = freshLabel(prefix = "M")
-      generateCond(expr.left, onTrue, midLabel)
-      emit { CodeLabelQ(midLabel) }
-      generateCond(expr.right, onTrue, onFalse)
-    }
-    else -> when (val cond = expr.generate()) {
-      is BooleanConstValue -> if (cond.bool) emit { JumpQ(onTrue) } else emit { JumpQ(onFalse) }
-      else -> {
-        emit { CondJumpQ(cond.inMemory(), onTrue) }
-        emit { JumpQ(onFalse) }
+      expr is BinOpExpr && expr.op == BooleanOp.AND -> {
+        val midLabel = freshLabel(prefix = "M")
+        generateCondElse(expr.left, midLabel, onFalse)
+        emit { CodeLabelQ(midLabel) }
+        generateCondElse(expr.right, onTrue, onFalse)
+      }
+      expr is BinOpExpr && expr.op == BooleanOp.OR -> {
+        val midLabel = freshLabel(prefix = "M")
+        generateCondElse(expr.left, onTrue, midLabel)
+        emit { CodeLabelQ(midLabel) }
+        generateCondElse(expr.right, onTrue, onFalse)
+      }
+      else -> when (val cond = expr.generate()) {
+        is BooleanConstValue -> if (cond.bool) emit { JumpQ(onTrue) } else emit { JumpQ(onFalse) }
+        else -> {
+          emit { CondJumpQ(cond.inMemory(), onTrue) }
+          emit { JumpQ(onFalse) }
+        }
       }
     }
   }
 
   private fun Item.generate(type: Type): Unit = when (this) {
-    is NotInitItem -> addLocal(ident.label, type).unit()
+    is NotInitItem -> emit {
+      val value = type.default
+      AssignQ(addLocal(ident.label, type), value)
+    }
     is InitItem -> emit {
       val value = expr.generate()
       AssignQ(addLocal(ident.label, type), value)
@@ -153,8 +159,8 @@ private data class IRGenerator(
       }
     }
     is BinOpExpr -> when (op) {
-      BooleanOp.AND -> left lazyAnd right
-      BooleanOp.OR -> left lazyOr right
+      BooleanOp.AND -> generateCondElse(left, BooleanOp.AND, right)
+      BooleanOp.OR -> generateCondElse(left, BooleanOp.OR, right)
       else -> {
         val lv = left.generate()
         val rv = right.generate()
@@ -169,7 +175,7 @@ private data class IRGenerator(
           lv is IntConstValue && lv.int == 1 && op == NumOp.TIMES -> rv
           else -> when {
             op is NumOp && op == NumOp.PLUS && lv.type == StringType && rv.type == StringType ->
-              freshTemp(StringType) { to -> emit { BinOpQ(to, lv.inMemory(), op, rv) } }
+              freshTemp(StringType) { to -> emit { FunCallQ(to, "__concatString".label, listOf(lv, rv)) } }
             op is NumOp -> freshTemp(IntType) { to -> emit { BinOpQ(to, lv.inMemory(), op, rv) } }
             op is RelOp -> freshTemp(BooleanType) { to ->
               val falseLabel = freshLabel(prefix = "F")
@@ -190,24 +196,6 @@ private data class IRGenerator(
     is NullExpr -> TODO()
   }
 
-  private infix fun Expr.lazyAnd(right: Expr): ValueHolder {
-    val lv = generate()
-    return when {
-      lv is BooleanConstValue && !lv.bool -> lv
-      lv is BooleanConstValue && lv.bool -> right.generate()
-      else -> generateCondElse(this, BooleanOp.AND, right)
-    }
-  }
-
-  private infix fun Expr.lazyOr(right: Expr): ValueHolder {
-    val lv = generate()
-    return when {
-      lv is BooleanConstValue && lv.bool -> lv
-      lv is BooleanConstValue && !lv.bool -> right.generate()
-      else -> generateCondElse(this, BooleanOp.OR, right)
-    }
-  }
-
   private fun generateCondElse(left: Expr, op: BooleanOp, right: Expr): TempValue = freshTemp(BooleanType) { to ->
     CondElseStmt(
       BinOpExpr(left, op, right),
@@ -217,7 +205,7 @@ private data class IRGenerator(
   }
 
   private inline fun emit(emit: () -> Quadruple) {
-    quadruples += emit()
+    if (emitting) quadruples += emit()
   }
 
   private fun ValueHolder.inMemory(): VirtualReg = when (this) {
@@ -245,5 +233,16 @@ private data class IRGenerator(
   private fun AstNode.getVar(name: String): VirtualReg = varEnv[name] ?: err("Not defined variable with name $name")
   private fun AstNode.getFunType(name: String): Type = funEnv[name] ?: err("Not defined function with name $name")
 }
+
+private inline val Type.default: ConstValue
+  get() = when (this) {
+    BooleanType -> false.bool
+    IntType -> IntConstValue(0)
+    StringType -> StringConstValue(EMPTY_STRING_LABEL, "")
+    VoidType -> err("No default value for void type as it cannot be assigned")
+    is RefType -> TODO()
+  }
+
+private val EMPTY_STRING_LABEL: Label = "S@EMPTY".label
 
 private fun AstNode.err(message: String): Nothing = throw IRException(LocalizedMessage(message, span?.from))
