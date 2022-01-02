@@ -2,25 +2,29 @@ package ml.dev.kotlin.latte.quadruple
 
 import ml.dev.kotlin.latte.quadruple.ControlFlowGraph.Companion.buildCFG
 import ml.dev.kotlin.latte.syntax.*
+import ml.dev.kotlin.latte.typecheck.STD_LIB_FUNCTIONS
 import ml.dev.kotlin.latte.typecheck.TypeCheckedProgram
-import ml.dev.kotlin.latte.typecheck.stdLibFunctionTypes
 import ml.dev.kotlin.latte.util.*
 
 fun TypeCheckedProgram.toIR(): IR = IRGenerator().run { this@toIR.generate() }
 
-data class IR(val graph: ControlFlowGraph, val strings: Map<String, Label>)
+data class IR(val graph: ControlFlowGraph, val strings: Map<String, Label>, val labelGenerator: () -> Label)
 
 private data class IRGenerator(
-  private val funEnv: MutableMap<String, Type> = stdLibFunctionTypes(),
+  private val funEnv: MutableMap<String, Type> = STD_LIB_FUNCTIONS.toMutableMap(),
   private val quadruples: MutableList<Quadruple> = mutableListOf(),
-  private val varEnv: StackTable<String, MemoryLoc> = StackTable(),
+  private val varEnv: StackTable<String, VirtualReg> = StackTable(),
   private val strings: MutableMap<String, Label> = hashMapOf(),
   private var labelIdx: Int = 0,
 ) {
   fun TypeCheckedProgram.generate(): IR {
     program.topDefs.onEach { if (it is FunDef) it.addToFunEnv() }.forEach { if (it is FunDef) it.generate() }
-    val cfg = quadruples.buildCFG { CodeLabelQ(freshLabel(prefix = "G")) }
-    return IR(cfg, strings)
+    val labelGenerator = { freshLabel(prefix = "G") }
+    val cfg = quadruples.buildCFG(labelGenerator).apply {
+      removeNotReachableBlocks()
+      // transformToSSA()
+    }
+    return IR(cfg, strings, labelGenerator)
   }
 
   private fun FunDef.addToFunEnv() {
@@ -88,8 +92,8 @@ private data class IRGenerator(
       val lv = expr.left.generate()
       val rv = expr.right.generate()
       when {
-        lv is MemoryLoc && rv is MemoryLoc && lv == rv && expr.op == RelOp.EQ -> emit { JumpQ(onTrue) }
-        lv is MemoryLoc && rv is MemoryLoc && lv == rv && expr.op == RelOp.NE -> emit { JumpQ(onFalse) }
+        lv is VirtualReg && rv is VirtualReg && lv == rv && expr.op == RelOp.EQ -> emit { JumpQ(onTrue) }
+        lv is VirtualReg && rv is VirtualReg && lv == rv && expr.op == RelOp.NE -> emit { JumpQ(onFalse) }
         lv is BooleanConstValue && rv is BooleanConstValue ->
           if (expr.op.rel(lv, rv).bool) emit { JumpQ(onTrue) } else emit { JumpQ(onFalse) }
         lv is IntConstValue && rv is IntConstValue ->
@@ -216,11 +220,11 @@ private data class IRGenerator(
     quadruples += emit()
   }
 
-  private fun ValueHolder.inMemory(): MemoryLoc = when (this) {
+  private fun ValueHolder.inMemory(): VirtualReg = when (this) {
     is IntConstValue -> freshTemp(IntType) { to -> emit { AssignQ(to, this) } }
     is StringConstValue -> freshTemp(StringType) { to -> emit { AssignQ(to, this) } }
     is BooleanConstValue -> freshTemp(BooleanType) { to -> emit { AssignQ(to, this) } }
-    is MemoryLoc -> this
+    is VirtualReg -> this
   }
 
   private fun freshTemp(type: Type, action: (TempValue) -> Unit = {}): TempValue =
@@ -238,7 +242,7 @@ private data class IRGenerator(
   private fun addLocal(label: Label, type: Type): LocalValue =
     LocalValue("${label.name}@${varEnv.level}", varEnv.level, type).also { varEnv[label.name] = it }
 
-  private fun AstNode.getVar(name: String): MemoryLoc = varEnv[name] ?: err("Not defined variable with name $name")
+  private fun AstNode.getVar(name: String): VirtualReg = varEnv[name] ?: err("Not defined variable with name $name")
   private fun AstNode.getFunType(name: String): Type = funEnv[name] ?: err("Not defined function with name $name")
 }
 

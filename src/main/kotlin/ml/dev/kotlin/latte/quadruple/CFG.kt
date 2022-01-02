@@ -5,10 +5,45 @@ import java.util.*
 
 data class ControlFlowGraph(
   private val jumpPred: MutableDefaultMap<Label, LinkedHashSet<Label>> = MutableDefaultMap({ LinkedHashSet() }),
-  private val byName: MutableMap<Label, BasicBlock> = LinkedHashMap(),
-  private val starts: MutableSet<Label> = HashSet(),
+  private val byName: LinkedHashMap<Label, BasicBlock> = LinkedHashMap(),
+  private val starts: HashSet<Label> = HashSet(),
 ) : Graph<Label> {
   fun orderedBlocks(): List<BasicBlock> = byName.values.toList()
+
+  fun removeNotReachableBlocks() {
+    val visited = starts.flatMapTo(HashSet()) { reachable(from = it) }
+    val notVisited = byName.keys.toHashSet() - visited
+    notVisited.forEach { block ->
+      val linPred = byName[block]?.linPred
+      val linSucc = byName[block]?.linSucc
+      linPred?.linSucc = linSucc
+      linSucc?.linPred = linPred
+      byName[block]?.jumpQ?.toLabel?.let { jumpPred[it] -= block }
+      byName -= block
+    }
+  }
+
+  fun transformToSSA() {
+    fun toSSA(function: Label) {
+      val dominance = Dominance(function, this)
+      insertPhonyIn(function, dominance)
+      renameVariablesIn(function, dominance)
+    }
+    starts.forEach { toSSA(it) }
+    removeNotUsablePhony()
+  }
+
+  fun transformFromSSA() {
+    byName.values.toHashSet().forEach { b ->
+      b.phony.forEach { phi ->
+        phi.from.entries.forEach { (from, name) ->
+          val block = byName[from] ?: err("Unknown block defined in $phi")
+          block += AssignQ(phi.to, name)
+        }
+      }
+    }
+  }
+
 
   private fun addBlock(block: BasicBlock) {
     if (block.label in byName) err("CFG already contains a BasicBlock labeled ${block.label}")
@@ -24,20 +59,7 @@ data class ControlFlowGraph(
     to.linPred = from
   }
 
-  private fun removeNotReachableBlocks() {
-    val visited = starts.flatMapTo(HashSet()) { reachable(from = it) }
-    val notVisited = byName.keys.toHashSet() - visited
-    notVisited.forEach { block ->
-      val linPred = byName[block]?.linPred
-      val linSucc = byName[block]?.linSucc
-      linPred?.linSucc = linSucc
-      linSucc?.linPred = linPred
-      byName[block]?.jumpQ?.toLabel?.let { jumpPred[it] -= block }
-      byName -= block
-    }
-  }
-
-  private fun blockDefinedVars(label: Label): Set<MemoryLoc> =
+  private fun blockDefinedVars(label: Label): Set<VirtualReg> =
     byName[label]?.statements?.mapNotNullTo(HashSet()) { it.definedVar() } ?: emptySet()
 
   /**
@@ -47,7 +69,7 @@ data class ControlFlowGraph(
    */
   private fun insertPhonyIn(function: Label, dominance: Dominance<Label>) {
     val functionBlocks = reachable(from = function)
-    val inBlocks = MutableDefaultMap<MemoryLoc, HashSet<Label>>({ HashSet() }).also { inBlocks ->
+    val inBlocks = MutableDefaultMap<VirtualReg, HashSet<Label>>({ HashSet() }).also { inBlocks ->
       functionBlocks.forEach { block -> blockDefinedVars(block).forEach { v -> inBlocks[v] += block } }
     }
     val functionVariables = inBlocks.keys.toHashSet()
@@ -75,17 +97,17 @@ data class ControlFlowGraph(
    */
   private fun renameVariablesIn(function: Label, dominance: Dominance<Label>) {
     val dominanceTree = dominance.dominanceTree
-    val counters = MutableDefaultMap<MemoryLoc, Int>({ 0 })
-    val stacks = MutableDefaultMap<MemoryLoc, Stack<Int>>({ Stack() })
+    val counters = MutableDefaultMap<VirtualReg, Int>({ 0 })
+    val stacks = MutableDefaultMap<VirtualReg, Stack<Int>>({ Stack() })
     val renamed = HashSet<Label>()
 
-    val increaseIdx = { v: MemoryLoc ->
+    val increaseIdx = { v: VirtualReg ->
       val i = counters[v]
       stacks[v].push(i)
       counters[v] = i + 1
     }
-    val decreaseIdx = { v: MemoryLoc -> stacks[v].pop() }
-    val currIndex = { v: MemoryLoc -> stacks[v].let { if (it.isNotEmpty()) it.peek() else null } }
+    val decreaseIdx = { v: VirtualReg -> stacks[v].pop() }
+    val currIndex = { v: VirtualReg -> stacks[v].let { if (it.isNotEmpty()) it.peek() else null } }
 
     fun rename(b: Label) {
       if (b in renamed) return
@@ -109,16 +131,6 @@ data class ControlFlowGraph(
     }
   }
 
-  private fun transformToSSA() {
-    fun toSSA(function: Label) {
-      val dominance = Dominance(function, this)
-      insertPhonyIn(function, dominance)
-      renameVariablesIn(function, dominance)
-    }
-    starts.forEach { toSSA(it) }
-    removeNotUsablePhony()
-  }
-
   override val size: Int get() = byName.size
   override val nodes: Set<Label> get() = byName.keys.toHashSet()
   override fun predecessors(v: Label): Set<Label> = buildSet {
@@ -132,13 +144,11 @@ data class ControlFlowGraph(
   }
 
   companion object {
-    fun Iterable<Quadruple>.buildCFG(labelGenerator: () -> CodeLabelQ): ControlFlowGraph = ControlFlowGraph().apply {
+    fun Iterable<Quadruple>.buildCFG(labelGenerator: () -> Label): ControlFlowGraph = ControlFlowGraph().apply {
       splitAt(first = { it is Labeled }, last = { it is Jumping })
-        .map { it.toBasicBlock(labelGenerator) }
+        .map { it.toBasicBlock { CodeLabelQ(labelGenerator()) } }
         .onEach { addBlock(it) }
         .windowed(2).forEach { (from, to) -> addLinearJump(from, to) }
-      removeNotReachableBlocks()
-      transformToSSA()
     }
   }
 }

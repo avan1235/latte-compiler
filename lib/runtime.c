@@ -26,19 +26,27 @@ static void *checked_malloc(size_t size) {
     return result;
 }
 
-void error() {
+static void *checked_realloc(void * ptr, size_t size) {
+    void *result = realloc(ptr, size);
+    if (result == NULL) {
+        error_exit("Error in memory reallocation.\n", RUNTIME_ERROR_CODE);
+    }
+    return result;
+}
+
+void __error() {
     error_exit("runtime error\n", RUNTIME_ERROR_CODE);
 }
 
-void printInt(int32_t value) {
+void __printInt(int32_t value) {
     fprintf(stdout, "%" PRId32 "\n", value);
 }
 
-void printString(string_t value) {
-    fprintf(stdout, "%s", value.data);
+void __printString(string_t* value) {
+    fprintf(stdout, "%s", value->data);
 }
 
-string_t readString() {
+string_t* __readString() {
     size_t size = INIT_STRING_BUFFER_SIZE;
     char *data = checked_malloc(size + 1);
     size_t length = 0;
@@ -47,18 +55,20 @@ string_t readString() {
     while ((c = fgetc(stdin)) != EOF && c != '\n') {
         if (length == size) {
             size *= 2;
-            data = checked_malloc(size + 1);
+            data = checked_realloc(data, size + 1);
         }
         *(data + length) = (char) c;
         length += 1;
     }
     *(data + length) = '\0';
-    string_t result = {data, length};
+    string_t* result = checked_malloc(sizeof(string_t));
+    result->data = data;
+    result->length = length;
     return result;
 }
 
-int32_t readInt() {
-    char *data = readString().data;
+int32_t __readInt() {
+    char *data = __readString()->data;
     char *end_ptr;
     long long int v = strtoll(data, &end_ptr, 10);
     if ((errno == ERANGE && (v == LONG_MAX || v == LONG_MIN)) || (errno != 0 && v == 0)) {
@@ -72,5 +82,19 @@ int32_t readInt() {
         error_exit("Read int value is too big to fit in 32 bits.\n", RUNTIME_ERROR_CODE);
     }
     return (int32_t) v;
+}
+
+string_t* __concatString(string_t* l, string_t* r) {
+    size_t length = l->length + r->length;
+    char *data = checked_malloc(length + 1);
+    char* lc = l->data;
+    size_t idx = 0;
+    for (char* c = l->data; c != 0; c++) data[idx++] = *c;
+    for (char* c = r->data; c != 0; c++) data[idx++] = *c;
+    data[idx] = 0;
+    string_t* result = checked_malloc(sizeof(string_t));
+    result->data = data;
+    result->length = length;
+    return result;
 }
 

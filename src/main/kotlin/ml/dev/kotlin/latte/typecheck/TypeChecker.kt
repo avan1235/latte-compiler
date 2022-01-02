@@ -11,7 +11,7 @@ fun Program.typeCheck(): TypeCheckedProgram = TypeChecker().run { this@typeCheck
 value class TypeCheckedProgram(val program: Program)
 
 private data class TypeChecker(
-  private val funEnv: MutableMap<String, Type> = stdLibFunctionTypes(),
+  private val funEnv: MutableMap<String, Type> = STD_LIB_FUNCTIONS.toMutableMap(),
   private val varEnv: StackTable<String, Type> = StackTable(),
   private var expectedReturnType: Type? = null,
 ) {

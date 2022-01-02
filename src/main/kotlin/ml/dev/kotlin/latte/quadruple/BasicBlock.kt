@@ -4,9 +4,9 @@ import ml.dev.kotlin.latte.util.IRException
 import ml.dev.kotlin.latte.util.msg
 import ml.dev.kotlin.latte.util.nlString
 
-data class Phony(private var _to: MemoryLoc, private val _from: HashMap<Label, ValueHolder> = HashMap()) : Quadruple {
-  private val original: MemoryLoc = _to
-  val to: MemoryLoc get() = _to
+data class Phony(private var _to: VirtualReg, private val _from: HashMap<Label, ValueHolder> = HashMap()) : Quadruple {
+  private val original: VirtualReg = _to
+  val to: VirtualReg get() = _to
   val from: Map<Label, ValueHolder> get() = _from
   fun renameDefinition(currIndex: CurrIndex, updateIndex: UpdateIndex): Unit =
     if (_to == original) _to = _to.renameDefinition(currIndex, updateIndex)
@@ -18,7 +18,7 @@ data class Phony(private var _to: MemoryLoc, private val _from: HashMap<Label, V
 }
 
 data class BasicBlock(
-  private var _statements: List<Quadruple>,
+  private var _statements: MutableList<Quadruple>,
   val isStart: Boolean,
   val label: Label,
   val jumpQ: Jumping?,
@@ -37,7 +37,7 @@ data class BasicBlock(
     }
 
   fun mapStatements(f: (Quadruple) -> Quadruple) {
-    _statements = _statements.map(f)
+    _statements = _statements.mapTo(mutableListOf(), f)
   }
 
   fun filterPhony(f: (Phony) -> Boolean) {
@@ -46,6 +46,10 @@ data class BasicBlock(
 
   operator fun plusAssign(phony: Phony) {
     _phony += phony
+  }
+
+  operator fun plusAssign(statement: Quadruple) {
+    _statements += statement
   }
 }
 
