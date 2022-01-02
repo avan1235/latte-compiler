@@ -85,7 +85,7 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
 
   private fun calcDominanceTree(): DominanceTree<V> {
     val nodes = graph.reachable(from = root)
-    val size = graph.size
+    val size = nodes.size
     val successors = MutableDefaultMap<V, HashSet<V>>({ HashSet() })
     val predecessors = MutableDefaultMap<V, HashSet<V>>({ HashSet() })
     nodes.forEach node@{
