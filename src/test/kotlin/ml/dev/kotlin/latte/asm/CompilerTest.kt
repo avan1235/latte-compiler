@@ -14,7 +14,7 @@ internal class CompilerTest {
 
   @ParameterizedTest
   @MethodSource("goodExamplesProvider")
-  fun `should accept valid input files`(input: File) {
+  fun `should accept valid input files and match their output`(input: File) {
     val expected = File(input.dir, "${input.nameWithoutExtension}.output").readText()
     val inputFile = File(input.dir, "${input.nameWithoutExtension}.input").takeIf { it.exists() }
     val compiled = input.runCompiler()

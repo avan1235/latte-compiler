@@ -6,6 +6,7 @@ import ml.dev.kotlin.latte.syntax.UnOpMod
 
 enum class Cmd : Named {
   MOV,
+  LEA,
   POP,
   ADD,
   SUB,

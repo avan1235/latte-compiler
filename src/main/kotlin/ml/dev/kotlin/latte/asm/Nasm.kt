@@ -12,7 +12,7 @@ fun nasm(assembly: File, libFile: File = DEFAULT_LIB_FILE): CompilationResult {
   val o = File(asmDir, "$name.o")
   val result = File(asmDir, name)
   "nasm -f elf32 ${assembly.absolutePath} -o ${o.absolutePath}".checkCode()
-  "gcc -m32 ${libFile.absolutePath} ${o.absolutePath} -o ${result.absolutePath}".checkCode()
+  "gcc -m32 -static ${libFile.absolutePath} ${o.absolutePath} -o ${result.absolutePath}".checkCode()
   return CompilationResult(o, result)
 }
 
