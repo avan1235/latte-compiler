@@ -1,12 +1,15 @@
 package ml.dev.kotlin.latte.quadruple
 
 import ml.dev.kotlin.latte.syntax.*
+import ml.dev.kotlin.latte.util.IRException
+import ml.dev.kotlin.latte.util.msg
 
 interface Named {
   val name: String
 }
 
 data class Label(override val name: String) : Named
+
 sealed interface ValueHolder {
   val type: Type
 }
@@ -36,7 +39,12 @@ data class ArgValue(
   override val original: VirtualReg? = null,
 ) : VirtualReg
 
-sealed interface Quadruple
+sealed interface Rename {
+  fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple
+}
+
+sealed interface Quadruple : Rename
+
 sealed interface Jumping {
   val toLabel: Label?
 }
@@ -48,15 +56,10 @@ sealed interface Labeled {
 typealias CurrIndex = (VirtualReg) -> Int?
 typealias UpdateIndex = (VirtualReg) -> Unit
 
-sealed interface Rename {
-  fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple
-}
-
 fun VirtualReg.renameUsage(currIndex: CurrIndex): VirtualReg =
   if (original != null) throw IllegalStateException("Already renamed $this")
   else {
-    val idx = currIndex(this) ?: throw IllegalStateException("Cannot rename with null index: $this")
-    val name = "$name#$idx"
+    val name = "$name#${currIndex(this) ?: err("Cannot rename with null index: $this")}"
     when (this) {
       is ArgValue -> copy(name = name, original = this)
       is LocalValue -> copy(name = name, original = this)
@@ -69,7 +72,7 @@ fun VirtualReg.renameDefinition(currIndex: CurrIndex, updateIndex: UpdateIndex):
 }
 
 data class BinOpQ(val to: VirtualReg, val left: VirtualReg, val op: NumOp, val right: ValueHolder) :
-  Quadruple, Rename {
+  Quadruple {
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): BinOpQ {
     val right = if (right is VirtualReg) right.renameUsage(currIndex) else right
     val left = left.renameUsage(currIndex)
@@ -78,7 +81,7 @@ data class BinOpQ(val to: VirtualReg, val left: VirtualReg, val op: NumOp, val r
   }
 }
 
-data class UnOpQ(val to: VirtualReg, val op: UnOp, val from: VirtualReg) : Quadruple, Rename {
+data class UnOpQ(val to: VirtualReg, val op: UnOp, val from: VirtualReg) : Quadruple {
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): UnOpQ {
     val from = from.renameUsage(currIndex)
     val to = to.renameDefinition(currIndex, updateIndex)
@@ -86,7 +89,7 @@ data class UnOpQ(val to: VirtualReg, val op: UnOp, val from: VirtualReg) : Quadr
   }
 }
 
-data class UnOpModQ(val to: VirtualReg, val op: UnOpMod, val from: VirtualReg) : Quadruple, Rename {
+data class UnOpModQ(val to: VirtualReg, val op: UnOpMod, val from: VirtualReg) : Quadruple {
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): UnOpModQ {
     val from = from.renameUsage(currIndex)
     val to = to.renameDefinition(currIndex, updateIndex)
@@ -94,7 +97,7 @@ data class UnOpModQ(val to: VirtualReg, val op: UnOpMod, val from: VirtualReg) :
   }
 }
 
-data class AssignQ(val to: VirtualReg, val from: ValueHolder) : Quadruple, Rename {
+data class AssignQ(val to: VirtualReg, val from: ValueHolder) : Quadruple {
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): AssignQ {
     val from = if (from is VirtualReg) from.renameUsage(currIndex) else from
     val to = to.renameDefinition(currIndex, updateIndex)
@@ -102,7 +105,7 @@ data class AssignQ(val to: VirtualReg, val from: ValueHolder) : Quadruple, Renam
   }
 }
 
-data class FunCallQ(val to: VirtualReg, val label: Label, val args: List<ValueHolder>) : Quadruple, Rename {
+data class FunCallQ(val to: VirtualReg, val label: Label, val args: List<ValueHolder>) : Quadruple {
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): FunCallQ {
     val args = args.map { if (it is VirtualReg) it.renameUsage(currIndex) else it }
     val to = to.renameDefinition(currIndex, updateIndex)
@@ -110,16 +113,18 @@ data class FunCallQ(val to: VirtualReg, val label: Label, val args: List<ValueHo
   }
 }
 
-data class FunCodeLabelQ(override val label: Label, val args: List<ArgValue>) : Quadruple, Labeled, Rename {
+data class FunCodeLabelQ(override val label: Label, val args: List<ArgValue>) : Quadruple, Labeled {
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): FunCodeLabelQ {
     val args = args.map { it.renameDefinition(currIndex, updateIndex) as ArgValue }
     return FunCodeLabelQ(label, args)
   }
 }
 
-data class CodeLabelQ(override val label: Label) : Quadruple, Labeled
+data class CodeLabelQ(override val label: Label) : Quadruple, Labeled {
+  override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple = this
+}
 
-data class CondJumpQ(val cond: VirtualReg, override val toLabel: Label) : Quadruple, Jumping, Rename {
+data class CondJumpQ(val cond: VirtualReg, override val toLabel: Label) : Quadruple, Jumping {
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): CondJumpQ {
     val cond = cond.renameUsage(currIndex)
     return CondJumpQ(cond, toLabel)
@@ -127,7 +132,7 @@ data class CondJumpQ(val cond: VirtualReg, override val toLabel: Label) : Quadru
 }
 
 data class RelCondJumpQ(val left: VirtualReg, val op: RelOp, val right: ValueHolder, override val toLabel: Label) :
-  Quadruple, Jumping, Rename {
+  Quadruple, Jumping {
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): RelCondJumpQ {
     val right = if (right is VirtualReg) right.renameUsage(currIndex) else right
     val left = left.renameUsage(currIndex)
@@ -135,8 +140,11 @@ data class RelCondJumpQ(val left: VirtualReg, val op: RelOp, val right: ValueHol
   }
 }
 
-data class JumpQ(override val toLabel: Label) : Quadruple, Jumping
-data class RetQ(val value: ValueHolder? = null) : Quadruple, Jumping, Rename {
+data class JumpQ(override val toLabel: Label) : Quadruple, Jumping {
+  override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple = this
+}
+
+data class RetQ(val value: ValueHolder? = null) : Quadruple, Jumping {
   override val toLabel: Label? = null
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): RetQ {
     val value = value?.let { if (it is VirtualReg) it.renameUsage(currIndex) else it }
@@ -144,45 +152,20 @@ data class RetQ(val value: ValueHolder? = null) : Quadruple, Jumping, Rename {
   }
 }
 
-data class Phony(private var _to: VirtualReg, private val _from: HashMap<Label, ValueHolder> = HashMap()) : Quadruple {
+data class PhonyQ(private var _to: VirtualReg, private val _from: HashMap<Label, ValueHolder> = HashMap()) : Quadruple {
   private val original: VirtualReg = _to
   val to: VirtualReg get() = _to
   val from: Map<Label, ValueHolder> get() = _from
   fun renameDefinition(currIndex: CurrIndex, updateIndex: UpdateIndex): Unit =
     if (_to == original) _to = _to.renameDefinition(currIndex, updateIndex)
-    else throw IllegalStateException("Cannot rename Phony multiple times")
+    else err("Cannot rename Phony multiple times")
 
   fun renamePathUsage(from: Label, currIndex: CurrIndex) {
     _from[from] = original.renameUsage(currIndex)
   }
+
+  override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple =
+    err("Cannot rename PhonyQ in single step - rename usages and definitions separately")
 }
 
-fun Quadruple.definedVar(): Sequence<VirtualReg> = when (this) {
-  is AssignQ -> sequenceOf(to)
-  is BinOpQ -> sequenceOf(to)
-  is UnOpQ -> sequenceOf(to)
-  is UnOpModQ -> sequenceOf(to)
-  is FunCallQ -> sequenceOf(to)
-  is Phony -> sequenceOf(to)
-  is FunCodeLabelQ -> args.asSequence()
-  is RelCondJumpQ -> emptySequence()
-  is CondJumpQ -> emptySequence()
-  is RetQ -> emptySequence()
-  is JumpQ -> emptySequence()
-  is CodeLabelQ -> emptySequence()
-}
-
-fun Quadruple.usedVar(): Sequence<VirtualReg> = when (this) {
-  is AssignQ -> sequenceOf(from as? VirtualReg)
-  is BinOpQ -> sequenceOf(left, right as? VirtualReg)
-  is UnOpQ -> sequenceOf(from)
-  is UnOpModQ -> sequenceOf(from)
-  is FunCallQ -> args.asSequence().filterIsInstance<VirtualReg>()
-  is Phony -> from.values.asSequence().filterIsInstance<VirtualReg>()
-  is RelCondJumpQ -> sequenceOf(left, right as? VirtualReg)
-  is CondJumpQ -> sequenceOf(cond)
-  is RetQ -> sequenceOf(value as? VirtualReg)
-  is FunCodeLabelQ -> emptySequence()
-  is CodeLabelQ -> emptySequence()
-  is JumpQ -> emptySequence()
-}.filterNotNull()
+private fun err(message: String): Nothing = throw IRException(message.msg)

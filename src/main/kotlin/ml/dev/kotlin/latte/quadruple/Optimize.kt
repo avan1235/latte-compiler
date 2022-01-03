@@ -12,7 +12,7 @@ fun Iterable<Quadruple>.peepHoleOptimize(
 private fun Iterable<Quadruple>.optimizeNoJumps(): List<Quadruple> {
   val usedLabels = asSequence().flatMap {
     when (it) {
-      is Phony -> it.from.keys.asSequence()
+      is PhonyQ -> it.from.keys.asSequence()
       is Jumping -> sequenceOf(it.toLabel)
       else -> emptySequence()
     }

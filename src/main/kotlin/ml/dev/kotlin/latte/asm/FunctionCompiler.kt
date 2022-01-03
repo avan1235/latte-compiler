@@ -83,7 +83,7 @@ internal class FunctionCompiler(
       cmd(op.cmd, EAX)
       cmd(MOV, to.get(), EAX)
     }
-    is Phony -> err("Unexpected Phony $this found on compilation phase")
+    is PhonyQ -> err("Unexpected Phony $this found on compilation phase")
   }
 
   private fun NumOp.on(to: VirtualReg, left: VirtualReg, right: ValueHolder): Unit = when (this) {

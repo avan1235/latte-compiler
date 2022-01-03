@@ -41,7 +41,7 @@ data class ControlFlowGraph(
           block += AssignQ(phi.to, name)
         }
       }
-      b.removePhony()
+      b.cleanPhony()
     }
   }
 
@@ -83,7 +83,7 @@ data class ControlFlowGraph(
         for (d in dominance.frontiers(n)) {
           if (d in phiInserted) continue
           phiInserted += d
-          byName[d]?.let { it += Phony(v) }
+          byName[d]?.let { it += PhonyQ(v) }
           if (d in visited) continue
           workList += d
           visited += d
@@ -117,7 +117,7 @@ data class ControlFlowGraph(
 
       val basicBlock = byName[b] ?: return
       basicBlock.phony.forEach { it.renameDefinition(currIndex, increaseIdx) }
-      basicBlock.mapStatements { stmt -> if (stmt is Rename) stmt.rename(currIndex, increaseIdx) else stmt }
+      basicBlock.mapStatements { _, stmt -> stmt.rename(currIndex, increaseIdx) }
       successors(b).forEach { succ -> byName[succ]?.phony?.forEach { it.renamePathUsage(from = b, currIndex) } }
       dominanceTree.successors(b).forEach { succ -> rename(succ) }
       basicBlock.phony.forEach { phi -> decreaseIdx(phi.to.original!!) }
