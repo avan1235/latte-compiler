@@ -30,13 +30,11 @@ internal class FunctionCompiler(
   private fun VirtualReg.reserve(): Unit = when (this) {
     is ArgValue -> Arg(ARG_OFFSET + idx * SIZE_BYTES).let { locations[argName] = it }
     is LocalValue -> Local((locals + 1).also { locals = it } * SIZE_BYTES).let { locations[name] = it }
-    is TempValue -> Local((locals + 1).also { locals = it } * SIZE_BYTES).let { locations[name] = it }
   }
 
   private fun ValueHolder.get(): VarLocation = when (this) {
     is ArgValue -> locations[argName]
     is LocalValue -> locations[name]
-    is TempValue -> locations[name]
     is BooleanConstValue -> Literal(if (bool) "1" else "0")
     is IntConstValue -> Literal("$int")
     is StringConstValue -> Literal(strings[str]?.name ?: err("Used not labeled string $this"))

@@ -193,11 +193,11 @@ private data class IRGenerator(
     is NullExpr -> TODO()
   }
 
-  private fun generateCondElse(left: Expr, op: BooleanOp, right: Expr): TempValue = freshTemp(BooleanType) { to ->
-    AssStmt(to.name, BoolExpr(false)).generate()
-    CondStmt(
+  private fun generateCondElse(left: Expr, op: BooleanOp, right: Expr): LocalValue = freshTemp(BooleanType) { to ->
+    CondElseStmt(
       BinOpExpr(left, op, right),
       AssStmt(to.name, BoolExpr(true)),
+      AssStmt(to.name, BoolExpr(false)),
     ).generate()
   }
 
@@ -212,8 +212,8 @@ private data class IRGenerator(
     is VirtualReg -> this
   }
 
-  private fun freshTemp(type: Type, action: (TempValue) -> Unit = {}): TempValue =
-    freshIdx().let { TempValue("@T$it", it, type) }.also { varEnv[it.name] = it }.also(action)
+  private fun freshTemp(type: Type, action: (LocalValue) -> Unit = {}): LocalValue =
+    freshIdx().let { LocalValue("@T$it", it, type) }.also { varEnv[it.name] = it }.also(action)
 
   private fun addStringConst(value: String): StringConstValue =
     StringConstValue(strings[value] ?: freshLabel(prefix = "S").also { strings[value] = it }, value)

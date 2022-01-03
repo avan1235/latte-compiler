@@ -36,13 +36,6 @@ data class ArgValue(
   override val original: VirtualReg? = null,
 ) : VirtualReg
 
-data class TempValue(
-  override val name: String,
-  override val idx: Int,
-  override val type: Type,
-  override val original: VirtualReg? = null,
-) : VirtualReg
-
 sealed interface Quadruple
 sealed interface Jumping {
   val toLabel: Label?
@@ -67,7 +60,6 @@ fun VirtualReg.renameUsage(currIndex: CurrIndex): VirtualReg =
     when (this) {
       is ArgValue -> copy(name = name, original = this)
       is LocalValue -> copy(name = name, original = this)
-      is TempValue -> copy(name = name, original = this)
     }
   }
 
