@@ -971,6 +971,10 @@ private fun testIRRepr(
   optimize: Boolean = true
 ) {
   val (graph, str) = program.byteInputStream().parse().typeCheck().toIR()
+  with(graph) {
+    removeNotReachableBlocks()
+    transformToSSA()
+  }
   val instructions = graph.instructions().run { if (optimize) peepHoleOptimize() else this }
   val repr = instructions.nlString { it.repr() }
   assertEquals("\n${irRepresentation.trimIndent()}\n", repr)
@@ -980,3 +984,14 @@ private fun testIRRepr(
 
 private fun Iterable<Quadruple>.isSSA(): Boolean =
   flatMap { it.definedVar() }.map { it.repr() }.let { it.size == it.toHashSet().size }
+
+private fun ControlFlowGraph.instructions(): List<Quadruple> {
+  val blocks = orderedBlocks()
+  val phony = blocks.associate { block -> block.label to block.phony }
+  return blocks.asSequence().flatMap { it.statements }.flatMap {
+    sequence {
+      yield(it)
+      if (it is Labeled) phony[it.label]?.sortedBy { it.to.name }?.forEach { yield(it) }
+    }
+  }.toList()
+}

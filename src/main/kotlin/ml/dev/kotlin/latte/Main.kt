@@ -1,12 +1,11 @@
 package ml.dev.kotlin.latte
 
 import ml.dev.kotlin.latte.asm.compile
-import ml.dev.kotlin.latte.quadruple.*
+import ml.dev.kotlin.latte.quadruple.toIR
 import ml.dev.kotlin.latte.syntax.parse
 import ml.dev.kotlin.latte.typecheck.typeCheck
 import ml.dev.kotlin.latte.util.LatteException
 import ml.dev.kotlin.latte.util.eprintln
-import ml.dev.kotlin.latte.util.nlString
 import java.io.File
 
 fun main(args: Array<String>): Unit = args.takeIf { it.isNotEmpty() }?.forEach { path ->
@@ -25,5 +24,9 @@ fun main(args: Array<String>): Unit = args.takeIf { it.isNotEmpty() }?.forEach {
 internal fun File.runCompiler(): String = inputStream()
   .parse()
   .typeCheck()
-  .toIR().also { it.graph.transformFromSSA() }
+  .toIR().apply {
+    graph.removeNotReachableBlocks()
+    graph.transformToSSA()
+    graph.transformFromSSA()
+  }
   .compile()

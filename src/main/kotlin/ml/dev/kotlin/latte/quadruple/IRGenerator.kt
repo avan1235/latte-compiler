@@ -21,10 +21,7 @@ private data class IRGenerator(
   fun TypeCheckedProgram.generate(): IR {
     program.topDefs.onEach { if (it is FunDef) it.addToFunEnv() }.forEach { if (it is FunDef) it.generate() }
     val labelGenerator = { freshLabel(prefix = "G") }
-    val cfg = quadruples.buildCFG(labelGenerator).apply {
-      removeNotReachableBlocks()
-      transformToSSA()
-    }
+    val cfg = quadruples.buildCFG(labelGenerator)
     return IR(cfg, strings, labelGenerator)
   }
 

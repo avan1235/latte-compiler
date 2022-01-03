@@ -11,17 +11,6 @@ data class ControlFlowGraph(
 ) : Graph<Label> {
   fun orderedBlocks(): List<BasicBlock> = byName.values.toList()
 
-  fun instructions(): List<Quadruple> {
-    val blocks = orderedBlocks()
-    val phony = blocks.associate { block -> block.label to block.phony }
-    return blocks.asSequence().flatMap { it.statements }.flatMap {
-      sequence {
-        yield(it)
-        if (it is Labeled) phony[it.label]?.sortedBy { it.to.name }?.forEach { yield(it) }
-      }
-    }.toList()
-  }
-
   fun removeNotReachableBlocks() {
     val visited = starts.flatMapTo(HashSet()) { reachable(from = it) }
     val notVisited = byName.keys.toHashSet() - visited
