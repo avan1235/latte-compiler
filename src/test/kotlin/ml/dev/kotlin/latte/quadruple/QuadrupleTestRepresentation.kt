@@ -4,8 +4,8 @@ internal fun ValueHolder.repr(): String = when (this) {
   is BooleanConstValue -> "$bool"
   is IntConstValue -> "$int"
   is StringConstValue -> label.name
-  is ArgValue -> name
-  is LocalValue -> name
+  is ArgValue -> reg
+  is LocalValue -> reg
 }
 
 internal fun Quadruple.repr(): String = when (this) {

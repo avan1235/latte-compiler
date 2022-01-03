@@ -20,20 +20,20 @@ data class BooleanConstValue(val bool: Boolean) : ConstValue(BooleanType)
 data class StringConstValue(val label: Label, val str: String) : ConstValue(StringType)
 
 sealed interface VirtualReg : ValueHolder {
-  val name: String
+  val reg: String
   val idx: Int
   val original: VirtualReg?
 }
 
 data class LocalValue(
-  override val name: String,
+  override val reg: String,
   override val idx: Int,
   override val type: Type,
   override val original: VirtualReg? = null,
 ) : VirtualReg
 
 data class ArgValue(
-  override val name: String,
+  override val reg: String,
   override val idx: Int,
   override val type: Type,
   override val original: VirtualReg? = null,
@@ -59,10 +59,10 @@ typealias UpdateIndex = (VirtualReg) -> Unit
 fun VirtualReg.renameUsage(currIndex: CurrIndex): VirtualReg =
   if (original != null) throw IllegalStateException("Already renamed $this")
   else {
-    val name = "$name#${currIndex(this) ?: err("Cannot rename with null index: $this")}"
+    val name = "$reg#${currIndex(this) ?: err("Cannot rename with null index: $this")}"
     when (this) {
-      is ArgValue -> copy(name = name, original = this)
-      is LocalValue -> copy(name = name, original = this)
+      is ArgValue -> copy(reg = name, original = this)
+      is LocalValue -> copy(reg = name, original = this)
     }
   }
 

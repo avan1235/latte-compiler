@@ -3,9 +3,7 @@ package ml.dev.kotlin.latte.asm
 import ml.dev.kotlin.latte.asm.Cmd.*
 import ml.dev.kotlin.latte.asm.Reg.*
 import ml.dev.kotlin.latte.quadruple.*
-import ml.dev.kotlin.latte.syntax.NumOp
-import ml.dev.kotlin.latte.syntax.SIZE_BYTES
-import ml.dev.kotlin.latte.syntax.UnOp
+import ml.dev.kotlin.latte.syntax.*
 import ml.dev.kotlin.latte.util.AsmBuildException
 import ml.dev.kotlin.latte.util.msg
 import ml.dev.kotlin.latte.util.unit
@@ -33,12 +31,12 @@ internal class FunctionCompiler(
 
   private fun VirtualReg.reserve(): Unit = when (this) {
     is ArgValue -> Arg(idx * SIZE_BYTES).let { locations[argName] = it }
-    is LocalValue -> Local(locals.also { locals = it + 1 } * SIZE_BYTES).let { locations[name] = it }
+    is LocalValue -> Local(locals.also { locals = it + 1 } * SIZE_BYTES).let { locations[reg] = it }
   }
 
   private fun ValueHolder.get(): VarLocation = when (this) {
     is ArgValue -> locations[argName]
-    is LocalValue -> locations[name]
+    is LocalValue -> locations[reg]
     is BooleanConstValue -> Literal(if (bool) "1" else "0")
     is IntConstValue -> Literal("$int")
     is StringConstValue -> Literal(strings[str]?.name ?: err("Used not labeled string $this"))
