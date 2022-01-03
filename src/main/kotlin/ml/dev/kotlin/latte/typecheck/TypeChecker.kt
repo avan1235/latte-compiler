@@ -81,7 +81,7 @@ private data class TypeChecker(
     if (varEnv[name] == type) null else err("Expected $type for operation")
 
   private fun AstNode.typeCheckReturn(type: Type): LastReturnType =
-    if (expectedReturnType != type) err("Expected to return $expectedReturnType but got $type") else type
+    if (expectedReturnType == type) type else err("Expected to return $expectedReturnType but got $type")
 
   private fun typeCheckCondElse(expr: Expr, onTrue: Stmt, onFalse: Stmt): LastReturnType {
     val checkType = expr.type()
@@ -98,6 +98,7 @@ private data class TypeChecker(
   }
 
   private fun AstNode.addToVarEnv(type: Type, name: String) {
+    if (type == VoidType) err("Cannot declare variable with void type")
     if (name in varEnv.currentLevelNames) err("Redeclared variable for name $name")
     varEnv[name] = type
   }

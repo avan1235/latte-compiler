@@ -84,8 +84,6 @@ internal class FunctionCompiler(
       cmd(MOV, EAX, from.get())
       cmd(op.cmd, EAX)
       cmd(MOV, to.get(), EAX)
-      // TODO make inc/dec available only for defined variables not temps
-      // TODO handle void type properly (only as return type)
     }
     is Phony -> err("Unexpected Phony $this found on compilation phase")
   }
