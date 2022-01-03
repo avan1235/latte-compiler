@@ -795,8 +795,8 @@ internal class IRGeneratorTest {
         i@1#2 = inc i@1#1
         j@1#2 = dec j@1#1
       @L1:
-        i@1#1 = phi (@L0:i@1#2, main:i@1#0)
         j@1#1 = phi (@L0:j@1#2, main:j@1#0)
+        i@1#1 = phi (@L0:i@1#2, main:i@1#0)
         goto @L0
       """
     )

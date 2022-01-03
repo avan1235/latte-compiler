@@ -1,6 +1,4 @@
-import org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED
-import org.gradle.api.tasks.testing.logging.TestLogEvent.PASSED
-import org.gradle.api.tasks.testing.logging.TestLogEvent.SKIPPED
+import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -41,7 +39,12 @@ tasks.getByName<Test>("test") {
   })
 }
 
+val buildRuntime = task<Exec>("buildRuntime") {
+  commandLine("gcc", "-m32", "-c", "lib/runtime.c", "-o", "lib/runtime.o")
+}
+
 tasks.withType<KotlinCompile> {
+  dependsOn(buildRuntime)
   kotlinOptions.jvmTarget = "${JavaVersion.VERSION_1_8}"
   dependsOn(tasks.generateGrammarSource)
 }

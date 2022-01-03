@@ -2,14 +2,12 @@
 
 all : latte
 
-latte : runtime
+latte :
 	chmod u+x ./gradlew && ./gradlew clean nativeImage
 
-test : runtime
+test :
 	chmod u+x ./gradlew && ./gradlew clean test
 
 clean:
 	rm -f latc_x86 && rm -f ./lib/runtime.o && rm -rf ./build
 
-runtime:
-	gcc -m32 -c lib/runtime.c -o lib/runtime.o
