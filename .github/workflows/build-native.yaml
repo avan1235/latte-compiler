@@ -20,8 +20,8 @@ jobs:
           java-version: '11'
           distribution: 'adopt'
           cache: gradle
-      - name: Make Gradle executable
-        run: chmod u+x ./gradlew
+      - name: Make Gradle executable and prepare env
+        run: chmod u+x ./gradlew && sudo apt-get install -y gcc-multilib
       - name: Build with Gradle
         run: ./gradlew nativeImage
       - name: Cleanup Gradle Cache
