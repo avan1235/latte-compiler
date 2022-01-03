@@ -4,15 +4,16 @@ import ml.dev.kotlin.latte.util.IRException
 import ml.dev.kotlin.latte.util.msg
 import ml.dev.kotlin.latte.util.nlString
 import java.util.*
+import kotlin.collections.ArrayDeque
 
 class BasicBlock private constructor(
   val isStart: Boolean,
   val label: Label,
   val jumpQ: Jumping?,
-  private var _statements: LinkedList<Quadruple>,
+  private var _statements: ArrayDeque<Quadruple>,
   private var _phony: LinkedHashSet<PhonyQ> = LinkedHashSet(),
 ) {
-  val statementsRaw: Iterable<Quadruple> get() = _statements
+  val statementsRaw: List<Quadruple> get() = _statements
 
   val phony: Set<PhonyQ> get() = _phony
 
@@ -27,7 +28,7 @@ class BasicBlock private constructor(
     }
 
   fun mapStatements(f: (Int, Quadruple) -> Quadruple?) {
-    _statements = _statements.mapIndexedNotNullTo(LinkedList(), f)
+    _statements = _statements.mapIndexedNotNullTo(ArrayDeque(), f)
   }
 
   fun cleanPhony() {
@@ -52,7 +53,7 @@ class BasicBlock private constructor(
       if (jumpingIdx != -1 && jumpingIdx != size - 1) err("Basic block contains invalid jumps: ${nlString()}")
       if (count { it is Labeled } != 1) err("Basic block contains invalid labels: ${nlString()}")
       val jumping = lastOrNull() as? Jumping
-      BasicBlock(first is FunCodeLabelQ, first.label, jumping, LinkedList(this))
+      BasicBlock(first is FunCodeLabelQ, first.label, jumping, ArrayDeque(this))
     }
   }
 }

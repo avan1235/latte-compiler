@@ -795,8 +795,8 @@ internal class IRGeneratorTest {
         i@1#2 = inc i@1#1
         j@1#2 = dec j@1#1
       @L1:
-        j@1#1 = phi (@L0:j@1#2, main:j@1#0)
         i@1#1 = phi (@L0:i@1#2, main:i@1#0)
+        j@1#1 = phi (@L0:j@1#2, main:j@1#0)
         goto @L0
       """
     )
@@ -965,29 +965,15 @@ private fun testIR(
   program: String,
   irRepresentation: String,
   vararg strings: Pair<String, String>,
-  optimize: Boolean = true
 ) {
   val (graph, str) = program.byteInputStream().parse().typeCheck().toIR()
   with(graph) {
     removeNotReachableBlocks()
     transformToSSA()
   }
-  val instructions = graph.instructions().run { if (optimize) peepHoleOptimize() else this }.toList()
+  val instructions = graph.instructions().peepHoleOptimize().asIterable()
   val repr = instructions.nlString { it.repr() }
   assertEquals("\n${irRepresentation.trimIndent()}\n", repr)
   assertEquals(strings.toMap() + ("" to EMPTY_STRING_LABEL.name), str.mapValues { it.value.name })
   assert(instructions.splitAt { it is FunCodeLabelQ }.all { it.isSSA() })
 }
-
-private fun Iterable<Quadruple>.isSSA(): Boolean =
-  flatMap { it.definedVars() }.map { it.repr() }.let { it.size == it.toHashSet().size }
-
-private fun ControlFlowGraph.instructions(): Sequence<Quadruple> =
-  orderedBlocks().asSequence().flatMap { it.statements }
-
-private val BasicBlock.statements: Sequence<Quadruple>
-  get() = if (phony.isEmpty()) statementsRaw.asSequence() else sequence {
-    yield(statementsRaw.first())
-    yieldAll(phony)
-    statementsRaw.forEachIndexed { idx, stmt -> if (idx > 0) yield(stmt) }
-  }

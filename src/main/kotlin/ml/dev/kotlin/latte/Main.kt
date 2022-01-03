@@ -27,6 +27,7 @@ internal fun File.runCompiler(): String = inputStream()
   .toIR().apply {
     graph.removeNotReachableBlocks()
     graph.transformToSSA()
+    // TODO run optimizations on graph in SSA
     graph.transformFromSSA()
   }
   .compile()

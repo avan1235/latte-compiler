@@ -22,3 +22,16 @@ internal fun Quadruple.repr(): String = when (this) {
   is UnOpModQ -> "${to.repr()} = ${op.name.lowercase()} ${from.repr()}"
   is PhonyQ -> "${to.repr()} = phi (${from.toList().joinToString(", ") { "${it.first.name}:${it.second.repr()}" }})"
 }.let { if (this is Labeled) it else "  $it" }
+
+internal fun Iterable<Quadruple>.isSSA(): Boolean =
+  flatMap { it.definedVars() }.map { it.repr() }.let { it.size == it.toHashSet().size }
+
+internal fun ControlFlowGraph.instructions(): Sequence<Quadruple> =
+  orderedBlocks().asSequence().flatMap { it.statements }
+
+internal val BasicBlock.statements: Sequence<Quadruple>
+  get() = if (phony.isEmpty()) statementsRaw.asSequence() else sequence {
+    yield(statementsRaw.first())
+    yieldAll(phony)
+    statementsRaw.forEachIndexed { idx, stmt -> if (idx > 0) yield(stmt) }
+  }

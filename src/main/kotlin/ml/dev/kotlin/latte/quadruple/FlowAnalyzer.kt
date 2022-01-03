@@ -5,10 +5,10 @@ import ml.dev.kotlin.latte.util.MutableDefaultMap
 
 object FlowAnalyzer {
 
-  fun analyze(statements: ArrayList<Quadruple>): FlowAnalysis {
+  fun analyze(statements: ArrayDeque<Quadruple>): FlowAnalysis {
     val maxIdx = statements.size - 1
-    val aliveAfter = MutableDefaultMap<StmtIdx, HashSet<VirtualReg>>({ HashSet() })
     val aliveBefore = MutableDefaultMap<StmtIdx, HashSet<VirtualReg>>({ HashSet() })
+    val aliveAfter = MutableDefaultMap<StmtIdx, HashSet<VirtualReg>>({ aliveBefore[it + 1] })
     val definedAt = MutableDefaultMap<StmtIdx, HashSet<VirtualReg>>({ HashSet() })
     val usedAt = MutableDefaultMap<StmtIdx, HashSet<VirtualReg>>({ HashSet() })
 
@@ -17,10 +17,7 @@ object FlowAnalyzer {
 
       definedAt[realIdx] += stmt.definedVars()
       usedAt[realIdx] += stmt.usedVars()
-      val inVar = (aliveAfter[realIdx] - definedAt[realIdx]) + usedAt[realIdx]
-
-      aliveBefore[realIdx] += inVar
-      aliveAfter[realIdx - 1] += inVar
+      aliveBefore[realIdx] += (aliveAfter[realIdx] - definedAt[realIdx]) + usedAt[realIdx]
     }
     return FlowAnalysis(aliveAfter, aliveBefore, definedAt, usedAt)
   }
