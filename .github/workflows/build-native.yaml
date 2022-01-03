@@ -31,5 +31,5 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v2
         with:
-          name: latte
-          path: latte
+          name: latc_x86
+          path: latc_x86
