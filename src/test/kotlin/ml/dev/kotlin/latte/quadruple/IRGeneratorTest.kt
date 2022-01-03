@@ -13,7 +13,7 @@ internal class IRGeneratorTest {
   @Nested
   inner class BaseConstructTest {
     @Test
-    fun `test decreases with special op`() = testIRRepr(
+    fun `test decreases with special op`() = testIR(
       program = """
       int main() {
         int a = 1;
@@ -30,7 +30,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test increases with special op`() = testIRRepr(
+    fun `test increases with special op`() = testIR(
       program = """
       int main() {
         int a = -1;
@@ -47,7 +47,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test check rel compare op with jumps`() = testIRRepr(
+    fun `test check rel compare op with jumps`() = testIR(
       program = """
       int main() {
         int a = -1;
@@ -80,7 +80,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test check rel equality op with jumps`() = testIRRepr(
+    fun `test check rel equality op with jumps`() = testIR(
       program = """
       int main() {
         int a = -1;
@@ -113,7 +113,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test check rel op in cond with jumps`() = testIRRepr(
+    fun `test check rel op in cond with jumps`() = testIR(
       program = """
       int main() {
         int a = -1;
@@ -142,7 +142,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test generates functions other than main`() = testIRRepr(
+    fun `test generates functions other than main`() = testIR(
       program = """
       int main() {
         int a = f();
@@ -175,7 +175,7 @@ internal class IRGeneratorTest {
   @Nested
   inner class FunctionTest {
     @Test
-    fun `test not change std lib functions names`() = testIRRepr(
+    fun `test not change std lib functions names`() = testIR(
       program = """
       int main() {
         printString("str");
@@ -196,7 +196,7 @@ internal class IRGeneratorTest {
   @Nested
   inner class NestVariablesTest {
     @Test
-    fun `variables in main scope have same index`() = testIRRepr(
+    fun `variables in main scope have same index`() = testIR(
       program = """
       int main() {
         int a = 0;
@@ -213,7 +213,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `variables index increases with scope`() = testIRRepr(
+    fun `variables index increases with scope`() = testIR(
       program = """
       int main() {
         int a = 0;
@@ -232,7 +232,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `variables out of scope can be modified`() = testIRRepr(
+    fun `variables out of scope can be modified`() = testIR(
       program = """
       int main() {
         int a = 0;
@@ -255,7 +255,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `scope increases with if statement`() = testIRRepr(
+    fun `scope increases with if statement`() = testIR(
       program = """
       int main() {
         int a = 0;
@@ -284,7 +284,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `scope increases with if else statement`() = testIRRepr(
+    fun `scope increases with if else statement`() = testIR(
       program = """
       int main() {
         int a = 0;
@@ -321,7 +321,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `scope increases with while statement`() = testIRRepr(
+    fun `scope increases with while statement`() = testIR(
       program = """
       int main() {
         int a = 0;
@@ -349,7 +349,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `scope increases with single line if statement`() = testIRRepr(
+    fun `scope increases with single line if statement`() = testIR(
       program = """
       int main() {
         int a = 0;
@@ -370,7 +370,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `scope increases with single line if else statement`() = testIRRepr(
+    fun `scope increases with single line if else statement`() = testIR(
       program = """
       int main() {
         int a = 0;
@@ -393,7 +393,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `scope increases with single line while statement`() = testIRRepr(
+    fun `scope increases with single line while statement`() = testIR(
       program = """
       int main() {
         int a = 0;
@@ -417,7 +417,7 @@ internal class IRGeneratorTest {
   @Nested
   inner class OpOnNotConstTest {
     @Test
-    fun `test op on int`() = testIRRepr(
+    fun `test op on int`() = testIR(
       program = """
       int main() {
         int a = 42;
@@ -443,7 +443,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test op on boolean OR`() = testIRRepr(
+    fun `test op on boolean OR`() = testIR(
       program = """
       int main() {
         boolean a = true;
@@ -471,7 +471,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test op on boolean AND`() = testIRRepr(
+    fun `test op on boolean AND`() = testIR(
       program = """
       int main() {
         boolean x = id(positive(1) && positive(-1));
@@ -517,7 +517,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test op on string`() = testIRRepr(
+    fun `test op on string`() = testIR(
       program = """
       int main() {
         string a = "42";
@@ -544,7 +544,7 @@ internal class IRGeneratorTest {
   @Nested
   inner class CondStructureTest {
     @Test
-    fun `test structure of if`() = testIRRepr(
+    fun `test structure of if`() = testIR(
       program = """
       int main() {
         boolean b = true;
@@ -565,7 +565,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test structure of if else`() = testIRRepr(
+    fun `test structure of if else`() = testIR(
       program = """
       int main() {
         boolean b = true;
@@ -584,7 +584,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test structure of while`() = testIRRepr(
+    fun `test structure of while`() = testIR(
       program = """
       int main() {
         boolean b = true;
@@ -608,7 +608,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test structure of nested if else`() = testIRRepr(
+    fun `test structure of nested if else`() = testIR(
       program = """
       int main() {
         boolean a = true;
@@ -644,7 +644,7 @@ internal class IRGeneratorTest {
   @Nested
   inner class CondSimplifyTest {
     @Test
-    fun `test simplify const if boolean AND - remove`() = testIRRepr(
+    fun `test simplify const if boolean AND - remove`() = testIR(
       program = """
       int main() {
         if (false && true) {
@@ -660,7 +660,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test simplify const if boolean AND - leave`() = testIRRepr(
+    fun `test simplify const if boolean AND - leave`() = testIR(
       program = """
       int main() {
         if (true && true) {
@@ -676,7 +676,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test simplify const if boolean OR - remove`() = testIRRepr(
+    fun `test simplify const if boolean OR - remove`() = testIR(
       program = """
       int main() {
         if (false || false) {
@@ -692,7 +692,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test simplify const if boolean OR - leave`() = testIRRepr(
+    fun `test simplify const if boolean OR - leave`() = testIR(
       program = """
       int main() {
         if (false || true) {
@@ -708,7 +708,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test simplify const if nested - remove all`() = testIRRepr(
+    fun `test simplify const if nested - remove all`() = testIR(
       program = """
       int main() {
         if ((true && false) || 1 > 2) {
@@ -729,7 +729,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test simplify const if nested - remove only nested`() = testIRRepr(
+    fun `test simplify const if nested - remove only nested`() = testIR(
       program = """
       int main() {
         if ((true && false) || 3 > 2) {
@@ -748,7 +748,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test simplify mixed if nested - remove only nested`() = testIRRepr(
+    fun `test simplify mixed if nested - remove only nested`() = testIR(
       program = """
       int main() {
         boolean a = (true && false) || 3 > 2;
@@ -776,7 +776,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test simplify const while - on true`() = testIRRepr(
+    fun `test simplify const while - on true`() = testIR(
       program = """
       int main() {
         int i = 0;
@@ -804,7 +804,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test simplify const if else - on true`() = testIRRepr(
+    fun `test simplify const if else - on true`() = testIR(
       program = """
       int main() {
         if (1 == 2 || (true && (4 > 3))) {
@@ -823,7 +823,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test simplify const if else - on false`() = testIRRepr(
+    fun `test simplify const if else - on false`() = testIR(
       program = """
       int main() {
         if (1 == 2 || (true && false)) {
@@ -842,7 +842,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test simplify identity equal memory locations`() = testIRRepr(
+    fun `test simplify identity equal memory locations`() = testIR(
       program = """
       int main() {
         int a = 42;
@@ -860,7 +860,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test simplify identity not equal memory locations`() = testIRRepr(
+    fun `test simplify identity not equal memory locations`() = testIR(
       program = """
       int main() {
         int a = 42;
@@ -881,7 +881,7 @@ internal class IRGeneratorTest {
   @Nested
   inner class ConstSimplifyTest {
     @Test
-    fun `test simplify const int`() = testIRRepr(
+    fun `test simplify const int`() = testIR(
       program = """
       int main() {
         int i = (100 + 2 * (3 - 1) / 2 + 1) % 49;
@@ -896,7 +896,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test simplify const neg int`() = testIRRepr(
+    fun `test simplify const neg int`() = testIR(
       program = """
       int main() {
         int i = -(-(-(-10)));
@@ -911,7 +911,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test simplify const boolean`() = testIRRepr(
+    fun `test simplify const boolean`() = testIR(
       program = """
       int main() {
         boolean b = true && (false || (true && true));
@@ -928,7 +928,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test simplify const not boolean`() = testIRRepr(
+    fun `test simplify const not boolean`() = testIR(
       program = """
       int main() {
         boolean b = !(!(!(!true)));
@@ -943,7 +943,7 @@ internal class IRGeneratorTest {
     )
 
     @Test
-    fun `test simplify const string`() = testIRRepr(
+    fun `test simplify const string`() = testIR(
       program = """
       int main() {
         string s = "left" + "<>" + "right";
@@ -964,7 +964,7 @@ internal class IRGeneratorTest {
   }
 }
 
-private fun testIRRepr(
+private fun testIR(
   program: String,
   irRepresentation: String,
   vararg strings: Pair<String, String>,
