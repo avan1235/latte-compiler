@@ -59,14 +59,9 @@ data class ControlFlowGraph(
     to.linPred = from
   }
 
-  /**
-   * Based on CS553 "Lecture Control-Flow, Dominators, Loop Detection, and SSA"
-   * from Colorado State University by Louis-Noel Pouchet
-   * at https://www.cs.colostate.edu/~cs553/ClassNotes/lecture09-control-dominators.ppt.pdf page 15th
-   */
-  private fun insertPhonyIn(function: Label, dominance: Dominance<Label>) {
+  private fun scanVariablesIn(function: Label): Variables {
     val functionBlocks = reachable(from = function)
-    val inBlocks = MutableDefaultMap<VirtualReg, HashSet<Label>>({ HashSet() })
+    val inBlocks = MutableDefaultMap<VirtualReg, MutableSet<Label>>({ HashSet() })
     val globals = HashSet<VirtualReg>()
     for (b in functionBlocks) {
       val varKill = HashSet<VirtualReg>()
@@ -75,7 +70,17 @@ data class ControlFlowGraph(
         stmt.definedVar().onEach { varKill += it }.forEach { inBlocks[it] += b }
       }
     }
-    for (v in globals) {
+    return Variables(inBlocks, globals)
+  }
+
+  /**
+   * Based on CS553 "Lecture Control-Flow, Dominators, Loop Detection, and SSA"
+   * from Colorado State University by Louis-Noel Pouchet
+   * at https://www.cs.colostate.edu/~cs553/ClassNotes/lecture09-control-dominators.ppt.pdf page 15th
+   */
+  private fun insertPhonyIn(function: Label, dominance: Dominance<Label>) {
+    val (inBlocks, defined) = scanVariablesIn(function)
+    for (v in defined) {
       val (workList, visited, phiInserted) = get(count = 3) { HashSet<Label>() }
       inBlocks[v].also { workList += it }.also { visited += it }
       while (workList.isNotEmpty()) {
@@ -147,5 +152,7 @@ data class ControlFlowGraph(
     }
   }
 }
+
+private data class Variables(val inBlocks: DefaultMap<VirtualReg, MutableSet<Label>>, val defined: Set<VirtualReg>)
 
 private fun err(message: String): Nothing = throw IRException(message.msg)
