@@ -11,6 +11,6 @@ class MutableDefaultMap<K, V>(
   override fun equals(other: Any?): Boolean = (other as? MutableDefaultMap<*, *>)?.let { it.map == map } ?: false
 }
 
-interface DefaultMap<K, V> : Map<K, V> {
+interface DefaultMap<K, out V> : Map<K, V> {
   override fun get(key: K): V
 }

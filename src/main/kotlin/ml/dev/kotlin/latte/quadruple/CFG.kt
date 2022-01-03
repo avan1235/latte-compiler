@@ -153,6 +153,6 @@ data class ControlFlowGraph(
   }
 }
 
-private data class Variables(val inBlocks: DefaultMap<VirtualReg, MutableSet<Label>>, val defined: Set<VirtualReg>)
+private data class Variables(val inBlocks: DefaultMap<VirtualReg, Set<Label>>, val defined: Set<VirtualReg>)
 
 private fun err(message: String): Nothing = throw IRException(message.msg)
