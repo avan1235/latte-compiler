@@ -3,18 +3,19 @@ package ml.dev.kotlin.latte.quadruple
 import ml.dev.kotlin.latte.util.IRException
 import ml.dev.kotlin.latte.util.msg
 import ml.dev.kotlin.latte.util.nlString
+import java.util.*
 
 class BasicBlock private constructor(
   val isStart: Boolean,
   val label: Label,
   val jumpQ: Jumping?,
-  private var _statements: ArrayList<Quadruple>,
+  private var _statements: LinkedList<Quadruple>,
   private var _phony: LinkedHashSet<PhonyQ> = LinkedHashSet(),
 ) {
-  val rawStatements: List<Quadruple> get() = _statements
+  val rawStatements: Iterable<Quadruple> get() = _statements
   val statements: Sequence<Quadruple>
     get() = if (_phony.isEmpty()) _statements.asSequence() else sequence {
-      _statements.firstOrNull()?.let { yield(it) }
+      yield(_statements.first)
       yieldAll(_phony)
       _statements.forEachIndexed { idx, stmt -> if (idx > 0) yield(stmt) }
     }
@@ -31,8 +32,8 @@ class BasicBlock private constructor(
       if (value != this) field = value
     }
 
-  fun mapStatements(f: (Int, Quadruple) -> Quadruple) {
-    _statements = _statements.mapIndexedTo(arrayListOf(), f)
+  fun mapStatements(f: (Int, Quadruple) -> Quadruple?) {
+    _statements = _statements.mapIndexedNotNullTo(LinkedList(), f)
   }
 
   fun cleanPhony() {
@@ -45,7 +46,9 @@ class BasicBlock private constructor(
 
   operator fun plusAssign(statement: Quadruple): Unit =
     if (_statements.lastOrNull() is Jumping) {
-      _statements.add(_statements.size - 1, statement)
+      val jump = _statements.removeLast()
+      _statements += statement
+      _statements += jump
     } else _statements += statement
 
   companion object {
@@ -55,7 +58,7 @@ class BasicBlock private constructor(
       if (jumpingIdx != -1 && jumpingIdx != size - 1) err("Basic block contains invalid jumps: ${nlString()}")
       if (count { it is Labeled } != 1) err("Basic block contains invalid labels: ${nlString()}")
       val jumping = lastOrNull() as? Jumping
-      BasicBlock(first is FunCodeLabelQ, first.label, jumping, ArrayList(this))
+      BasicBlock(first is FunCodeLabelQ, first.label, jumping, LinkedList(this))
     }
   }
 }
