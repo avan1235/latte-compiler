@@ -4,6 +4,7 @@ import ml.dev.kotlin.latte.util.IRException
 import ml.dev.kotlin.latte.util.msg
 import ml.dev.kotlin.latte.util.nlString
 import java.util.*
+import kotlin.Comparator
 import kotlin.collections.ArrayDeque
 
 class BasicBlock private constructor(
@@ -11,7 +12,7 @@ class BasicBlock private constructor(
   val label: Label,
   val jumpQ: Jumping?,
   private var _statements: ArrayDeque<Quadruple>,
-  private var _phony: LinkedHashSet<PhonyQ> = LinkedHashSet(),
+  private var _phony: TreeSet<PhonyQ> = TreeSet(PHONY_COMPARATOR),
 ) {
   val statementsRaw: List<Quadruple> get() = _statements
 
@@ -32,7 +33,7 @@ class BasicBlock private constructor(
   }
 
   fun cleanPhony() {
-    _phony = LinkedHashSet()
+    _phony = TreeSet(PHONY_COMPARATOR)
   }
 
   operator fun plusAssign(phony: PhonyQ) {
@@ -59,3 +60,5 @@ class BasicBlock private constructor(
 }
 
 private fun err(message: String): Nothing = throw IRException(message.msg)
+
+private val PHONY_COMPARATOR: Comparator<PhonyQ> = compareBy { it.to.reg }
