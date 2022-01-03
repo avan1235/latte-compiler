@@ -160,9 +160,9 @@ data class Phony(private var _to: VirtualReg, private val _from: HashMap<Label, 
     if (_to == original) _to = _to.renameDefinition(currIndex, updateIndex)
     else throw IllegalStateException("Cannot rename Phony multiple times")
 
-  fun renamePathUsage(from: Label, currIndex: CurrIndex): Unit =
-    if (currIndex(original) != null) _from[from] = original.renameUsage(currIndex)
-    else Unit
+  fun renamePathUsage(from: Label, currIndex: CurrIndex) {
+    _from[from] = original.renameUsage(currIndex)
+  }
 }
 
 fun Quadruple.definedVar(): Sequence<VirtualReg> = when (this) {
