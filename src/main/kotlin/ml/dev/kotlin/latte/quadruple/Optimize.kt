@@ -2,15 +2,14 @@ package ml.dev.kotlin.latte.quadruple
 
 import java.util.*
 
-fun Iterable<Quadruple>.peepHoleOptimize(
+fun Sequence<Quadruple>.peepHoleOptimize(
   jumpToNext: Boolean = true,
   noJumpsToLabel: Boolean = true,
-): List<Quadruple> = run { if (jumpToNext) optimizeJumpToNext() else this }
+): Sequence<Quadruple> = run { if (jumpToNext) optimizeJumpToNext() else this }
   .run { if (noJumpsToLabel) optimizeNoJumps() else this }
-  .toList()
 
-private fun Iterable<Quadruple>.optimizeNoJumps(): List<Quadruple> {
-  val usedLabels = asSequence().flatMap {
+private fun Sequence<Quadruple>.optimizeNoJumps(): Sequence<Quadruple> {
+  val usedLabels = flatMap {
     when (it) {
       is PhonyQ -> it.from.keys.asSequence()
       is Jumping -> sequenceOf(it.toLabel)
@@ -20,9 +19,9 @@ private fun Iterable<Quadruple>.optimizeNoJumps(): List<Quadruple> {
   return filter { it !is CodeLabelQ || it.label in usedLabels }
 }
 
-private fun Iterable<Quadruple>.optimizeJumpToNext(): List<Quadruple> {
-  tailrec fun TreeMap<Int, Quadruple>.go(): List<Quadruple> {
-    if (isEmpty()) return emptyList()
+private fun Sequence<Quadruple>.optimizeJumpToNext(): Sequence<Quadruple> {
+  tailrec fun TreeMap<Int, Quadruple>.go(): Sequence<Quadruple> {
+    if (isEmpty()) return emptySequence()
 
     var next = firstKey()
     var removed = 0
@@ -35,7 +34,7 @@ private fun Iterable<Quadruple>.optimizeJumpToNext(): List<Quadruple> {
       this -= last
       removed += 1
     }
-    return if (removed == 0) values.toList() else go()
+    return if (removed == 0) values.asSequence() else go()
   }
   return TreeMap<Int, Quadruple>().also { map ->
     forEachIndexed { idx, q -> map[idx] = q }

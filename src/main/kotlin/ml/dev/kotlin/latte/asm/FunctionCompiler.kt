@@ -21,7 +21,9 @@ internal class FunctionCompiler(
 
   internal fun compile() {
     blocks.forEach { it.reserveVariables() }
-    blocks.forEach { block -> block.statementsRaw.forEach { it.compile() } }
+    blocks.asSequence().flatMap { block -> block.statementsRaw }
+      .peepHoleOptimize()
+      .forEach { it.compile() }
   }
 
   private fun BasicBlock.reserveVariables() {
