@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import java.io.File
-import java.nio.file.Files.createTempFile
 import java.util.stream.Stream
 import java.util.stream.StreamSupport
 
@@ -19,10 +18,10 @@ internal class CompilerTest {
     val expected = File(input.dir, "${input.nameWithoutExtension}.output").readText()
     val inputFile = File(input.dir, "${input.nameWithoutExtension}.input").takeIf { it.exists() }
     val compiled = input.runCompiler()
-    val asmFile = createTempFile(input.dir.toPath(), "generated", ".asm").toFile().apply { writeText(compiled) }
+    val asmFile = File(input.dir, "${input.nameWithoutExtension}.asm").apply { writeText(compiled) }
     val (o, exe) = nasm(asmFile, libFile = File("lib/runtime.o"))
-    val outFile = createTempFile(input.dir.toPath(), "test", ".out").toFile()
-    val errFile = createTempFile(input.dir.toPath(), "test", ".err").toFile()
+    val outFile = File(input.dir, "${input.nameWithoutExtension}.outputTest").apply { createNewFile() }
+    val errFile = File(input.dir, "${input.nameWithoutExtension}.errorTest").apply { createNewFile() }
     exe.absolutePath(inputFile, outFile, errFile)
     assertEquals(expected, outFile.readText())
     assertEquals("", errFile.readText())

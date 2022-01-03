@@ -4,19 +4,6 @@ import ml.dev.kotlin.latte.util.IRException
 import ml.dev.kotlin.latte.util.msg
 import ml.dev.kotlin.latte.util.nlString
 
-data class Phony(private var _to: VirtualReg, private val _from: HashMap<Label, ValueHolder> = HashMap()) : Quadruple {
-  private val original: VirtualReg = _to
-  val to: VirtualReg get() = _to
-  val from: Map<Label, ValueHolder> get() = _from
-  fun renameDefinition(currIndex: CurrIndex, updateIndex: UpdateIndex): Unit =
-    if (_to == original) _to = _to.renameDefinition(currIndex, updateIndex)
-    else throw IllegalStateException("Cannot rename Phony multiple times")
-
-  fun renamePathUsage(from: Label, currIndex: CurrIndex): Unit =
-    if (currIndex(original) != null) _from[from] = original.renameUsage(currIndex)
-    else Unit
-}
-
 data class BasicBlock(
   private var _statements: MutableList<Quadruple>,
   val isStart: Boolean,
@@ -40,6 +27,10 @@ data class BasicBlock(
     _statements = _statements.mapTo(mutableListOf(), f)
   }
 
+  fun removePhony() {
+    _phony = LinkedHashSet()
+  }
+
   fun filterPhony(f: (Phony) -> Boolean) {
     _phony = _phony.filterTo(LinkedHashSet(), f)
   }
@@ -49,7 +40,9 @@ data class BasicBlock(
   }
 
   operator fun plusAssign(statement: Quadruple) {
-    _statements += statement
+    if (_statements.lastOrNull() is Jumping) {
+      _statements.add(_statements.size - 1, statement)
+    } else _statements += statement
   }
 }
 

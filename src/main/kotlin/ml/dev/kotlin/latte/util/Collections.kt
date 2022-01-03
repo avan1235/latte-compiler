@@ -30,7 +30,7 @@ interface Graph<V> {
   fun predecessors(v: V): Set<V>
 
   fun reachable(from: V): Set<V> {
-    val visited = HashSet<V>()
+    val visited = LinkedHashSet<V>()
     val queue = ArrayDeque<V>()
     tailrec fun go(from: V) {
       visited += from

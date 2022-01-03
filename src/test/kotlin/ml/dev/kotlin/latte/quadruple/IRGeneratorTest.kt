@@ -3,6 +3,7 @@ package ml.dev.kotlin.latte.quadruple
 import ml.dev.kotlin.latte.syntax.parse
 import ml.dev.kotlin.latte.typecheck.typeCheck
 import ml.dev.kotlin.latte.util.nlString
+import ml.dev.kotlin.latte.util.splitAt
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -306,8 +307,8 @@ internal class IRGeneratorTest {
         if a@1#0 eq 1 goto @L0
       @L1:
         a@1#3 = 4
-        a@3#3 = 5
-        a@3#4 = 6
+        a@3#2 = 5
+        a@3#3 = 6
         goto @L2
       @L0:
         a@1#1 = 1
@@ -315,7 +316,6 @@ internal class IRGeneratorTest {
         a@3#1 = 3
       @L2:
         a@1#2 = phi (@L0:a@1#1, @L1:a@1#3)
-        a@3#2 = phi (@L0:a@3#1, @L1:a@3#4)
         ret a@1#2
       """
     )
@@ -339,8 +339,8 @@ internal class IRGeneratorTest {
         goto @L1
       @L0:
         a@1#2 = inc a@1#1
-        a@3#1 = 1
-        a@3#2 = 2
+        a@3#0 = 1
+        a@3#1 = 2
       @L1:
         a@1#1 = phi (@L0:a@1#2, main:a@1#0)
         if a@1#1 lt 1 goto @L0
@@ -383,13 +383,11 @@ internal class IRGeneratorTest {
       main():
         a@1#0 = 0
         if a@1#0 eq 1 goto @L0
-      @L1:
-        a@2#2 = 5
+        a@2#1 = 5
         goto @L2
       @L0:
         a@2#0 = 2
       @L2:
-        a@2#1 = phi (@L0:a@2#0, @L1:a@2#2)
         ret a@1#0
       """
     )
@@ -408,7 +406,7 @@ internal class IRGeneratorTest {
         a@1#0 = 0
         goto @L1
       @L0:
-        a@2#1 = 1
+        a@2#0 = 1
       @L1:
         if a@1#0 lt 1 goto @L0
         ret a@1#0
@@ -458,16 +456,16 @@ internal class IRGeneratorTest {
       main():
         a@1#0 = true
         b@1#0 = false
+        @T0#0 = false
         if a@1#0 goto @L1
         if b@1#0 goto @L1
-      @L2:
-        @T0#2 = false
-        goto @L3
+      @G5:
+        goto @L2
       @L1:
-        @T0#0 = true
-      @L3:
-        @T0#1 = phi (@L1:@T0#0, @L2:@T0#2)
-        x@1#0 = @T0#1
+        @T0#1 = true
+      @L2:
+        @T0#2 = phi (@L1:@T0#1, @G5:@T0#0)
+        x@1#0 = @T0#2
         ret 0
       """
     )
@@ -488,36 +486,35 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        @T6#0 = call positive@int (1)
-        if @T6#0 goto @M5
-        goto @L3
-      @M5:
-        @T7#1 = call positive@int (-1)
-        if @T7#1 goto @L2
-      @L3:
         @T1#0 = false
-        goto @L4
+        @T5#0 = call positive@int (1)
+        if @T5#0 goto @M4
+      @G9:
+        goto @L3
+      @M4:
+        @T6#0 = call positive@int (-1)
+        if @T6#0 goto @L2
+      @G10:
+        goto @L3
       @L2:
         @T1#1 = true
-      @L4:
-        @T1#2 = phi (@L2:@T1#1, @L3:@T1#0)
-        @T7#2 = phi (@L2:@T7#1, @L3:@T7#0)
+      @L3:
+        @T1#2 = phi (@G9:@T1#0, @L2:@T1#1, @G10:@T1#0)
         @T0#0 = call id@boolean (@T1#2)
         x@1#0 = @T0#0
         ret 0
       id@boolean(a#0):
         ret a#0
       positive@int(a#0):
-        @T8#0 = false
-        if a#0 le 0 goto @F9
-      @G12:
-        @T8#2 = true
-      @F9:
-        @T8#1 = phi (@G12:@T8#2, positive@int:@T8#0)
-        ret @T8#1
+        @T7#0 = false
+        if a#0 le 0 goto @F8
+      @G11:
+        @T7#2 = true
+      @F8:
+        @T7#1 = phi (positive@int:@T7#0, @G11:@T7#2)
+        ret @T7#1
       """
     )
-
 
     @Test
     fun `test op on string`() = testIRRepr(
@@ -766,13 +763,14 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        @T0#0 = true
-        a@1#0 = @T0#0
-        if a@1#0 goto @L6
-        goto @L7
-      @L6:
+        @T0#0 = false
+        @T0#1 = true
+        a@1#0 = @T0#1
+        if a@1#0 goto @L5
+        goto @L6
+      @L5:
         ret 1
-      @L7:
+      @L6:
         ret 0
       """
     )
@@ -799,8 +797,8 @@ internal class IRGeneratorTest {
         i@1#2 = inc i@1#1
         j@1#2 = dec j@1#1
       @L1:
-        j@1#1 = phi (@L0:j@1#2, main:j@1#0)
         i@1#1 = phi (@L0:i@1#2, main:i@1#0)
+        j@1#1 = phi (@L0:j@1#2, main:j@1#0)
         goto @L0
       """
     )
@@ -922,8 +920,9 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        @T0#0 = true
-        b@1#0 = @T0#0
+        @T0#0 = false
+        @T0#1 = true
+        b@1#0 = @T0#1
         ret 0
       """
     )
@@ -972,18 +971,12 @@ private fun testIRRepr(
   optimize: Boolean = true
 ) {
   val (graph, str) = program.byteInputStream().parse().typeCheck().toIR()
-  val phony = graph.orderedBlocks().associate { block -> block.label to block.phony }
-  val instructions = graph.orderedBlocks().flatMap { it.statements }.asSequence().flatMap {
-    sequence {
-      yield(it)
-      if (it is Labeled) phony[it.label]?.sortedBy { it.to.idx }?.forEach { yield(it) }
-    }
-  }.asIterable().run { if (optimize) peepHoleOptimize() else this }
+  val instructions = graph.instructions().run { if (optimize) peepHoleOptimize() else this }
   val repr = instructions.nlString { it.repr() }
   assertEquals("\n${irRepresentation.trimIndent()}\n", repr)
-  assertEquals(strings.toMap(), str.mapValues { it.value.name })
-  assert(instructions.isSSA())
+  assertEquals(strings.toMap() + ("" to EMPTY_STRING_LABEL.name), str.mapValues { it.value.name })
+  assert(instructions.splitAt { it is FunCodeLabelQ }.all { it.isSSA() })
 }
 
 private fun Iterable<Quadruple>.isSSA(): Boolean =
-  mapNotNull { it.definedVar()?.repr() }.let { it.size == it.toHashSet().size }
+  flatMap { it.definedVar() }.map { it.repr() }.let { it.size == it.toHashSet().size }

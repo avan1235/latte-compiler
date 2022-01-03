@@ -152,19 +152,32 @@ data class RetQ(val value: ValueHolder? = null) : Quadruple, Jumping, Rename {
   }
 }
 
-fun Quadruple.definedVar(): VirtualReg? = when (this) {
-  is AssignQ -> to
-  is BinOpQ -> to
-  is UnOpQ -> to
-  is UnOpModQ -> to
-  is FunCallQ -> to
-  is Phony -> to
-  is RelCondJumpQ -> null
-  is CondJumpQ -> null
-  is RetQ -> null
-  is JumpQ -> null
-  is CodeLabelQ -> null
-  is FunCodeLabelQ -> null
+data class Phony(private var _to: VirtualReg, private val _from: HashMap<Label, ValueHolder> = HashMap()) : Quadruple {
+  private val original: VirtualReg = _to
+  val to: VirtualReg get() = _to
+  val from: Map<Label, ValueHolder> get() = _from
+  fun renameDefinition(currIndex: CurrIndex, updateIndex: UpdateIndex): Unit =
+    if (_to == original) _to = _to.renameDefinition(currIndex, updateIndex)
+    else throw IllegalStateException("Cannot rename Phony multiple times")
+
+  fun renamePathUsage(from: Label, currIndex: CurrIndex): Unit =
+    if (currIndex(original) != null) _from[from] = original.renameUsage(currIndex)
+    else Unit
+}
+
+fun Quadruple.definedVar(): Sequence<VirtualReg> = when (this) {
+  is AssignQ -> sequenceOf(to)
+  is BinOpQ -> sequenceOf(to)
+  is UnOpQ -> sequenceOf(to)
+  is UnOpModQ -> sequenceOf(to)
+  is FunCallQ -> sequenceOf(to)
+  is Phony -> sequenceOf(to)
+  is FunCodeLabelQ -> args.asSequence()
+  is RelCondJumpQ -> emptySequence()
+  is CondJumpQ -> emptySequence()
+  is RetQ -> emptySequence()
+  is JumpQ -> emptySequence()
+  is CodeLabelQ -> emptySequence()
 }
 
 fun Quadruple.usedVar(): Sequence<VirtualReg> = when (this) {
@@ -177,7 +190,7 @@ fun Quadruple.usedVar(): Sequence<VirtualReg> = when (this) {
   is RelCondJumpQ -> sequenceOf(left, right as? VirtualReg)
   is CondJumpQ -> sequenceOf(cond)
   is RetQ -> sequenceOf(value as? VirtualReg)
-  is FunCodeLabelQ -> args.asSequence()
+  is FunCodeLabelQ -> emptySequence()
   is CodeLabelQ -> emptySequence()
   is JumpQ -> emptySequence()
 }.filterNotNull()

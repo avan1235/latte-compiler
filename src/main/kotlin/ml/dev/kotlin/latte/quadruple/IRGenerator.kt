@@ -23,7 +23,7 @@ private data class IRGenerator(
     val labelGenerator = { freshLabel(prefix = "G") }
     val cfg = quadruples.buildCFG(labelGenerator).apply {
       removeNotReachableBlocks()
-//      transformToSSA()
+      transformToSSA()
     }
     return IR(cfg, strings, labelGenerator)
   }
@@ -197,10 +197,10 @@ private data class IRGenerator(
   }
 
   private fun generateCondElse(left: Expr, op: BooleanOp, right: Expr): TempValue = freshTemp(BooleanType) { to ->
-    CondElseStmt(
+    AssStmt(to.name, BoolExpr(false)).generate()
+    CondStmt(
       BinOpExpr(left, op, right),
       AssStmt(to.name, BoolExpr(true)),
-      AssStmt(to.name, BoolExpr(false)),
     ).generate()
   }
 
@@ -243,6 +243,6 @@ private inline val Type.default: ConstValue
     is RefType -> TODO()
   }
 
-private val EMPTY_STRING_LABEL: Label = "S@EMPTY".label
+val EMPTY_STRING_LABEL: Label = "S@EMPTY".label
 
 private fun AstNode.err(message: String): Nothing = throw IRException(LocalizedMessage(message, span?.from))

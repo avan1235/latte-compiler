@@ -24,7 +24,7 @@ internal class FunctionCompiler(
 
   private fun BasicBlock.reserveVariables() {
     (statements.firstOrNull() as? FunCodeLabelQ)?.args?.forEach { it.reserve() }
-    statements.forEach { it.definedVar()?.reserve() }
+    statements.forEach { stmt -> stmt.definedVar().forEach { it.reserve() } }
   }
 
   private fun VirtualReg.reserve(): Unit = when (this) {
@@ -157,6 +157,7 @@ private sealed interface VarLocation : Named
 private data class Literal(val value: String) : VarLocation {
   override val name: String = "DWORD $value"
 }
+
 private data class Arg(val offset: Int) : VarLocation {
   override val name = "DWORD [EBP + $offset]"
 }

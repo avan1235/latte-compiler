@@ -3,12 +3,24 @@ package ml.dev.kotlin.latte.quadruple
 import ml.dev.kotlin.latte.util.*
 import java.util.*
 
+
 data class ControlFlowGraph(
   private val jumpPred: MutableDefaultMap<Label, LinkedHashSet<Label>> = MutableDefaultMap({ LinkedHashSet() }),
   private val byName: LinkedHashMap<Label, BasicBlock> = LinkedHashMap(),
   private val starts: HashSet<Label> = HashSet(),
 ) : Graph<Label> {
   fun orderedBlocks(): List<BasicBlock> = byName.values.toList()
+
+  fun instructions(): List<Quadruple> {
+    val blocks = orderedBlocks()
+    val phony = blocks.associate { block -> block.label to block.phony }
+    return blocks.asSequence().flatMap { it.statements }.flatMap {
+      sequence {
+        yield(it)
+        if (it is Labeled) phony[it.label]?.sortedBy { it.to.name }?.forEach { yield(it) }
+      }
+    }.toList()
+  }
 
   fun removeNotReachableBlocks() {
     val visited = starts.flatMapTo(HashSet()) { reachable(from = it) }
@@ -30,7 +42,6 @@ data class ControlFlowGraph(
       renameVariablesIn(function, dominance)
     }
     starts.forEach { toSSA(it) }
-    removeNotUsablePhony()
   }
 
   fun transformFromSSA() {
@@ -41,9 +52,9 @@ data class ControlFlowGraph(
           block += AssignQ(phi.to, name)
         }
       }
+      b.removePhony()
     }
   }
-
 
   private fun addBlock(block: BasicBlock) {
     if (block.label in byName) err("CFG already contains a BasicBlock labeled ${block.label}")
@@ -59,9 +70,6 @@ data class ControlFlowGraph(
     to.linPred = from
   }
 
-  private fun blockDefinedVars(label: Label): Set<VirtualReg> =
-    byName[label]?.statements?.mapNotNullTo(HashSet()) { it.definedVar() } ?: emptySet()
-
   /**
    * Based on CS553 "Lecture Control-Flow, Dominators, Loop Detection, and SSA"
    * from Colorado State University by Louis-Noel Pouchet
@@ -69,11 +77,16 @@ data class ControlFlowGraph(
    */
   private fun insertPhonyIn(function: Label, dominance: Dominance<Label>) {
     val functionBlocks = reachable(from = function)
-    val inBlocks = MutableDefaultMap<VirtualReg, HashSet<Label>>({ HashSet() }).also { inBlocks ->
-      functionBlocks.forEach { block -> blockDefinedVars(block).forEach { v -> inBlocks[v] += block } }
+    val inBlocks = MutableDefaultMap<VirtualReg, HashSet<Label>>({ HashSet() })
+    val globals = HashSet<VirtualReg>()
+    for (b in functionBlocks) {
+      val varKill = HashSet<VirtualReg>()
+      byName[b]?.statements?.forEach { stmt ->
+        stmt.usedVar().filterNot { it in varKill }.forEach { globals += it }
+        stmt.definedVar().onEach { varKill += it }.forEach { inBlocks[it] += b }
+      }
     }
-    val functionVariables = inBlocks.keys.toHashSet()
-    for (v in functionVariables) {
+    for (v in globals) {
       val (workList, visited, phiInserted) = get(count = 3) { HashSet<Label>() }
       inBlocks[v].also { workList += it }.also { visited += it }
       while (workList.isNotEmpty()) {
@@ -119,16 +132,9 @@ data class ControlFlowGraph(
       successors(b).forEach { succ -> byName[succ]?.phony?.forEach { it.renamePathUsage(from = b, currIndex) } }
       dominanceTree.successors(b).forEach { succ -> rename(succ) }
       basicBlock.phony.forEach { phi -> decreaseIdx(phi.to.original!!) }
-      basicBlock.statements.forEach { stmt -> stmt.definedVar()?.let { decreaseIdx(it.original!!) } }
+      basicBlock.statements.forEach { stmt -> stmt.definedVar().forEach { decreaseIdx(it.original!!) } }
     }
     rename(function)
-  }
-
-  private fun removeNotUsablePhony() {
-    byName.values.forEach { b ->
-      val predecessors = predecessors(b.label).size
-      b.filterPhony { it.from.size == predecessors }
-    }
   }
 
   override val size: Int get() = byName.size

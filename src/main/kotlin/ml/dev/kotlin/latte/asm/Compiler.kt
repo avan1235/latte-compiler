@@ -14,9 +14,9 @@ private class Compiler(
 ) {
 
   fun IR.compile(): String {
-    result.appendLine(STD_LIB_FUNCTIONS.keys.nlString { "extern $it" })
     val functions = graph.orderedBlocks().splitAt(first = { it.isStart })
     functions.forEach { it.firstOrNull()?.label?.defineGlobal() }
+    result.appendLine(STD_LIB_FUNCTIONS.keys.nlString { "extern $it" })
     result.appendLine("section .data")
     strings.defineDbStrings()
     result.appendLine("section .text")
