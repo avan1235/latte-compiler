@@ -18,7 +18,7 @@ internal class CompilerTest {
     val expected = File(input.dir, "${input.nameWithoutExtension}.output").readText()
     val inputFile = File(input.dir, "${input.nameWithoutExtension}.input").takeIf { it.exists() }
     val compiled = input.runCompiler()
-    val asmFile = File(input.dir, "${input.nameWithoutExtension}.asm").apply { writeText(compiled) }
+    val asmFile = File(input.dir, "${input.nameWithoutExtension}.s").apply { writeText(compiled) }
     val (o, exe) = nasm(asmFile, libFile = File("lib/runtime.o"))
     val outFile = File(input.dir, "${input.nameWithoutExtension}.outputTest").apply { createNewFile() }
     val errFile = File(input.dir, "${input.nameWithoutExtension}.errorTest").apply { createNewFile() }
