@@ -12,28 +12,3 @@ enum class Reg : Named {
   ESI,
   EDI,
 }
-
-enum class Cmd : Named {
-  MOV,
-  POP,
-  ADD,
-  SUB,
-  XOR,
-  RET,
-  CALL,
-  INC,
-  DEC,
-  NEG,
-  IMUL,
-  CDQ,
-  IDIV,
-  JMP,
-  CMP,
-  JLE,
-  JL,
-  JGE,
-  JG,
-  JNE,
-  JE,
-  PUSH
-}

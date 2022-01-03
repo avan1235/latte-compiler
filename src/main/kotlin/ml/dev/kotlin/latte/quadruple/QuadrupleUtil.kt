@@ -1,6 +1,6 @@
 package ml.dev.kotlin.latte.quadruple
 
-fun Quadruple.definedVar(): Sequence<VirtualReg> = when (this) {
+fun Quadruple.definedVars(): Sequence<VirtualReg> = when (this) {
   is AssignQ -> sequenceOf(to)
   is BinOpQ -> sequenceOf(to)
   is UnOpQ -> sequenceOf(to)
@@ -15,7 +15,7 @@ fun Quadruple.definedVar(): Sequence<VirtualReg> = when (this) {
   is CodeLabelQ -> emptySequence()
 }
 
-fun Quadruple.usedVar(): Sequence<VirtualReg> = when (this) {
+fun Quadruple.usedVars(): Sequence<VirtualReg> = when (this) {
   is AssignQ -> sequenceOf(from as? VirtualReg)
   is BinOpQ -> sequenceOf(left, right as? VirtualReg)
   is UnOpQ -> sequenceOf(from)

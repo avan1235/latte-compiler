@@ -12,13 +12,7 @@ class BasicBlock private constructor(
   private var _statements: LinkedList<Quadruple>,
   private var _phony: LinkedHashSet<PhonyQ> = LinkedHashSet(),
 ) {
-  val rawStatements: Iterable<Quadruple> get() = _statements
-  val statements: Sequence<Quadruple>
-    get() = if (_phony.isEmpty()) _statements.asSequence() else sequence {
-      yield(_statements.first)
-      yieldAll(_phony)
-      _statements.forEachIndexed { idx, stmt -> if (idx > 0) yield(stmt) }
-    }
+  val statementsRaw: Iterable<Quadruple> get() = _statements
 
   val phony: Set<PhonyQ> get() = _phony
 

@@ -980,7 +980,14 @@ private fun testIR(
 }
 
 private fun Iterable<Quadruple>.isSSA(): Boolean =
-  flatMap { it.definedVar() }.map { it.repr() }.let { it.size == it.toHashSet().size }
+  flatMap { it.definedVars() }.map { it.repr() }.let { it.size == it.toHashSet().size }
 
 private fun ControlFlowGraph.instructions(): List<Quadruple> =
   orderedBlocks().asSequence().flatMap { it.statements }.toList()
+
+private val BasicBlock.statements: Sequence<Quadruple>
+  get() = if (phony.isEmpty()) statementsRaw.asSequence() else sequence {
+    yield(statementsRaw.first())
+    yieldAll(phony)
+    statementsRaw.forEachIndexed { idx, stmt -> if (idx > 0) yield(stmt) }
+  }
