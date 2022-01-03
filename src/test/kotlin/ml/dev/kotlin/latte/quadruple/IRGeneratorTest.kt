@@ -982,13 +982,5 @@ private fun testIR(
 private fun Iterable<Quadruple>.isSSA(): Boolean =
   flatMap { it.definedVar() }.map { it.repr() }.let { it.size == it.toHashSet().size }
 
-private fun ControlFlowGraph.instructions(): List<Quadruple> {
-  val blocks = orderedBlocks()
-  val phony = blocks.associate { block -> block.label to block.phony }
-  return blocks.asSequence().flatMap { it.statements }.flatMap {
-    sequence {
-      yield(it)
-      if (it is Labeled) phony[it.label]?.sortedBy { it.to.name }?.forEach { yield(it) }
-    }
-  }.toList()
-}
+private fun ControlFlowGraph.instructions(): List<Quadruple> =
+  orderedBlocks().asSequence().flatMap { it.statements }.toList()

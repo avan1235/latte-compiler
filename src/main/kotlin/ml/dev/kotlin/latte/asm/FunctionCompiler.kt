@@ -19,12 +19,12 @@ internal class FunctionCompiler(
 
   internal fun compile() {
     blocks.forEach { it.reserveVariables() }
-    blocks.forEach { block -> block.statements.forEach { it.compile() } }
+    blocks.forEach { block -> block.rawStatements.forEach { it.compile() } }
   }
 
   private fun BasicBlock.reserveVariables() {
-    (statements.firstOrNull() as? FunCodeLabelQ)?.args?.forEach { it.reserve() }
-    statements.forEach { stmt -> stmt.definedVar().forEach { it.reserve() } }
+    (rawStatements.firstOrNull() as? FunCodeLabelQ)?.args?.forEach { it.reserve() }
+    rawStatements.forEach { stmt -> stmt.definedVar().forEach { it.reserve() } }
   }
 
   private fun VirtualReg.reserve(): Unit = when (this) {

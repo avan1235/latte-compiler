@@ -1,5 +1,6 @@
 package ml.dev.kotlin.latte.quadruple
 
+import ml.dev.kotlin.latte.quadruple.BasicBlock.Companion.toBasicBlock
 import ml.dev.kotlin.latte.util.*
 import java.util.*
 
@@ -65,7 +66,7 @@ data class ControlFlowGraph(
     val globals = HashSet<VirtualReg>()
     for (b in functionBlocks) {
       val varKill = HashSet<VirtualReg>()
-      byName[b]?.statements?.forEach { stmt ->
+      byName[b]?.rawStatements?.forEach { stmt ->
         stmt.usedVar().filterNot { it in varKill }.forEach { globals += it }
         stmt.definedVar().onEach { varKill += it }.forEach { inBlocks[it] += b }
       }
@@ -126,7 +127,7 @@ data class ControlFlowGraph(
       successors(b).forEach { succ -> byName[succ]?.phony?.forEach { it.renamePathUsage(from = b, currIndex) } }
       dominanceTree.successors(b).forEach { succ -> rename(succ) }
       basicBlock.phony.forEach { phi -> decreaseIdx(phi.to.original!!) }
-      basicBlock.statements.forEach { stmt -> stmt.definedVar().forEach { decreaseIdx(it.original!!) } }
+      basicBlock.rawStatements.forEach { stmt -> stmt.definedVar().forEach { decreaseIdx(it.original!!) } }
     }
     rename(function)
   }
