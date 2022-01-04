@@ -3,10 +3,8 @@ package ml.dev.kotlin.latte.asm
 import ml.dev.kotlin.latte.quadruple.FlowAnalysis
 import ml.dev.kotlin.latte.quadruple.VirtualReg
 import ml.dev.kotlin.latte.quadruple.definedVars
-import ml.dev.kotlin.latte.util.DefaultMap
-import ml.dev.kotlin.latte.util.MutableDefaultMap
-import ml.dev.kotlin.latte.util.UndirectedGraph
-import ml.dev.kotlin.latte.util.withSet
+import ml.dev.kotlin.latte.util.*
+import java.util.*
 
 class RegisterInferenceGraph(
   flowAnalysis: FlowAnalysis,
@@ -22,6 +20,16 @@ class RegisterInferenceGraph(
       flowAnalysis.aliveAfter.values.forEach { it.addEdges() }
     }
 
+  val coloring by lazy { GraphColoring(setOf(), Reg.EAX, this, this::splitHeuristics, this::colorSelectHeuristics) }
+
   override fun connected(v: VirtualReg): Set<VirtualReg> = connected[v]
+
+  private fun splitHeuristics(withEdges: TreeMap<Int, HashSet<VirtualReg>>): VirtualReg {
+    return withEdges.values.first().first()
+  }
+
+  private fun colorSelectHeuristics(available: Set<Reg>): Reg {
+    return available.first()
+  }
 }
 
