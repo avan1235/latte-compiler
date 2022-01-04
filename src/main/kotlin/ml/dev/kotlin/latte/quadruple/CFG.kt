@@ -5,7 +5,7 @@ import ml.dev.kotlin.latte.quadruple.FunctionCFG.Companion.buildFunctionCFG
 import ml.dev.kotlin.latte.util.splitAt
 
 
-data class ControlFlowGraph(
+class ControlFlowGraph(
   val functions: Map<Label, FunctionCFG>,
 ) {
   fun orderedBlocks(): List<BasicBlock> = functions.values.flatMap { it.orderedBlocks() }

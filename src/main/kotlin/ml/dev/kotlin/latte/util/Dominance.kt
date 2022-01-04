@@ -7,7 +7,7 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
 
   private val cachedPredecessors: DefaultMap<V, Set<V>> = MutableDefaultMap({ graph.predecessors(it) })
   private val cachedSuccessors: DefaultMap<V, Set<V>> = MutableDefaultMap({ graph.successors(it) })
-  private val postOrder: List<V> = ArrayList<V>(graph.size).also { postOrder ->
+  private val postOrder: List<V> = ArrayList<V>(graph.nodes.size).also { postOrder ->
     val visited = HashSet<V>()
     fun go(v: V) {
       if (v in visited) return
@@ -85,7 +85,6 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
 
   private fun calcDominanceTree(): DominanceTree<V> {
     val nodes = graph.reachable(from = root)
-    val size = nodes.size
     val successors = MutableDefaultMap<V, HashSet<V>>({ HashSet() })
     val predecessors = MutableDefaultMap<V, HashSet<V>>({ HashSet() })
     nodes.forEach node@{
@@ -94,7 +93,7 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
       predecessors[it] += dominator
       successors[dominator] += it
     }
-    return DominanceTree(nodes, size, successors, predecessors)
+    return DominanceTree(nodes, successors, predecessors)
   }
 
   init {
@@ -105,9 +104,8 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
 
 private fun err(message: String): Nothing = throw GraphException(message.msg)
 
-data class DominanceTree<V>(
+class DominanceTree<V>(
   override val nodes: Set<V>,
-  override val size: Int,
   private val successors: MutableDefaultMap<V, HashSet<V>>,
   private val predecessors: MutableDefaultMap<V, HashSet<V>>,
 ) : Graph<V> {

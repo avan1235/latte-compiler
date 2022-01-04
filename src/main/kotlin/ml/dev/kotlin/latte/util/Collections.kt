@@ -25,7 +25,6 @@ fun <T> Iterable<T>.nlString(transform: ((T) -> CharSequence)? = null) =
 
 interface Graph<V> {
   val nodes: Set<V>
-  val size: Int
   fun successors(v: V): Set<V>
   fun predecessors(v: V): Set<V>
 
@@ -39,6 +38,13 @@ interface Graph<V> {
     }
     return visited.also { go(from) }
   }
+}
+
+abstract class UndirectedGraph<V> : Graph<V> {
+  final override fun successors(v: V): Set<V> = connectedWith(v)
+  final override fun predecessors(v: V): Set<V> = connectedWith(v)
+
+  abstract fun connectedWith(v: V): Set<V>
 }
 
 inline fun <U> get(count: Int, produce: (Int) -> U): List<U> = List(count, produce)

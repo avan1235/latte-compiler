@@ -142,9 +142,7 @@ private class TestGraph(vararg edge: Pair<Int, Int>) : Graph<Int> {
   private val pred = MutableDefaultMap<Int, HashSet<Int>>({ HashSet() }).also { map ->
     edge.forEach { (from, to) -> map[to] += from }
   }
-  override val size: Int = succ.keys.size
   override val nodes: Set<Int> get() = succ.keys + pred.keys
   override fun successors(v: Int): Set<Int> = succ[v]
   override fun predecessors(v: Int): Set<Int> = pred[v]
-  override fun toString(): String = "TestGraph(succ=$succ, pred=$pred, size=$size)"
 }

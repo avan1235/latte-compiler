@@ -4,8 +4,8 @@ import ml.dev.kotlin.latte.util.*
 import java.util.*
 
 
-data class FunctionCFG(
-  val start: Label,
+class FunctionCFG(
+  private val start: Label,
   private val _jumpPred: MutableDefaultMap<Label, LinkedHashSet<Label>> = MutableDefaultMap({ LinkedHashSet() }),
   private val _byName: LinkedHashMap<Label, BasicBlock> = LinkedHashMap(),
 ) : Graph<Label> {
@@ -129,7 +129,6 @@ data class FunctionCFG(
     rename(start)
   }
 
-  override val size: Int get() = _byName.size
   override val nodes: Set<Label> get() = _byName.keys.toHashSet()
 
   override fun predecessors(v: Label): Set<Label> = buildSet {
