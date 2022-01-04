@@ -213,7 +213,7 @@ private data class IRGenerator(
   }
 
   private fun freshTemp(type: Type, action: (LocalValue) -> Unit = {}): LocalValue =
-    freshIdx().let { LocalValue("@T$it", it, type) }.also { varEnv[it.reg] = it }.also(action)
+    LocalValue("@T${freshIdx()}", type).also { varEnv[it.reg] = it }.also(action)
 
   private fun addStringConst(value: String): StringConstValue =
     StringConstValue(strings[value] ?: freshLabel(prefix = "S").also { strings[value] = it }, value)
@@ -225,7 +225,7 @@ private data class IRGenerator(
     ArgValue(label.name, idx, type).also { varEnv[label.name] = it }
 
   private fun addLocal(label: Label, type: Type): LocalValue =
-    LocalValue("${label.name}@${varEnv.level}", varEnv.level, type).also { varEnv[label.name] = it }
+    LocalValue("${label.name}@${varEnv.level}", type).also { varEnv[label.name] = it }
 
   private fun AstNode.getVar(name: String): VirtualReg = varEnv[name] ?: err("Not defined variable with name $name")
   private fun AstNode.getFunType(name: String): Type = funEnv[name] ?: err("Not defined function with name $name")

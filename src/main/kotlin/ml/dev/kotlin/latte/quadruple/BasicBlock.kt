@@ -14,7 +14,7 @@ class BasicBlock private constructor(
   private var _statements: ArrayDeque<Quadruple>,
   private var _phony: TreeSet<PhonyQ> = TreeSet(PHONY_COMPARATOR),
 ) {
-  val statementsRaw: List<Quadruple> get() = _statements
+  val statements: List<Quadruple> get() = _statements
 
   val phony: Set<PhonyQ> get() = _phony
 

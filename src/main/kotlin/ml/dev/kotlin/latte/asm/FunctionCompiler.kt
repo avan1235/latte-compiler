@@ -3,7 +3,9 @@ package ml.dev.kotlin.latte.asm
 import ml.dev.kotlin.latte.asm.Cmd.*
 import ml.dev.kotlin.latte.asm.Reg.*
 import ml.dev.kotlin.latte.quadruple.*
-import ml.dev.kotlin.latte.syntax.*
+import ml.dev.kotlin.latte.syntax.NumOp
+import ml.dev.kotlin.latte.syntax.SIZE_BYTES
+import ml.dev.kotlin.latte.syntax.UnOp
 import ml.dev.kotlin.latte.util.AsmBuildException
 import ml.dev.kotlin.latte.util.msg
 import ml.dev.kotlin.latte.util.unit
@@ -18,15 +20,17 @@ internal class FunctionCompiler(
   private val locations = HashMap<String, VarLocation>()
 
   internal fun compile() {
+//    locals = 0
+
     blocks.forEach { it.reserveVariables() }
-    blocks.asSequence().flatMap { block -> block.statementsRaw }
-      .peepHoleOptimize()
-      .forEach { it.compile() }
+    val optimizedStatements = blocks.asSequence().flatMap { block -> block.statements }
+      .peepHoleOptimize().toList()
+    val analysis = FlowAnalyzer.analyze(optimizedStatements)
+    optimizedStatements.forEachIndexed { idx, stmt -> stmt.compile(idx, analysis) }
   }
 
   private fun BasicBlock.reserveVariables() {
-    (statementsRaw.firstOrNull() as? FunCodeLabelQ)?.args?.forEach { it.reserve() }
-    statementsRaw.forEach { stmt -> stmt.definedVars().forEach { it.reserve() } }
+    statements.forEach { stmt -> stmt.definedVars().forEach { it.reserve() } }
   }
 
   private fun VirtualReg.reserve(): Unit = when (this) {
@@ -42,7 +46,7 @@ internal class FunctionCompiler(
     is StringConstValue -> Literal(strings[str]?.name ?: err("Used not labeled string $this"))
   } ?: err("Used not defined variable $this")
 
-  private fun Quadruple.compile(): Unit = when (this@compile) {
+  private fun Quadruple.compile(idx: StmtIdx, analysis: FlowAnalysis): Unit = when (this@compile) {
     is AssignQ -> {
       cmd(MOV, EAX, from.get())
       cmd(MOV, to.get(), EAX)

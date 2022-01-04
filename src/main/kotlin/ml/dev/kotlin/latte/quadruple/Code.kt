@@ -21,20 +21,18 @@ data class StringConstValue(val label: Label, val str: String) : ConstValue(Stri
 
 sealed interface VirtualReg : ValueHolder {
   val reg: String
-  val idx: Int
   val original: VirtualReg?
 }
 
 data class LocalValue(
   override val reg: String,
-  override val idx: Int,
   override val type: Type,
   override val original: VirtualReg? = null,
 ) : VirtualReg
 
 data class ArgValue(
   override val reg: String,
-  override val idx: Int,
+  val idx: Int,
   override val type: Type,
   override val original: VirtualReg? = null,
 ) : VirtualReg

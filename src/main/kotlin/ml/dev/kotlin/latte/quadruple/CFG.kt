@@ -66,7 +66,7 @@ data class ControlFlowGraph(
     val globals = HashSet<VirtualReg>()
     for (b in functionBlocks) {
       val varKill = HashSet<VirtualReg>()
-      byName[b]?.statementsRaw?.forEach { stmt ->
+      byName[b]?.statements?.forEach { stmt ->
         stmt.usedVars().filterNot { it in varKill }.forEach { globals += it }
         stmt.definedVars().onEach { varKill += it }.forEach { inBlocks[it] += b }
       }
@@ -127,7 +127,7 @@ data class ControlFlowGraph(
       successors(b).forEach { succ -> byName[succ]?.phony?.forEach { it.renamePathUsage(from = b, currIndex) } }
       dominanceTree.successors(b).forEach { succ -> rename(succ) }
       basicBlock.phony.forEach { phi -> decreaseIdx(phi.to.original!!) }
-      basicBlock.statementsRaw.forEach { stmt -> stmt.definedVars().forEach { decreaseIdx(it.original!!) } }
+      basicBlock.statements.forEach { stmt -> stmt.definedVars().forEach { decreaseIdx(it.original!!) } }
     }
     rename(function)
   }

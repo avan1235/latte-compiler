@@ -5,7 +5,7 @@ import ml.dev.kotlin.latte.util.MutableDefaultMap
 
 object FlowAnalyzer {
 
-  fun analyze(statements: ArrayDeque<Quadruple>): FlowAnalysis {
+  fun analyze(statements: List<Quadruple>): FlowAnalysis {
     val maxIdx = statements.size - 1
     val aliveBefore = MutableDefaultMap<StmtIdx, HashSet<VirtualReg>>({ HashSet() })
     val aliveAfter = MutableDefaultMap<StmtIdx, HashSet<VirtualReg>>({ aliveBefore[it + 1] })

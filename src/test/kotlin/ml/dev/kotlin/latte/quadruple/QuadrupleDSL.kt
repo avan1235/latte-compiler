@@ -29,4 +29,4 @@ internal operator fun VirtualReg.rem(other: ValueHolder): Operands = Operands(th
 
 internal data class Operands(val left: VirtualReg, val op: NumOp, val right: ValueHolder)
 
-internal fun v(name: String): LocalValue = LocalValue(name, 0, IntType)
+internal fun v(name: String): LocalValue = LocalValue(name, IntType)
