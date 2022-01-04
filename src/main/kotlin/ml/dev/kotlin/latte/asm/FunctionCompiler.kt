@@ -46,7 +46,7 @@ internal class FunctionCompiler(
     is StringConstValue -> Literal(strings[str]?.name ?: err("Used not labeled string $this"))
   } ?: err("Used not defined variable $this")
 
-  private fun Quadruple.compile(idx: StmtIdx, analysis: FlowAnalysis): Unit = when (this@compile) {
+  private fun Quadruple.compile(idx: StmtIdx, analysis: LinearFlowAnalysis): Unit = when (this@compile) {
     is AssignQ -> {
       cmd(MOV, EAX, from.get())
       cmd(MOV, to.get(), EAX)
