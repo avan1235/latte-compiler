@@ -971,7 +971,7 @@ private fun testIR(
     removeNotReachableBlocks()
     transformToSSA()
   }
-  val instructions = graph.instructions().peepHoleOptimize().asIterable()
+  val instructions = graph.instructions().peepHoleOptimize(extract = { it }).asIterable()
   val repr = instructions.nlString { it.repr() }
   assertEquals("\n${irRepresentation.trimIndent()}\n", repr)
   assertEquals(strings.toMap() + ("" to EMPTY_STRING_LABEL.name), str.mapValues { it.value.name })

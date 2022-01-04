@@ -22,7 +22,8 @@ internal class FunctionCompiler(
   internal fun compile() {
     blocks.forEach { it.reserveVariables() }
     val optimizedStatements = blocks.asSequence().flatMap { block -> block.statements }
-      .peepHoleOptimize().toList()
+      .peepHoleOptimize(extract = { it })
+      .toList()
     optimizedStatements.forEach { it.compile() }
   }
 
