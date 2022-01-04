@@ -20,13 +20,10 @@ internal class FunctionCompiler(
   private val locations = HashMap<String, VarLocation>()
 
   internal fun compile() {
-//    locals = 0
-
     blocks.forEach { it.reserveVariables() }
     val optimizedStatements = blocks.asSequence().flatMap { block -> block.statements }
       .peepHoleOptimize().toList()
-    val analysis = FlowAnalyzer.analyze(optimizedStatements)
-    optimizedStatements.forEachIndexed { idx, stmt -> stmt.compile(idx, analysis) }
+    optimizedStatements.forEach { it.compile() }
   }
 
   private fun BasicBlock.reserveVariables() {
@@ -46,7 +43,7 @@ internal class FunctionCompiler(
     is StringConstValue -> Literal(strings[str]?.name ?: err("Used not labeled string $this"))
   } ?: err("Used not defined variable $this")
 
-  private fun Quadruple.compile(idx: StmtIdx, analysis: LinearFlowAnalysis): Unit = when (this@compile) {
+  private fun Quadruple.compile(): Unit = when (this@compile) {
     is AssignQ -> {
       cmd(MOV, EAX, from.get())
       cmd(MOV, to.get(), EAX)

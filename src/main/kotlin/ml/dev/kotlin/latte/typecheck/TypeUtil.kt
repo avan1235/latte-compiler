@@ -24,9 +24,9 @@ val STD_LIB_FUNCTIONS = mapOf(
   "__concatString" to StringType,
 )
 
-val ENTRY_LABEL: String = "main"
+const val ENTRY_LABEL: String = "main"
 
-infix fun String.mangled(args: List<Type>) =
+infix fun String.mangled(args: List<Type>): String =
   if (this withArgs args in STD_LIB_FUNCTIONS_SIGNATURES) "__$this" else "$this${args.joinToString("") { "@$it" }}"
 
 data class FunctionSignature(val name: String, val args: List<Type>)

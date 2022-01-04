@@ -4,7 +4,6 @@ import ml.dev.kotlin.latte.util.IRException
 import ml.dev.kotlin.latte.util.msg
 import ml.dev.kotlin.latte.util.nlString
 import java.util.*
-import kotlin.Comparator
 import kotlin.collections.ArrayDeque
 
 class BasicBlock private constructor(
@@ -14,7 +13,13 @@ class BasicBlock private constructor(
   private var _statements: ArrayDeque<Quadruple>,
   private var _phony: TreeSet<PhonyQ> = TreeSet(PHONY_COMPARATOR),
 ) {
-  val statements: List<Quadruple> get() = _statements
+  val statementsRaw: List<Quadruple> get() = _statements
+  val statements: Sequence<Quadruple>
+    get() = if (phony.isEmpty()) statementsRaw.asSequence() else sequence {
+      statementsRaw.firstOrNull()?.let { yield(it) }
+      yieldAll(phony)
+      statementsRaw.forEachIndexed { idx, stmt -> if (idx > 0) yield(stmt) }
+    }
 
   val phony: Set<PhonyQ> get() = _phony
 

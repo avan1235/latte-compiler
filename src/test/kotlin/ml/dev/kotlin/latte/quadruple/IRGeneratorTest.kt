@@ -23,9 +23,9 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = 1
-        a@1#1 = dec a@1#0
-        ret a@1#1
+        a@0#0 = 1
+        a@0#1 = dec a@0#0
+        ret a@0#1
       """
     )
 
@@ -40,9 +40,9 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = -1
-        a@1#1 = inc a@1#0
-        ret a@1#1
+        a@0#0 = -1
+        a@0#1 = inc a@0#0
+        ret a@0#1
       """
     )
 
@@ -63,18 +63,18 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = -1
+        a@0#0 = -1
         b@1#0 = 1
-        @T0#0 = false
-        if a@1#0 ge b@1#0 goto @F1
-      @G5:
-        @T0#2 = true
-      @F1:
-        @T0#1 = phi (main:@T0#0, @G5:@T0#2)
-        c@1#0 = @T0#1
-        if c@1#0 goto @L2
+        @T2#0 = false
+        if a@0#0 ge b@1#0 goto @F3
+      @G8:
+        @T2#1 = true
+      @F3:
+        @T2#2 = phi (@G8:@T2#1, main:@T2#0)
+        c@4#0 = @T2#2
+        if c@4#0 goto @L5
         ret 0
-      @L2:
+      @L5:
         ret 1
       """
     )
@@ -96,18 +96,18 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = -1
+        a@0#0 = -1
         b@1#0 = 1
-        @T0#0 = false
-        if a@1#0 ne b@1#0 goto @F1
-      @G5:
-        @T0#2 = true
-      @F1:
-        @T0#1 = phi (main:@T0#0, @G5:@T0#2)
-        c@1#0 = @T0#1
-        if c@1#0 goto @L2
+        @T2#0 = false
+        if a@0#0 ne b@1#0 goto @F3
+      @G8:
+        @T2#1 = true
+      @F3:
+        @T2#2 = phi (@G8:@T2#1, main:@T2#0)
+        c@4#0 = @T2#2
+        if c@4#0 goto @L5
         ret 0
-      @L2:
+      @L5:
         ret 1
       """
     )
@@ -128,15 +128,15 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = -1
+        a@0#0 = -1
         b@1#0 = 1
-        if a@1#0 lt b@1#0 goto @M3
-        goto @L1
-      @M3:
-        if a@1#0 eq b@1#0 goto @L0
-      @L1:
+        if a@0#0 lt b@1#0 goto @M5
+        goto @L3
+      @M5:
+        if a@0#0 eq b@1#0 goto @L2
+      @L3:
         ret 0
-      @L0:
+      @L2:
         ret 1
       """
     )
@@ -160,10 +160,10 @@ internal class IRGeneratorTest {
       main():
         @T0#0 = call f ()
         a@1#0 = @T0#0
-        @T1#0 = call g ()
-        b@1#0 = @T1#0
-        @T2#0 = a@1#0 plus b@1#0
-        ret @T2#0
+        @T2#0 = call g ()
+        b@3#0 = @T2#0
+        @T4#0 = a@1#0 plus b@3#0
+        ret @T4#0
       f():
         ret 42
       g():
@@ -206,9 +206,9 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = 0
+        a@0#0 = 0
         b@1#0 = 1
-        ret a@1#0
+        ret a@0#0
       """
     )
 
@@ -225,9 +225,9 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = 0
-        a@2#0 = 1
-        ret a@1#0
+        a@0#0 = 0
+        a@1#0 = 1
+        ret a@0#0
       """
     )
 
@@ -246,11 +246,11 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = 0
-        a@1#1 = 1
-        a@2#0 = 2
-        a@2#1 = 3
-        ret a@1#1
+        a@0#0 = 0
+        a@0#1 = 1
+        a@1#0 = 2
+        a@1#1 = 3
+        ret a@0#1
       """
     )
 
@@ -269,17 +269,17 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = 0
-        if a@1#0 eq 1 goto @L0
-      @G2:
-        goto @L1
-      @L0:
-        a@1#1 = 1
+        a@0#0 = 0
+        if a@0#0 eq 1 goto @L1
+      @G4:
+        goto @L2
+      @L1:
+        a@0#1 = 1
         a@3#0 = 2
         a@3#1 = 3
-      @L1:
-        a@1#2 = phi (@L0:a@1#1, @G2:a@1#0)
-        ret a@1#2
+      @L2:
+        a@0#2 = phi (@L1:a@0#1, @G4:a@0#0)
+        ret a@0#2
       """
     )
 
@@ -303,20 +303,20 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = 0
-        if a@1#0 eq 1 goto @L0
-      @L1:
-        a@1#3 = 4
-        a@3#2 = 5
-        a@3#3 = 6
-        goto @L2
-      @L0:
-        a@1#1 = 1
-        a@3#0 = 2
-        a@3#1 = 3
+        a@0#0 = 0
+        if a@0#0 eq 1 goto @L1
       @L2:
-        a@1#2 = phi (@L0:a@1#1, @L1:a@1#3)
-        ret a@1#2
+        a@0#3 = 4
+        a@4#0 = 5
+        a@4#1 = 6
+        goto @L3
+      @L1:
+        a@0#1 = 1
+        a@5#0 = 2
+        a@5#1 = 3
+      @L3:
+        a@0#2 = phi (@L1:a@0#1, @L2:a@0#3)
+        ret a@0#2
       """
     )
 
@@ -335,16 +335,16 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = 0
-        goto @L1
-      @L0:
-        a@1#2 = inc a@1#1
-        a@3#0 = 1
-        a@3#1 = 2
+        a@0#0 = 0
+        goto @L2
       @L1:
-        a@1#1 = phi (@L0:a@1#2, main:a@1#0)
-        if a@1#1 lt 1 goto @L0
-        ret a@1#1
+        a@0#2 = inc a@0#1
+        a@4#0 = 1
+        a@4#1 = 2
+      @L2:
+        a@0#1 = phi (@L1:a@0#2, main:a@0#0)
+        if a@0#1 lt 1 goto @L1
+        ret a@0#1
       """
     )
 
@@ -359,13 +359,13 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = 0
-        if a@1#0 eq 1 goto @L0
-        goto @L1
-      @L0:
-        a@2#0 = 2
+        a@0#0 = 0
+        if a@0#0 eq 1 goto @L1
+        goto @L2
       @L1:
-        ret a@1#0
+        a@3#0 = 2
+      @L2:
+        ret a@0#0
       """
     )
 
@@ -381,14 +381,14 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = 0
-        if a@1#0 eq 1 goto @L0
-        a@2#1 = 5
-        goto @L2
-      @L0:
-        a@2#0 = 2
-      @L2:
-        ret a@1#0
+        a@0#0 = 0
+        if a@0#0 eq 1 goto @L1
+        a@4#0 = 5
+        goto @L3
+      @L1:
+        a@5#0 = 2
+      @L3:
+        ret a@0#0
       """
     )
 
@@ -403,13 +403,13 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = 0
-        goto @L1
-      @L0:
-        a@2#0 = 1
+        a@0#0 = 0
+        goto @L2
       @L1:
-        if a@1#0 lt 1 goto @L0
-        ret a@1#0
+        a@4#0 = 1
+      @L2:
+        if a@0#0 lt 1 goto @L1
+        ret a@0#0
       """
     )
   }
@@ -428,17 +428,17 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = 42
+        a@0#0 = 42
         b@1#0 = 24
-        @T1#0 = 3
-        @T0#0 = @T1#0 minus b@1#0
-        @T2#0 = b@1#0 times @T0#0
-        @T3#0 = @T2#0 divide a@1#0
-        @T4#0 = a@1#0 plus @T3#0
-        @T5#0 = @T4#0 plus 1
-        @T6#0 = @T5#0 mod 49
-        x@1#0 = @T6#0
-        ret x@1#0
+        @T3#0 = 3
+        @T2#0 = @T3#0 minus b@1#0
+        @T4#0 = b@1#0 times @T2#0
+        @T5#0 = @T4#0 divide a@0#0
+        @T6#0 = a@0#0 plus @T5#0
+        @T7#0 = @T6#0 plus 1
+        @T8#0 = @T7#0 mod 49
+        x@9#0 = @T8#0
+        ret x@9#0
       """
     )
 
@@ -454,18 +454,18 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = true
+        a@0#0 = true
         b@1#0 = false
-        if a@1#0 goto @L1
-        if b@1#0 goto @L1
-      @L2:
-        @T0#2 = false
-        goto @L3
-      @L1:
-        @T0#0 = true
+        if a@0#0 goto @L3
+        if b@1#0 goto @L3
+      @L4:
+        @T2#0 = false
+        goto @L5
       @L3:
-        @T0#1 = phi (@L1:@T0#0, @L2:@T0#2)
-        x@1#0 = @T0#1
+        @T2#1 = true
+      @L5:
+        @T2#2 = phi (@L3:@T2#1, @L4:@T2#0)
+        x@7#0 = @T2#2
         ret 0
       """
     )
@@ -500,18 +500,18 @@ internal class IRGeneratorTest {
       @L4:
         @T1#2 = phi (@L2:@T1#1, @L3:@T1#0)
         @T0#0 = call id@boolean (@T1#2)
-        x@1#0 = @T0#0
+        x@8#0 = @T0#0
         ret 0
       id@boolean(a#0):
         ret a#0
       positive@int(a#0):
-        @T8#0 = false
-        if a#0 le 0 goto @F9
-      @G12:
-        @T8#2 = true
-      @F9:
-        @T8#1 = phi (@G12:@T8#2, positive@int:@T8#0)
-        ret @T8#1
+        @T9#0 = false
+        if a#0 le 0 goto @F10
+      @G13:
+        @T9#1 = true
+      @F10:
+        @T9#2 = phi (@G13:@T9#1, positive@int:@T9#0)
+        ret @T9#2
       """
     )
 
@@ -528,14 +528,14 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         a@1#0 = @S0
-        b@1#0 = @S1
-        @T2#0 = call __concatString (a@1#0, b@1#0)
-        @T3#0 = call __concatString (@T2#0, a@1#0)
-        x@1#0 = @T3#0
+        b@3#0 = @S2
+        @T4#0 = call __concatString (a@1#0, b@3#0)
+        @T5#0 = call __concatString (@T4#0, a@1#0)
+        x@6#0 = @T5#0
         ret 0
       """,
       "42" to "@S0",
-      "24" to "@S1",
+      "24" to "@S2",
     )
   }
 
@@ -553,12 +553,12 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        b@1#0 = true
-        if b@1#0 goto @L0
-        goto @L1
-      @L0:
-        ret 1
+        b@0#0 = true
+        if b@0#0 goto @L1
+        goto @L2
       @L1:
+        ret 1
+      @L2:
         ret 0
       """
     )
@@ -574,10 +574,10 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        b@1#0 = true
-        if b@1#0 goto @L0
+        b@0#0 = true
+        if b@0#0 goto @L1
         ret 0
-      @L0:
+      @L1:
         ret 1
       """
     )
@@ -594,14 +594,14 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        b@1#0 = true
+        b@0#0 = true
         i@1#0 = 0
-        goto @L1
-      @L0:
+        goto @L3
+      @L2:
         i@1#2 = inc i@1#1
-      @L1:
-        i@1#1 = phi (@L0:i@1#2, main:i@1#0)
-        if b@1#0 goto @L0
+      @L3:
+        i@1#1 = phi (@L2:i@1#2, main:i@1#0)
+        if b@0#0 goto @L2
         ret 0
       """
     )
@@ -624,17 +624,17 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = true
+        a@0#0 = true
         b@1#0 = true
-        if b@1#0 goto @L0
-        if a@1#0 goto @L3
+        if b@1#0 goto @L2
+        if a@0#0 goto @L5
         ret 0
-      @L3:
+      @L5:
         ret 1
-      @L0:
-        if a@1#0 goto @L6
+      @L2:
+        if a@0#0 goto @L8
         ret 2
-      @L6:
+      @L8:
         ret 3
       """
     )
@@ -763,12 +763,12 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         @T0#0 = true
-        a@1#0 = @T0#0
-        if a@1#0 goto @L6
-        goto @L7
-      @L6:
-        ret 1
+        a@6#0 = @T0#0
+        if a@6#0 goto @L7
+        goto @L8
       @L7:
+        ret 1
+      @L8:
         ret 0
       """
     )
@@ -788,16 +788,16 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        i@1#0 = 0
+        i@0#0 = 0
         j@1#0 = 0
-        goto @L1
-      @L0:
-        i@1#2 = inc i@1#1
+        goto @L3
+      @L2:
+        i@0#2 = inc i@0#1
         j@1#2 = dec j@1#1
-      @L1:
-        i@1#1 = phi (@L0:i@1#2, main:i@1#0)
-        j@1#1 = phi (@L0:j@1#2, main:j@1#0)
-        goto @L0
+      @L3:
+        i@0#1 = phi (@L2:i@0#2, main:i@0#0)
+        j@1#1 = phi (@L2:j@1#2, main:j@1#0)
+        goto @L2
       """
     )
 
@@ -852,7 +852,7 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = 42
+        a@0#0 = 42
         ret 1
       """
     )
@@ -870,7 +870,7 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        a@1#0 = 42
+        a@0#0 = 42
         ret 0
       """
     )
@@ -888,8 +888,8 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        i@1#0 = 5
-        ret i@1#0
+        i@0#0 = 5
+        ret i@0#0
       """
     )
 
@@ -903,8 +903,8 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        i@1#0 = 10
-        ret i@1#0
+        i@0#0 = 10
+        ret i@0#0
       """
     )
 
@@ -919,7 +919,7 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         @T0#0 = true
-        b@1#0 = @T0#0
+        b@7#0 = @T0#0
         ret 0
       """
     )
@@ -934,7 +934,7 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        b@1#0 = true
+        b@0#0 = true
         ret 0
       """
     )
@@ -949,7 +949,7 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        s@1#0 = @S4
+        s@5#0 = @S4
         ret 0
       """,
       "left" to "@S0",

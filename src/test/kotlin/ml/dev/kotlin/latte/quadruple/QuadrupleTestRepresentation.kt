@@ -27,11 +27,4 @@ internal fun Iterable<Quadruple>.isSSA(): Boolean =
   flatMap { it.definedVars() }.map { it.repr() }.let { it.size == it.toHashSet().size }
 
 internal fun ControlFlowGraph.instructions(): Sequence<Quadruple> =
-  orderedBlocks().asSequence().flatMap { it.statementsRepr }
-
-internal val BasicBlock.statementsRepr: Sequence<Quadruple>
-  get() = if (phony.isEmpty()) statements.asSequence() else sequence {
-    statements.firstOrNull()?.let { yield(it) }
-    yieldAll(phony)
-    statements.forEachIndexed { idx, stmt -> if (idx > 0) yield(stmt) }
-  }
+  orderedBlocks().asSequence().flatMap { it.statements }

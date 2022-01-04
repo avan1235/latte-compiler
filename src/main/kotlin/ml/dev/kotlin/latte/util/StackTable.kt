@@ -10,7 +10,6 @@ data class StackTable<K, V>(
   private val levelNames: MutableDefaultMap<StackLevel, MutableSet<K>> = MutableDefaultMap({ hashSetOf() }),
 ) {
   val currentLevelNames: Set<K> get() = levelNames[_level]
-  val level: StackLevel get() = _level
 
   operator fun get(key: K): V? = levelValues[key].lastOrNull()
   operator fun set(key: K, value: V) {

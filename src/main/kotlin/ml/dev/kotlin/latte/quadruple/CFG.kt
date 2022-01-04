@@ -6,14 +6,14 @@ import ml.dev.kotlin.latte.util.splitAt
 
 
 data class ControlFlowGraph(
-  private val starts: Map<Label, FunctionCFG>,
+  val functions: Map<Label, FunctionCFG>,
 ) {
-  fun orderedBlocks(): List<BasicBlock> = starts.values.flatMap { it.orderedBlocks() }
+  fun orderedBlocks(): List<BasicBlock> = functions.values.flatMap { it.orderedBlocks() }
   fun removeNotReachableBlocks(): Unit = forEachStart { removeNotReachableBlocks() }
   fun transformToSSA(): Unit = forEachStart { transformToSSA() }
   fun transformFromSSA(): Unit = forEachStart { transformFromSSA() }
 
-  private inline fun forEachStart(action: FunctionCFG.() -> Unit): Unit = starts.values.forEach(action)
+  private inline fun forEachStart(action: FunctionCFG.() -> Unit): Unit = functions.values.forEach(action)
 
   companion object {
     fun Iterable<Quadruple>.buildCFG(labelGenerator: () -> Label): ControlFlowGraph {
