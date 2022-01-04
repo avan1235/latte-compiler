@@ -8,7 +8,7 @@ internal class DominanceTest {
   @Test
   fun `works for article sample 1`() = testDominators(
     root = 6,
-    graph = TestGraph(
+    graph = TestDirectedGraph(
       6 to 5,
       6 to 4,
       4 to 2,
@@ -30,7 +30,7 @@ internal class DominanceTest {
   @Test
   fun `works for article sample 2`() = testDominators(
     root = 5,
-    graph = TestGraph(
+    graph = TestDirectedGraph(
       5 to 4,
       5 to 3,
       4 to 1,
@@ -48,7 +48,7 @@ internal class DominanceTest {
   @Test
   fun `works for wikipedia dominator sample`() = testDominators(
     root = 1,
-    graph = TestGraph(
+    graph = TestDirectedGraph(
       1 to 2,
       2 to 6,
       2 to 4,
@@ -68,7 +68,7 @@ internal class DominanceTest {
   @Test
   fun `works for line graph`() = testDominators(
     root = 1,
-    graph = TestGraph(
+    graph = TestDirectedGraph(
       1 to 2,
       2 to 3,
       3 to 4,
@@ -84,7 +84,7 @@ internal class DominanceTest {
   @Test
   fun `works for bigger graph`() = testDominators(
     root = 1,
-    graph = TestGraph(
+    graph = TestDirectedGraph(
       1 to 2,
       1 to 5,
       1 to 9,
@@ -133,16 +133,3 @@ private fun testDominators(root: Int, graph: DirectedGraph<Int>, vararg dominato
 }
 
 private infix fun Int.withFrontiers(s: Set<Int>): Pair<Int, Set<Int>> = this to s
-
-private class TestGraph(vararg edge: Pair<Int, Int>) : DirectedGraph<Int> {
-
-  private val succ = MutableDefaultMap<Int, HashSet<Int>>(withSet()).also { map ->
-    edge.forEach { (from, to) -> map[from] += to }
-  }
-  private val pred = MutableDefaultMap<Int, HashSet<Int>>(withSet()).also { map ->
-    edge.forEach { (from, to) -> map[to] += from }
-  }
-  override val nodes: Set<Int> get() = succ.keys + pred.keys
-  override fun successors(v: Int): Set<Int> = succ[v]
-  override fun predecessors(v: Int): Set<Int> = pred[v]
-}

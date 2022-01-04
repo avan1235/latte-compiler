@@ -41,10 +41,10 @@ interface DirectedGraph<V> {
 }
 
 abstract class UndirectedGraph<V> : DirectedGraph<V> {
-  final override fun successors(v: V): Set<V> = connectedWith(v)
-  final override fun predecessors(v: V): Set<V> = connectedWith(v)
+  final override fun successors(v: V): Set<V> = connected(v)
+  final override fun predecessors(v: V): Set<V> = connected(v)
 
-  abstract fun connectedWith(v: V): Set<V>
+  abstract fun connected(v: V): Set<V>
 }
 
 inline fun <U> get(count: Int, produce: (Int) -> U): List<U> = List(count, produce)

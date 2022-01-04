@@ -47,3 +47,26 @@ private fun <T> testSplitAtLast(
   last: (T) -> Boolean = { false },
 ): Unit = assertEquals(expected, iterable.splitAt(first, last).toList())
 
+internal class TestDirectedGraph<V>(vararg edge: Pair<V, V>) : DirectedGraph<V> {
+  private val succ = MutableDefaultMap<V, HashSet<V>>(withSet()).also { map ->
+    edge.forEach { (from, to) -> map[from] += to }
+  }
+  private val pred = MutableDefaultMap<V, HashSet<V>>(withSet()).also { map ->
+    edge.forEach { (from, to) -> map[to] += from }
+  }
+  override val nodes: Set<V> get() = succ.keys + pred.keys
+  override fun successors(v: V): Set<V> = succ[v]
+  override fun predecessors(v: V): Set<V> = pred[v]
+}
+
+internal class TestUndirectedGraph<V>(vararg edge: Pair<V, V>) : UndirectedGraph<V>() {
+  private val succ = MutableDefaultMap<V, HashSet<V>>(withSet()).also { map ->
+    edge.forEach { (from, to) -> map[from] += to }
+  }
+  private val pred = MutableDefaultMap<V, HashSet<V>>(withSet()).also { map ->
+    edge.forEach { (from, to) -> map[to] += from }
+  }
+  private val conn = MutableDefaultMap<V, HashSet<V>>({ HashSet(succ[it] + pred[it]) })
+  override val nodes: Set<V> get() = succ.keys + pred.keys
+  override fun connected(v: V): Set<V> = conn[v]
+}

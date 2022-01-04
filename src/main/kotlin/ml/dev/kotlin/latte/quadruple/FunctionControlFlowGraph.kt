@@ -2,6 +2,7 @@ package ml.dev.kotlin.latte.quadruple
 
 import ml.dev.kotlin.latte.util.*
 import java.util.*
+import kotlin.collections.ArrayDeque
 
 
 class FunctionControlFlowGraph private constructor(
@@ -103,16 +104,16 @@ class FunctionControlFlowGraph private constructor(
   private fun renameVariables(dominance: Dominance<Label>) {
     val dominanceTree = dominance.dominanceTree
     val counters = MutableDefaultMap<VirtualReg, Int>({ 0 })
-    val stacks = MutableDefaultMap<VirtualReg, Stack<Int>>({ Stack() })
+    val stacks = MutableDefaultMap<VirtualReg, ArrayDeque<Int>>({ ArrayDeque() })
     val renamed = HashSet<Label>()
 
     val increaseIdx = { v: VirtualReg ->
       val i = counters[v]
-      stacks[v].push(i)
+      stacks[v] += i
       counters[v] = i + 1
     }
-    val decreaseIdx = { v: VirtualReg -> stacks[v].pop() }
-    val currIndex = { v: VirtualReg -> stacks[v].let { if (it.isNotEmpty()) it.peek() else null } }
+    val decreaseIdx = { v: VirtualReg -> stacks[v].removeLast() }
+    val currIndex = { v: VirtualReg -> stacks[v].let { if (it.isNotEmpty()) it.last() else null } }
 
     fun rename(b: Label) {
       if (b in renamed) return
