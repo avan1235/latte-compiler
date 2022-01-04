@@ -2,18 +2,18 @@ package ml.dev.kotlin.latte.quadruple
 
 import ml.dev.kotlin.latte.util.DefaultMap
 import ml.dev.kotlin.latte.util.MutableDefaultMap
+import ml.dev.kotlin.latte.util.withSet
 
 object GlobalFlowAnalyzer {
 
-  fun analyze(cfg: FunctionCFG): FlowAnalysis {
-    val emptyByStmt = { _: IndexedStatement -> HashSet<VirtualReg>() }
-    val aliveIn = MutableDefaultMap(emptyByStmt)
-    val aliveOut = MutableDefaultMap(emptyByStmt)
+  fun analyze(cfg: FunctionControlFlowGraph): FlowAnalysis {
+    val aliveIn = MutableDefaultMap(withSet<IndexedStatement, VirtualReg>())
+    val aliveOut = MutableDefaultMap(withSet<IndexedStatement, VirtualReg>())
     val use = MutableDefaultMap<IndexedStatement, HashSet<VirtualReg>>({ it.quadruple.usedVars().toHashSet() })
     val kill = MutableDefaultMap<IndexedStatement, HashSet<VirtualReg>>({ it.quadruple.definedVars().toHashSet() })
 
     val blockStmts = MutableDefaultMap<Label, List<IndexedStatement>>(default@{
-      val block = cfg.byName[it] ?: return@default emptyList()
+      val block = cfg.block[it] ?: return@default emptyList()
       val statements = block.statements.toList()
       statements.mapIndexed { idx, stmt -> IndexedStatement(idx, stmt, block.label, idx == statements.size - 1) }
     })

@@ -4,25 +4,25 @@ import ml.dev.kotlin.latte.util.*
 import java.util.*
 
 
-class FunctionCFG(
+class FunctionControlFlowGraph private constructor(
   private val start: Label,
-  private val _jumpPred: MutableDefaultMap<Label, LinkedHashSet<Label>> = MutableDefaultMap({ LinkedHashSet() }),
-  private val _byName: LinkedHashMap<Label, BasicBlock> = LinkedHashMap(),
-) : Graph<Label> {
-  val byName: Map<Label, BasicBlock> get() = _byName
+  private val jumpPred: MutableDefaultMap<Label, LinkedHashSet<Label>> = MutableDefaultMap({ LinkedHashSet() }),
+  private val byName: LinkedHashMap<Label, BasicBlock> = LinkedHashMap(),
+) : DirectedGraph<Label> {
+  val block: Map<Label, BasicBlock> get() = byName
 
-  fun orderedBlocks(): List<BasicBlock> = _byName.values.toList()
+  fun orderedBlocks(): List<BasicBlock> = byName.values.toList()
 
   fun removeNotReachableBlocks() {
     val visited = reachable(from = start)
-    val notVisited = _byName.keys.toHashSet() - visited
+    val notVisited = byName.keys.toHashSet() - visited
     notVisited.forEach { block ->
-      val linPred = _byName[block]?.linPred
-      val linSucc = _byName[block]?.linSucc
+      val linPred = byName[block]?.linPred
+      val linSucc = byName[block]?.linSucc
       linPred?.linSucc = linSucc
       linSucc?.linPred = linPred
-      _byName[block]?.jumpQ?.toLabel?.let { _jumpPred[it] -= block }
-      _byName -= block
+      byName[block]?.jumpQ?.toLabel?.let { jumpPred[it] -= block }
+      byName -= block
     }
   }
 
@@ -33,10 +33,10 @@ class FunctionCFG(
   }
 
   fun transformFromSSA() {
-    _byName.values.toHashSet().forEach { b ->
+    byName.values.toHashSet().forEach { b ->
       b.phony.forEach { phi ->
         phi.from.entries.forEach { (from, name) ->
-          val block = _byName[from] ?: err("Unknown block defined in $phi")
+          val block = byName[from] ?: err("Unknown block defined in $phi")
           block += AssignQ(phi.to, name)
         }
       }
@@ -45,9 +45,9 @@ class FunctionCFG(
   }
 
   private fun addBlock(block: BasicBlock) {
-    if (block.label in _byName) err("CFG already contains a BasicBlock labeled ${block.label}")
-    _byName[block.label] = block
-    block.jumpQ?.toLabel?.let { to -> _jumpPred[to] += block.label }
+    if (block.label in byName) err("CFG already contains a BasicBlock labeled ${block.label}")
+    byName[block.label] = block
+    block.jumpQ?.toLabel?.let { to -> jumpPred[to] += block.label }
   }
 
   private fun addLinearJump(from: BasicBlock, to: BasicBlock) {
@@ -63,7 +63,7 @@ class FunctionCFG(
     val globals = HashSet<VirtualReg>()
     for (b in functionBlocks) {
       val varKill = HashSet<VirtualReg>()
-      _byName[b]?.statements?.forEach { stmt ->
+      byName[b]?.statements?.forEach { stmt ->
         stmt.usedVars().filterNot { it in varKill }.forEach { globals += it }
         stmt.definedVars().onEach { varKill += it }.forEach { inBlocks[it] += b }
       }
@@ -86,7 +86,7 @@ class FunctionCFG(
         for (d in dominance.frontiers(n)) {
           if (d in phiInserted) continue
           phiInserted += d
-          _byName[d]?.let { it += PhonyQ(v) }
+          byName[d]?.let { it += PhonyQ(v) }
           if (d in visited) continue
           workList += d
           visited += d
@@ -118,10 +118,10 @@ class FunctionCFG(
       if (b in renamed) return
       renamed += b
 
-      val basicBlock = _byName[b] ?: return
+      val basicBlock = byName[b] ?: return
       basicBlock.phony.forEach { it.renameDefinition(currIndex, increaseIdx) }
       basicBlock.mapStatements { _, stmt -> stmt.rename(currIndex, increaseIdx) }
-      successors(b).forEach { succ -> _byName[succ]?.phony?.forEach { it.renamePathUsage(from = b, currIndex) } }
+      successors(b).forEach { succ -> byName[succ]?.phony?.forEach { it.renamePathUsage(from = b, currIndex) } }
       dominanceTree.successors(b).forEach { succ -> rename(succ) }
       basicBlock.phony.forEach { phi -> phi.to.original?.let(decreaseIdx) }
       basicBlock.statementsRaw.forEach { stmt -> stmt.definedVars().forEach { it.original?.let(decreaseIdx) } }
@@ -129,20 +129,20 @@ class FunctionCFG(
     rename(start)
   }
 
-  override val nodes: Set<Label> get() = _byName.keys.toHashSet()
+  override val nodes: Set<Label> get() = byName.keys.toHashSet()
 
   override fun predecessors(v: Label): Set<Label> = buildSet {
-    addAll(_jumpPred[v])
-    _byName[v]?.linPred?.label?.let { add(it) }
+    addAll(jumpPred[v])
+    byName[v]?.linPred?.label?.let { add(it) }
   }
 
   override fun successors(v: Label): Set<Label> = buildSet {
-    _byName[v]?.linSucc?.label?.let { add(it) }
-    _byName[v]?.jumpQ?.toLabel?.let { add(it) }
+    byName[v]?.linSucc?.label?.let { add(it) }
+    byName[v]?.jumpQ?.toLabel?.let { add(it) }
   }
 
   companion object {
-    fun Iterable<BasicBlock>.buildFunctionCFG(label: Label): FunctionCFG = FunctionCFG(label).apply {
+    fun Iterable<BasicBlock>.buildFunctionCFG(label: Label): FunctionControlFlowGraph = FunctionControlFlowGraph(label).apply {
       onEach { addBlock(it) }.windowed(2).forEach { (from, to) -> addLinearJump(from, to) }
     }
   }

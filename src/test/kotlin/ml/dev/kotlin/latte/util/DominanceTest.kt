@@ -122,7 +122,7 @@ internal class DominanceTest {
   )
 }
 
-private fun testDominators(root: Int, graph: Graph<Int>, vararg dominators: Pair<Int, Pair<Int, Set<Int>>>) {
+private fun testDominators(root: Int, graph: DirectedGraph<Int>, vararg dominators: Pair<Int, Pair<Int, Set<Int>>>) {
   val expectedDominator = dominators.toMap().mapValues { it.value.first }
   val expectedDominanceFrontiers = dominators.toMap().mapValues { it.value.second }
   val dom = Dominance(root, graph)
@@ -134,12 +134,12 @@ private fun testDominators(root: Int, graph: Graph<Int>, vararg dominators: Pair
 
 private infix fun Int.withFrontiers(s: Set<Int>): Pair<Int, Set<Int>> = this to s
 
-private class TestGraph(vararg edge: Pair<Int, Int>) : Graph<Int> {
+private class TestGraph(vararg edge: Pair<Int, Int>) : DirectedGraph<Int> {
 
-  private val succ = MutableDefaultMap<Int, HashSet<Int>>({ HashSet() }).also { map ->
+  private val succ = MutableDefaultMap<Int, HashSet<Int>>(withSet()).also { map ->
     edge.forEach { (from, to) -> map[from] += to }
   }
-  private val pred = MutableDefaultMap<Int, HashSet<Int>>({ HashSet() }).also { map ->
+  private val pred = MutableDefaultMap<Int, HashSet<Int>>(withSet()).also { map ->
     edge.forEach { (from, to) -> map[to] += from }
   }
   override val nodes: Set<Int> get() = succ.keys + pred.keys

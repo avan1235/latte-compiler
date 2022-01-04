@@ -3,7 +3,7 @@ package ml.dev.kotlin.latte.util
 /**
  * Based on "A Simple, Fast Dominance Algorithm" by Keith D. Cooper, Timothy J. Harvey, and Ken Kennedy
  */
-class Dominance<V>(private val root: V, private val graph: Graph<V>) {
+class Dominance<V>(private val root: V, private val graph: DirectedGraph<V>) {
 
   private val cachedPredecessors: DefaultMap<V, Set<V>> = MutableDefaultMap({ graph.predecessors(it) })
   private val cachedSuccessors: DefaultMap<V, Set<V>> = MutableDefaultMap({ graph.successors(it) })
@@ -20,7 +20,7 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
   private val postOderIdx: Map<V, Int> = postOrder.mapIndexed { idx, v -> v to idx }.toMap()
   private val reversePostOrder: List<V> = postOrder.reversed()
   private val _dominator: MutableMap<V, V> = HashMap()
-  private val _frontiers: MutableDefaultMap<V, HashSet<V>> = MutableDefaultMap({ HashSet() })
+  private val _frontiers: MutableDefaultMap<V, HashSet<V>> = MutableDefaultMap(withSet())
   val dominanceTree: DominanceTree<V> by lazy { calcDominanceTree() }
 
   /**
@@ -85,8 +85,8 @@ class Dominance<V>(private val root: V, private val graph: Graph<V>) {
 
   private fun calcDominanceTree(): DominanceTree<V> {
     val nodes = graph.reachable(from = root)
-    val successors = MutableDefaultMap<V, HashSet<V>>({ HashSet() })
-    val predecessors = MutableDefaultMap<V, HashSet<V>>({ HashSet() })
+    val successors = MutableDefaultMap<V, HashSet<V>>(withSet())
+    val predecessors = MutableDefaultMap<V, HashSet<V>>(withSet())
     nodes.forEach node@{
       if (it == root) return@node
       val dominator = dominator(it)
@@ -108,7 +108,7 @@ class DominanceTree<V>(
   override val nodes: Set<V>,
   private val successors: MutableDefaultMap<V, HashSet<V>>,
   private val predecessors: MutableDefaultMap<V, HashSet<V>>,
-) : Graph<V> {
+) : DirectedGraph<V> {
   override fun successors(v: V): Set<V> = successors[v]
   override fun predecessors(v: V): Set<V> = predecessors[v]
 }

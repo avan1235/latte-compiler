@@ -1,19 +1,19 @@
 package ml.dev.kotlin.latte.quadruple
 
 import ml.dev.kotlin.latte.quadruple.BasicBlock.Companion.toBasicBlock
-import ml.dev.kotlin.latte.quadruple.FunctionCFG.Companion.buildFunctionCFG
+import ml.dev.kotlin.latte.quadruple.FunctionControlFlowGraph.Companion.buildFunctionCFG
 import ml.dev.kotlin.latte.util.splitAt
 
 
-class ControlFlowGraph(
-  val functions: Map<Label, FunctionCFG>,
+class ControlFlowGraph private constructor(
+  val functions: Map<Label, FunctionControlFlowGraph>,
 ) {
   fun orderedBlocks(): List<BasicBlock> = functions.values.flatMap { it.orderedBlocks() }
   fun removeNotReachableBlocks(): Unit = forEachStart { removeNotReachableBlocks() }
   fun transformToSSA(): Unit = forEachStart { transformToSSA() }
   fun transformFromSSA(): Unit = forEachStart { transformFromSSA() }
 
-  private inline fun forEachStart(action: FunctionCFG.() -> Unit): Unit = functions.values.forEach(action)
+  private inline fun forEachStart(action: FunctionControlFlowGraph.() -> Unit): Unit = functions.values.forEach(action)
 
   companion object {
     fun Iterable<Quadruple>.buildCFG(labelGenerator: () -> Label): ControlFlowGraph {

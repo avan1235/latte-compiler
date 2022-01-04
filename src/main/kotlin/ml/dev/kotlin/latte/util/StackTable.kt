@@ -7,7 +7,7 @@ typealias StackLevel = Int
 data class StackTable<K, V>(
   private var _level: StackLevel = 0,
   private val levelValues: MutableDefaultMap<K, Stack<V>> = MutableDefaultMap({ Stack() }),
-  private val levelNames: MutableDefaultMap<StackLevel, MutableSet<K>> = MutableDefaultMap({ hashSetOf() }),
+  private val levelNames: MutableDefaultMap<StackLevel, MutableSet<K>> = MutableDefaultMap(withSet()),
 ) {
   val currentLevelNames: Set<K> get() = levelNames[_level]
 

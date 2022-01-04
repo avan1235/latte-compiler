@@ -18,3 +18,4 @@ interface DefaultMap<K, out V> : Map<K, V> {
   override fun get(key: K): V
 }
 
+fun <K, V> withSet(): (K) -> HashSet<V> = { HashSet() }

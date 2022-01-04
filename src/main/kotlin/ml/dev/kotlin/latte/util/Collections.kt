@@ -23,7 +23,7 @@ inline fun <T> Iterable<T>.splitAt(
 fun <T> Iterable<T>.nlString(transform: ((T) -> CharSequence)? = null) =
   joinToString("\n", "\n", "\n", transform = transform)
 
-interface Graph<V> {
+interface DirectedGraph<V> {
   val nodes: Set<V>
   fun successors(v: V): Set<V>
   fun predecessors(v: V): Set<V>
@@ -40,7 +40,7 @@ interface Graph<V> {
   }
 }
 
-abstract class UndirectedGraph<V> : Graph<V> {
+abstract class UndirectedGraph<V> : DirectedGraph<V> {
   final override fun successors(v: V): Set<V> = connectedWith(v)
   final override fun predecessors(v: V): Set<V> = connectedWith(v)
 

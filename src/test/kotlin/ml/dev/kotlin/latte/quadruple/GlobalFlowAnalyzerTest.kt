@@ -4,7 +4,7 @@ import ml.dev.kotlin.latte.syntax.IntType
 import ml.dev.kotlin.latte.syntax.parse
 import ml.dev.kotlin.latte.typecheck.mangled
 import ml.dev.kotlin.latte.typecheck.typeCheck
-import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 
@@ -64,18 +64,15 @@ internal class GlobalFlowAnalyzerTest {
      * 0:  f@int(x#0):
      * 1:    y@1#0 = 0
      * 2:    if x#0 eq 42 goto @L2
-     * 3:  @G6:
-     * 4:    goto @L3
-     * 5:  @L3:
-     * 6:    y@1#3 = x#0
-     * 7:    y@1#2 = y@1#3
-     * 8:    goto @L4
-     * 9:  @L2:
-     * 10:   @T5#0 = neg x#0
-     * 11:   y@1#1 = @T5#0
-     * 12:   y@1#2 = y@1#1
-     * 13: @L4:
-     * 14:   ret y@1#2
+     * 3:    y@1#3 = x#0
+     * 4:    y@1#2 = y@1#3
+     * 5:    goto @L4
+     * 6:  @L2:
+     * 7:    @T5#0 = neg x#0
+     * 8:    y@1#1 = @T5#0
+     * 9:    y@1#2 = y@1#1
+     * 10: @L4:
+     * 11:   ret y@1#2
      */
     label = "f" mangled listOf(IntType),
     aliveBefore = mapOf(
@@ -83,68 +80,56 @@ internal class GlobalFlowAnalyzerTest {
       1 to setOf(intArg("x#0", 0)),
       2 to setOf(intArg("x#0", 0)),
       3 to setOf(intArg("x#0", 0)),
-      4 to setOf(intArg("x#0", 0)),
-      5 to setOf(intArg("x#0", 0)),
+      4 to setOf(intLoc("y@1#3")),
+      5 to setOf(intLoc("y@1#2")),
       6 to setOf(intArg("x#0", 0)),
-      7 to setOf(intLoc("y@1#3")),
-      8 to setOf(intLoc("y@1#2")),
-      9 to setOf(intArg("x#0", 0)),
-      10 to setOf(intArg("x#0", 0)),
-      11 to setOf(intLoc("@T5#0")),
-      12 to setOf(intLoc("y@1#1")),
-      13 to setOf(intLoc("y@1#2")),
-      14 to setOf(intLoc("y@1#2")),
+      7 to setOf(intArg("x#0", 0)),
+      8 to setOf(intLoc("@T5#0")),
+      9 to setOf(intLoc("y@1#1")),
+      10 to setOf(intLoc("y@1#2")),
+      11 to setOf(intLoc("y@1#2")),
     ),
     aliveAfter = mapOf(
       0 to setOf(intArg("x#0", 0)),
       1 to setOf(intArg("x#0", 0)),
       2 to setOf(intArg("x#0", 0)),
-      3 to setOf(intArg("x#0", 0)),
-      4 to setOf(intArg("x#0", 0)),
-      5 to setOf(intArg("x#0", 0)),
-      6 to setOf(intLoc("y@1#3")),
-      7 to setOf(intLoc("y@1#2")),
-      8 to setOf(intLoc("y@1#2")),
-      9 to setOf(intArg("x#0", 0)),
-      10 to setOf(intLoc("@T5#0")),
-      11 to setOf(intLoc("y@1#1")),
-      12 to setOf(intLoc("y@1#2")),
-      13 to setOf(intLoc("y@1#2")),
-      14 to setOf(),
+      3 to setOf(intLoc("y@1#3")),
+      4 to setOf(intLoc("y@1#2")),
+      5 to setOf(intLoc("y@1#2")),
+      6 to setOf(intArg("x#0", 0)),
+      7 to setOf(intLoc("@T5#0")),
+      8 to setOf(intLoc("y@1#1")),
+      9 to setOf(intLoc("y@1#2")),
+      10 to setOf(intLoc("y@1#2")),
+      11 to setOf(),
     ),
     definedAt = mapOf(
       0 to setOf(intArg("x#0", 0)),
       1 to setOf(intLoc("y@1#0")),
       2 to setOf(),
-      3 to setOf(),
-      4 to setOf(),
+      3 to setOf(intLoc("y@1#3")),
+      4 to setOf(intLoc("y@1#2")),
       5 to setOf(),
-      6 to setOf(intLoc("y@1#3")),
-      7 to setOf(intLoc("y@1#2")),
-      8 to setOf(),
-      9 to setOf(),
-      10 to setOf(intLoc("@T5#0")),
-      11 to setOf(intLoc("y@1#1")),
-      12 to setOf(intLoc("y@1#2")),
-      13 to setOf(),
-      14 to setOf(),
+      6 to setOf(),
+      7 to setOf(intLoc("@T5#0")),
+      8 to setOf(intLoc("y@1#1")),
+      9 to setOf(intLoc("y@1#2")),
+      10 to setOf(),
+      11 to setOf(),
     ),
     usedAt = mapOf(
       0 to setOf(),
       1 to setOf(),
       2 to setOf(intArg("x#0", 0)),
-      3 to setOf(),
-      4 to setOf(),
+      3 to setOf(intArg("x#0", 0)),
+      4 to setOf(intLoc("y@1#3")),
       5 to setOf(),
-      6 to setOf(intArg("x#0", 0)),
-      7 to setOf(intLoc("y@1#3")),
-      8 to setOf(),
-      9 to setOf(),
-      10 to setOf(intArg("x#0", 0)),
-      11 to setOf(intLoc("@T5#0")),
-      12 to setOf(intLoc("y@1#1")),
-      13 to setOf(),
-      14 to setOf(intLoc("y@1#2")),
+      6 to setOf(),
+      7 to setOf(intArg("x#0", 0)),
+      8 to setOf(intLoc("@T5#0")),
+      9 to setOf(intLoc("y@1#1")),
+      10 to setOf(),
+      11 to setOf(intLoc("y@1#2")),
     ),
   )
 
@@ -163,19 +148,16 @@ internal class GlobalFlowAnalyzerTest {
       }
     """,
     /**
-     * 0:	 f@int(x#0):
-     * 1:	   y@1#0 = 0
-     * 2:	   y@1#1 = y@1#0
-     * 3:	   goto @L3
-     * 4:	 @L2:
-     * 5:	   y@1#2 = inc y@1#1
-     * 6:	   y@1#1 = y@1#2
-     * 7:	 @L3:
-     * 8:	   if y@1#1 lt x#0 goto @L2
-     * 9:	 @G5:
-     * 10:   goto @L4
-     * 11: @L4:
-     * 12:   ret y@1#1
+     * 0:  f@int(x#0):
+     * 1:    y@1#0 = 0
+     * 2:    y@1#1 = y@1#0
+     * 3:    goto @L3
+     * 4:  @L2:
+     * 5:    y@1#2 = inc y@1#1
+     * 6:    y@1#1 = y@1#2
+     * 7:  @L3:
+     * 8:    if y@1#1 lt x#0 goto @L2
+     * 9:    ret y@1#1
      */
     label = "f" mangled listOf(IntType),
     aliveBefore = mapOf(
@@ -189,9 +171,6 @@ internal class GlobalFlowAnalyzerTest {
       7 to setOf(intArg("x#0", 0), intLoc("y@1#1")),
       8 to setOf(intArg("x#0", 0), intLoc("y@1#1")),
       9 to setOf(intLoc("y@1#1")),
-      10 to setOf(intLoc("y@1#1")),
-      11 to setOf(intLoc("y@1#1")),
-      12 to setOf(intLoc("y@1#1")),
     ),
     aliveAfter = mapOf(
       0 to setOf(intArg("x#0", 0)),
@@ -203,10 +182,7 @@ internal class GlobalFlowAnalyzerTest {
       6 to setOf(intArg("x#0", 0), intLoc("y@1#1")),
       7 to setOf(intArg("x#0", 0), intLoc("y@1#1")),
       8 to setOf(intLoc("y@1#1"), intArg("x#0", 0)),
-      9 to setOf(intLoc("y@1#1")),
-      10 to setOf(intLoc("y@1#1")),
-      11 to setOf(intLoc("y@1#1")),
-      12 to setOf(),
+      9 to setOf(),
     ),
   )
 }
@@ -226,9 +202,9 @@ private fun testGlobalFlow(
     transformFromSSA()
   }
   val cfg = graph.functions[label.label] ?: fail { "Not found function for label $label" }
-  val analysis = GlobalFlowAnalyzer.analyze(cfg)
+  val analysis = GlobalFlowAnalyzer.analyze(cfg).peepHoleOptimize()
 
-  assertEquals(cfg.orderedBlocks().sumOf { it.statements.count() }, analysis.statements.size)
+  assertTrue(analysis.statements.isNotEmpty())
 
   aliveBefore?.let { analysis.statements.testAnalysis("aliveBefore", it, analysis.aliveBefore) }
   aliveAfter?.let { analysis.statements.testAnalysis("aliveAfter", it, analysis.aliveAfter) }
