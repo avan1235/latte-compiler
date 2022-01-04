@@ -1,6 +1,28 @@
 package ml.dev.kotlin.latte.quadruple
 
+import ml.dev.kotlin.latte.util.DefaultMap
+import ml.dev.kotlin.latte.util.MutableDefaultMap
 import java.util.*
+
+fun FlowAnalysis.peepHoleOptimize(
+  jumpToNext: Boolean = true,
+  noJumpsToLabel: Boolean = true,
+): FlowAnalysis {
+  val optimized = statements.asSequence()
+    .mapIndexed { index, quadruple -> IndexedQuadruple(index, quadruple) }
+    .peepHoleOptimize(jumpToNext, noJumpsToLabel) { it.quadruple }
+    .toList()
+
+  fun reindex(with: (FlowAnalysis) -> DefaultMap<StmtIdx, Set<VirtualReg>>): DefaultMap<StmtIdx, Set<VirtualReg>> =
+    MutableDefaultMap({ if (it in optimized.indices) with(this)[optimized[it].index] else emptySet() })
+  return FlowAnalysis(
+    aliveBefore = reindex(FlowAnalysis::aliveBefore),
+    aliveAfter = reindex(FlowAnalysis::aliveAfter),
+    definedAt = reindex(FlowAnalysis::definedAt),
+    usedAt = reindex(FlowAnalysis::usedAt),
+    optimized.map { it.quadruple }
+  )
+}
 
 fun <T> Sequence<T>.peepHoleOptimize(
   jumpToNext: Boolean = true,
@@ -44,3 +66,5 @@ private fun <T> Sequence<T>.optimizeJumpToNext(extract: (T) -> Quadruple): Seque
     forEachIndexed { idx, q -> map[idx] = q }
   }.go()
 }
+
+private data class IndexedQuadruple(val index: Int, val quadruple: Quadruple)
