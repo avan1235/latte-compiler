@@ -55,13 +55,14 @@ class FunctionCompiler(
       label.insert()
       cmd(PUSH, EBP)
       cmd(MOV, EBP, ESP)
-      cmd(SUB, ESP, offset.imm)
+      cmd(SUB, ESP, offset.imm, offset > 0)
       memoryAllocator.preservedOnCall.forEach { cmd(PUSH, it) }
     }
     is RetQ -> {
+      val offset = memoryAllocator.localsOffset
       value?.let { cmd(MOV, EAX, it.get()) }
       memoryAllocator.preservedOnCall.asReversed().forEach { cmd(POP, it) }
-      cmd(MOV, ESP, EBP)
+      cmd(MOV, ESP, EBP, offset > 0)
       cmd(POP, EBP)
       cmd(RET)
     }
@@ -185,7 +186,6 @@ class FunctionCompiler(
       l is Imm && r is Mem -> this.leftImm()
       else -> err("Unexpected case for $l and $r")
     }
-
   }
 
   private fun matchLR(to: VirtualReg, left: VirtualReg, right: ValueHolder, idx: StmtIdx): LR {
