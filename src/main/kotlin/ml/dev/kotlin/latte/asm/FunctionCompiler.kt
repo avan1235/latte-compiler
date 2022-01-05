@@ -144,12 +144,17 @@ class FunctionCompiler(
   private fun assign(to: VirtualReg, from: VarLoc, idx: StmtIdx) {
     if (to !in analysis.aliveAfter[idx]) return
     val toLoc = to.get()
-    val value = when (from) {
-      is Reg -> from
-      is Imm -> from
-      is Mem -> if (toLoc is Reg) from else cmd(MOV, EAX, from).then { EAX }
+    when {
+      from == 0.imm && toLoc is Reg -> cmd(XOR, toLoc, toLoc)
+      else -> {
+        val value = when (from) {
+          is Reg -> from
+          is Imm -> from
+          is Mem -> if (toLoc is Reg) from else cmd(MOV, EAX, from).then { EAX }
+        }
+        cmd(MOV, toLoc, value, value != toLoc)
+      }
     }
-    cmd(MOV, toLoc, value, value != toLoc)
   }
 
   private fun cmd(op: Named, cond: Boolean = true): Unit =

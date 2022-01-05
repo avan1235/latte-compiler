@@ -12,7 +12,6 @@ enum class Cmd : Named {
   SUB,
   XOR,
   RET,
-  LEAVE,
   CALL,
   INC,
   DEC,
