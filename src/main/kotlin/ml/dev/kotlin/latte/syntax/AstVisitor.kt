@@ -2,8 +2,6 @@ package ml.dev.kotlin.latte.syntax
 
 import ml.dev.kotlin.latte.util.FileLocation
 import ml.dev.kotlin.latte.util.Span
-import ml.dev.kotlin.syntax.LatteBaseVisitor
-import ml.dev.kotlin.syntax.LatteParser
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.TerminalNode

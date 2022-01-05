@@ -1,10 +1,8 @@
 package ml.dev.kotlin.latte.syntax
 
-import ml.dev.kotlin.latte.util.LocalizedMessage
 import ml.dev.kotlin.latte.util.FileLocation
+import ml.dev.kotlin.latte.util.LocalizedMessage
 import ml.dev.kotlin.latte.util.ParseException
-import ml.dev.kotlin.syntax.LatteLexer
-import ml.dev.kotlin.syntax.LatteParser
 import org.antlr.v4.runtime.*
 import java.io.InputStream
 import java.nio.charset.Charset

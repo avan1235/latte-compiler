@@ -50,7 +50,7 @@ tasks.withType<KotlinCompile> {
 }
 
 tasks.generateGrammarSource {
-  arguments = listOf("-visitor", "-package", "ml.dev.kotlin.syntax")
+  arguments = listOf("-visitor", "-package", "ml.dev.kotlin.latte.syntax")
 }
 
 java {
