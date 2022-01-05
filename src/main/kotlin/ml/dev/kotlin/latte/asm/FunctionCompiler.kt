@@ -34,19 +34,12 @@ class FunctionCompiler(
     is RelCondJumpQ -> {
       val left = left.get()
       val right = right.get()
-
-      val (l, r, rev) = when {
-        left is Reg && right is Reg -> LR(left, right)
-        left is Mem && right is Reg -> LR(left, right)
-        left is Reg && right is Mem -> LR(left, right)
-        left is Reg && right is Imm -> LR(left, right)
-        left is Mem && right is Imm -> LR(left, right)
-        left is Imm && right is Reg -> LR(right, left, rev = true)
-        left is Imm && right is Mem -> LR(right, left, rev = true)
-        left is Imm && right is Imm -> cmd(MOV, EAX, left).then { LR(EAX, right) }
-        left is Mem && right is Mem -> cmd(MOV, EAX, left).then { LR(EAX, right) }
-        else -> err("Unexpected case for $this")
-      }
+      val (l, r, rev) = LR(left, right).onMatch(
+        normal = { LR(left, right) },
+        bothMem = { cmd(MOV, EAX, left).then { LR(EAX, right) } },
+        bothImm = { cmd(MOV, EAX, left).then { LR(EAX, right) } },
+        leftImm = { LR(right, left, rev = true) }
+      )
       cmd(CMP, l, r)
       if (rev) cmd(op.rev.jump, toLabel)
       else cmd(op.jump, toLabel)
@@ -174,17 +167,24 @@ class FunctionCompiler(
     memoryAllocator.get(this, strings) { to, from -> cmd(MOV, to, from) }
 
   private data class LR(val l: VarLoc, val r: VarLoc, val rev: Boolean = false) {
-    fun onMatch(normal: LR.() -> Unit, bothMem: LR.() -> Unit) {
-      when {
-        l is Reg && r is Reg -> this.normal()
-        l is Mem && r is Reg -> this.normal()
-        l is Reg && r is Mem -> this.normal()
-        l is Reg && r is Imm -> this.normal()
-        l is Mem && r is Imm -> this.normal()
-        l is Mem && r is Mem -> this.bothMem()
-        else -> err("Unexpected case for $l and $r")
-      }
+    fun <V> onMatch(
+      normal: LR.() -> V,
+      bothMem: LR.() -> V,
+      leftImm: LR.() -> V = { err("Unexpected case for $l and $r") },
+      bothImm: LR.() -> V = { err("Unexpected case for $l and $r") },
+    ): V = when {
+      l is Reg && r is Reg -> this.normal()
+      l is Mem && r is Reg -> this.normal()
+      l is Reg && r is Mem -> this.normal()
+      l is Reg && r is Imm -> this.normal()
+      l is Mem && r is Imm -> this.normal()
+      l is Mem && r is Mem -> this.bothMem()
+      l is Imm && r is Imm -> this.bothImm()
+      l is Imm && r is Reg -> this.leftImm()
+      l is Imm && r is Mem -> this.leftImm()
+      else -> err("Unexpected case for $l and $r")
     }
+
   }
 
   private fun matchLR(to: VirtualReg, left: VirtualReg, right: ValueHolder, idx: StmtIdx): LR {
