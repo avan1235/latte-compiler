@@ -23,7 +23,7 @@ class FunctionCompiler(
     analysis.statements.forEachIndexed { idx, stmt -> stmt.compile(idx) }
   }
 
-  private fun Quadruple.compile(idx: Int): Unit = when (this@compile) {
+  private fun Quadruple.compile(idx: StmtIdx): Unit = when (this@compile) {
     is AssignQ -> assign(to, from.get(), idx)
     is FunCallQ -> {
       args.asReversed().forEach { cmd(PUSH, it.get()) }
@@ -34,24 +34,27 @@ class FunctionCompiler(
     is RelCondJumpQ -> {
       val left = left.get()
       val right = right.get()
-      val op = when {
-        left is Reg && right is Reg -> cmd(CMP, left, right).then { op }
-        left is Mem && right is Reg -> cmd(CMP, left, right).then { op }
-        left is Reg && right is Mem -> cmd(CMP, left, right).then { op }
-        left is Reg && right is Imm -> cmd(CMP, left, right).then { op }
-        left is Mem && right is Imm -> cmd(CMP, left, right).then { op }
-        left is Imm && right is Reg -> cmd(CMP, right, left).then { op.rev }
-        left is Imm && right is Mem -> cmd(CMP, right, left).then { op.rev }
-        left is Imm && right is Imm -> cmd(MOV, EAX, left).then { cmd(CMP, EAX, right) }.then { op }
-        left is Mem && right is Mem -> cmd(MOV, EAX, left).then { cmd(CMP, EAX, right) }.then { op }
+
+      val (l, r, rev) = when {
+        left is Reg && right is Reg -> LR(left, right)
+        left is Mem && right is Reg -> LR(left, right)
+        left is Reg && right is Mem -> LR(left, right)
+        left is Reg && right is Imm -> LR(left, right)
+        left is Mem && right is Imm -> LR(left, right)
+        left is Imm && right is Reg -> LR(right, left, rev = true)
+        left is Imm && right is Mem -> LR(right, left, rev = true)
+        left is Imm && right is Imm -> cmd(MOV, EAX, left).then { LR(EAX, right) }
+        left is Mem && right is Mem -> cmd(MOV, EAX, left).then { LR(EAX, right) }
         else -> err("Unexpected case for $this")
       }
-      cmd(op.jump, toLabel)
+      cmd(CMP, l, r)
+      if (rev) cmd(op.rev.jump, toLabel)
+      else cmd(op.jump, toLabel)
     }
     is CondJumpQ -> {
       cmd(MOV, EAX, cond.get())
       cmd(TEST, EAX, EAX)
-      cmd(JZ, toLabel)
+      cmd(JNZ, toLabel)
     }
     is JumpQ -> cmd(JMP, toLabel)
     is FunCodeLabelQ -> {
@@ -80,84 +83,38 @@ class FunctionCompiler(
     is PhonyQ -> err("Unexpected $this found in compilation phase")
   }
 
-  private fun onMatch(l: VarLoc, r: VarLoc, normal: () -> Unit, bothMem: () -> Unit) {
-    when {
-      l is Reg && r is Reg -> normal()
-      l is Mem && r is Reg -> normal()
-      l is Reg && r is Mem -> normal()
-      l is Reg && r is Imm -> normal()
-      l is Mem && r is Imm -> normal()
-      l is Mem && r is Mem -> bothMem()
-      else -> err("Unexpected case for $l and $r")
-    }
-  }
-
-  private data class LR(val l: VarLoc, val r: VarLoc, val rev: Boolean = false)
-
-  private fun matchLR(to: VirtualReg, left: VirtualReg, right: ValueHolder, idx: Int): LR {
-    val resLoc = to.get()
-    val lLoc = left.get()
-    val rLoc = right.get()
-    return when (resLoc) {
-      lLoc -> LR(lLoc, rLoc)
-      rLoc -> LR(rLoc, lLoc, rev = true)
-      else -> LR(resLoc, rLoc).also { assign(to, lLoc, idx) }
-    }
-  }
-
-  private fun NumOp.on(to: VirtualReg, left: VirtualReg, right: ValueHolder, idx: Int): Unit = when (this) {
-    NumOp.PLUS -> {
-      val (l, r) = matchLR(to, left, right, idx)
-      onMatch(
-        l, r,
-        normal = { cmd(ADD, l, r) },
-        bothMem = {
+  private fun NumOp.on(to: VirtualReg, left: VirtualReg, right: ValueHolder, idx: StmtIdx): Unit = when (this) {
+    NumOp.PLUS -> matchLR(to, left, right, idx).onMatch(
+      normal = { cmd(ADD, l, r) },
+      bothMem = {
+        cmd(MOV, EAX, r)
+        cmd(ADD, l, EAX)
+      },
+    )
+    NumOp.MINUS -> matchLR(to, left, right, idx).onMatch(
+      normal = {
+        cmd(SUB, l, r)
+        if (rev) cmd(NEG, l)
+      },
+      bothMem = {
+        if (!rev) {
           cmd(MOV, EAX, r)
-          cmd(ADD, l, EAX)
-        },
-      )
-    }
-    NumOp.MINUS -> {
-      val (l, r, rev) = matchLR(to, left, right, idx)
-      onMatch(
-        l, r,
-        normal = {
-          cmd(SUB, l, r)
-          if (rev) cmd(NEG, l)
-        },
-        bothMem = {
-          if (!rev) {
-            cmd(MOV, EAX, r)
-            cmd(SUB, l, EAX)
-          } else {
-            cmd(MOV, EAX, r)
-            cmd(SUB, EAX, l)
-            cmd(MOV, r, EAX)
-          }
-        },
-      )
-    }
-    NumOp.TIMES -> {
-      val resLoc = to.get()
-      val lLoc = left.get()
-      val rLoc = right.get()
-
-      val (l, r) = when (resLoc) {
-        lLoc -> LR(lLoc, rLoc)
-        rLoc -> LR(rLoc, lLoc)
-        else -> LR(resLoc, rLoc).also { assign(to, lLoc, idx) }
-      }
-
-      onMatch(
-        l, r,
-        normal = { cmd(IMUL, l, r) },
-        bothMem = {
-          cmd(MOV, EAX, l)
-          cmd(IMUL, EAX, r)
-          cmd(MOV, l, EAX)
-        },
-      )
-    }
+          cmd(SUB, l, EAX)
+        } else {
+          cmd(MOV, EAX, r)
+          cmd(SUB, EAX, l)
+          cmd(MOV, r, EAX)
+        }
+      },
+    )
+    NumOp.TIMES -> matchLR(to, left, right, idx).onMatch(
+      normal = { cmd(IMUL, l, r) },
+      bothMem = {
+        cmd(MOV, EAX, l)
+        cmd(IMUL, EAX, r)
+        cmd(MOV, l, EAX)
+      },
+    )
     NumOp.DIVIDE -> cdqIDiv(left, right).then { assign(to, EAX, idx) }
     NumOp.MOD -> cdqIDiv(left, right).then { assign(to, EDX, idx) }
   }
@@ -173,7 +130,7 @@ class FunctionCompiler(
     cmd(IDIV, by)
   }
 
-  private fun UnOp.on(to: VirtualReg, from: VirtualReg, idx: Int): Unit = when (this) {
+  private fun UnOp.on(to: VirtualReg, from: VirtualReg, idx: StmtIdx): Unit = when (this) {
     UnOp.NEG -> assign(to, from.get(), idx).then { cmd(NEG, to.get()) }
     UnOp.NOT -> {
       val label = labelGenerator()
@@ -184,15 +141,15 @@ class FunctionCompiler(
     }
   }
 
-  private fun assign(destination: VirtualReg, from: VarLoc, idx: Int) {
-    if (destination !in analysis.aliveAfter[idx]) return
-    val to = destination.get()
+  private fun assign(to: VirtualReg, from: VarLoc, idx: StmtIdx) {
+    if (to !in analysis.aliveAfter[idx]) return
+    val toLoc = to.get()
     val value = when (from) {
       is Reg -> from
       is Imm -> from
-      is Mem -> if (to is Reg) from else EAX.also { cmd(MOV, EAX, from) }
+      is Mem -> if (toLoc is Reg) from else cmd(MOV, EAX, from).then { EAX }
     }
-    cmd(MOV, to, value, value != to)
+    cmd(MOV, toLoc, value, value != toLoc)
   }
 
   private fun cmd(op: Named, cond: Boolean = true): Unit =
@@ -210,6 +167,31 @@ class FunctionCompiler(
 
   private fun ValueHolder.get(): VarLoc =
     memoryAllocator.get(this, strings) { to, from -> cmd(MOV, to, from) }
+
+  private data class LR(val l: VarLoc, val r: VarLoc, val rev: Boolean = false) {
+    fun onMatch(normal: LR.() -> Unit, bothMem: LR.() -> Unit) {
+      when {
+        l is Reg && r is Reg -> this.normal()
+        l is Mem && r is Reg -> this.normal()
+        l is Reg && r is Mem -> this.normal()
+        l is Reg && r is Imm -> this.normal()
+        l is Mem && r is Imm -> this.normal()
+        l is Mem && r is Mem -> this.bothMem()
+        else -> err("Unexpected case for $l and $r")
+      }
+    }
+  }
+
+  private fun matchLR(to: VirtualReg, left: VirtualReg, right: ValueHolder, idx: StmtIdx): LR {
+    val resLoc = to.get()
+    val lLoc = left.get()
+    val rLoc = right.get()
+    return when (resLoc) {
+      lLoc -> LR(lLoc, rLoc)
+      rLoc -> LR(rLoc, lLoc, rev = true)
+      else -> LR(resLoc, rLoc).also { assign(to, lLoc, idx) }
+    }
+  }
 }
 
 private const val indent: String = "  "

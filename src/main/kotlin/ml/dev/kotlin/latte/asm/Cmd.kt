@@ -29,7 +29,7 @@ enum class Cmd : Named {
   JG,
   JNE,
   JE,
-  JZ,
+  JNZ,
   PUSH
 }
 
