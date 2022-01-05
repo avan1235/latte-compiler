@@ -12,6 +12,7 @@ enum class Cmd : Named {
   SUB,
   XOR,
   RET,
+  LEAVE,
   CALL,
   INC,
   DEC,
@@ -21,12 +22,14 @@ enum class Cmd : Named {
   IDIV,
   JMP,
   CMP,
+  TEST,
   JLE,
   JL,
   JGE,
   JG,
   JNE,
   JE,
+  JZ,
   PUSH
 }
 

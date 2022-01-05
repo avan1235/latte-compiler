@@ -2,18 +2,18 @@ package ml.dev.kotlin.latte.util
 
 import java.util.*
 
-class GraphColoring<V, C>(
-  private val colors: Set<C>,
-  private val extraColor: C,
+class GraphColoring<V, Common, Colored : Common, Default : Common>(
   private val graph: UndirectedGraph<V>,
+  private val colors: Set<Colored>,
+  private val extraColor: (V) -> Default,
   private val spillSelectHeuristics: (withEdges: TreeMap<Int, HashSet<V>>) -> V,
-  private val colorSelectHeuristics: (available: Set<C>) -> C,
+  private val colorSelectHeuristics: (node: V, available: Set<Colored>, coloring: Map<V, Common>) -> Colored,
 ) {
-  val coloring: Map<V, C> = HashMap<V, C>().also { coloring ->
+  val coloring: Map<V, Common> = HashMap<V, Common>().also { coloring ->
     val graphSize = graph.nodes.size
     val neigh: DefaultMap<V, Set<V>> = MutableDefaultMap({ v ->
       graph.connected(v).takeUnless { v in it }
-        ?: throw IllegalArgumentException("Cannot find coloring for graph with cycles self edges")
+        ?: throw LatteIllegalStateException("Cannot find coloring for graph with cycles self edges".msg)
     })
 
     val edgesCount = HashMap(graph.nodes.associateWith { neigh[it].size })
@@ -55,12 +55,13 @@ class GraphColoring<V, C>(
     }
   }
 
-  private fun List<SN<V>>.assignColors(neigh: DefaultMap<V, Set<V>>, coloring: MutableMap<V, C>): Unit =
+  private fun List<SN<V>>.assignColors(neigh: DefaultMap<V, Set<V>>, coloring: MutableMap<V, Common>): Unit =
     forEach { node ->
-      if (node.spill) coloring[node.n] = extraColor
+      if (node.spill) coloring[node.n] = extraColor(node.n)
       else {
         val neighColors = coloring.keys.intersect(neigh[node.n]).mapTo(HashSet()) { coloring[it]!! }
-        coloring[node.n] = colorSelectHeuristics(colors - neighColors)
+        val candidates = colors.filterNotTo(HashSet()) { neighColors.contains<Common>(it) }
+        coloring[node.n] = colorSelectHeuristics(node.n, candidates, coloring)
       }
     }
 }

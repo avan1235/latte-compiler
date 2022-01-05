@@ -191,6 +191,37 @@ internal class IRGeneratorTest {
       """,
       "str" to "@S1"
     )
+
+    @Test
+    fun `test gives functions arguments proper names`() = testIR(
+      program = """
+      int main() {
+        return 0;
+      }
+      int f(int a, boolean b) {
+        while (a > 0) {
+          b = !b;
+          a--;
+        }
+        return a;
+      }
+      """,
+      irRepresentation = """
+      main():
+        ret 0
+      f@int@boolean(a#0, b#0):
+        goto @L1
+      @L0:
+        @T3#0 = not b#1
+        b#2 = @T3#0
+        a#2 = dec a#1
+      @L1:
+        a#1 = phi (@L0:a#2, f@int@boolean:a#0)
+        b#1 = phi (@L0:b#2, f@int@boolean:b#0)
+        if a#1 gt 0 goto @L0
+        ret a#1
+      """,
+    )
   }
 
   @Nested

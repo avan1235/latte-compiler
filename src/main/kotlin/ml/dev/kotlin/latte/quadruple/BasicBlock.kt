@@ -64,6 +64,6 @@ class BasicBlock private constructor(
   }
 }
 
-private fun err(message: String): Nothing = throw IRException(message.msg)
+private fun err(message: String): VirtualReg = throw IRException(message.msg)
 
-private val PHONY_COMPARATOR: Comparator<PhonyQ> = compareBy { it.to.reg }
+private val PHONY_COMPARATOR: Comparator<PhonyQ> = compareBy { it.to.id }

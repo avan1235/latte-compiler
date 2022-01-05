@@ -30,7 +30,10 @@ private data class IRGenerator(
   }
 
   private fun FunDef.generate() = varEnv.onLevel {
-    val args = args.list.mapIndexed { idx, (type, name) -> addArg(name.label, type, idx) }
+    var argOffset = 0
+    val args = args.list.map { (type, name) ->
+      addArg(name.label, type, argOffset).also { argOffset += type.size }
+    }
     emit { FunCodeLabelQ(mangledName.label, args) }
     block.generate()
   }
@@ -196,8 +199,8 @@ private data class IRGenerator(
   private fun generateCondElse(left: Expr, op: BooleanOp, right: Expr): LocalValue = freshTemp(BooleanType) { to ->
     CondElseStmt(
       BinOpExpr(left, op, right),
-      AssStmt(to.reg, BoolExpr(true)),
-      AssStmt(to.reg, BoolExpr(false)),
+      AssStmt(to.id, BoolExpr(true)),
+      AssStmt(to.id, BoolExpr(false)),
     ).generate()
   }
 
@@ -213,7 +216,7 @@ private data class IRGenerator(
   }
 
   private fun freshTemp(type: Type, action: (LocalValue) -> Unit = {}): LocalValue =
-    LocalValue("@T${freshIdx()}", type).also { varEnv[it.reg] = it }.also(action)
+    LocalValue("@T${freshIdx()}", type).also { varEnv[it.id] = it }.also(action)
 
   private fun addStringConst(value: String): StringConstValue =
     StringConstValue(strings[value] ?: freshLabel(prefix = "S").also { strings[value] = it }, value)
@@ -221,8 +224,8 @@ private data class IRGenerator(
   private fun freshIdx(): Int = labelIdx.also { labelIdx += 1 }
   private fun freshLabel(prefix: String): Label = "@$prefix${freshIdx()}".label
 
-  private fun addArg(label: Label, type: Type, idx: Int): ArgValue =
-    ArgValue(label.name, idx, type).also { varEnv[label.name] = it }
+  private fun addArg(label: Label, type: Type, currOffset: Int): ArgValue =
+    ArgValue(label.name, currOffset, type).also { varEnv[label.name] = it }
 
   private fun addLocal(label: Label, type: Type): LocalValue =
     LocalValue("${label.name}@${freshIdx()}", type).also { varEnv[label.name] = it }

@@ -36,6 +36,9 @@ data class FlowAnalysis(
   val definedAt: DefaultMap<StmtIdx, Set<VirtualReg>>,
   val usedAt: DefaultMap<StmtIdx, Set<VirtualReg>>,
   val statements: List<Quadruple>,
-)
+) {
+  val aliveOver: DefaultMap<StmtIdx, Set<VirtualReg>> =
+    MutableDefaultMap({ aliveBefore[it].intersect(aliveAfter[it]) })
+}
 
 private val generate = { _: StmtIdx -> HashSet<VirtualReg>() }

@@ -20,19 +20,19 @@ data class BooleanConstValue(val bool: Boolean) : ConstValue(BooleanType)
 data class StringConstValue(val label: Label, val str: String) : ConstValue(StringType)
 
 sealed interface VirtualReg : ValueHolder {
-  val reg: String
+  val id: String
   val original: VirtualReg?
 }
 
 data class LocalValue(
-  override val reg: String,
+  override val id: String,
   override val type: Type,
   override val original: VirtualReg? = null,
 ) : VirtualReg
 
 data class ArgValue(
-  override val reg: String,
-  val idx: Int,
+  override val id: String,
+  val offset: Int,
   override val type: Type,
   override val original: VirtualReg? = null,
 ) : VirtualReg
@@ -55,12 +55,12 @@ typealias CurrIndex = (VirtualReg) -> Int?
 typealias UpdateIndex = (VirtualReg) -> Unit
 
 fun VirtualReg.renameUsage(currIndex: CurrIndex): VirtualReg =
-  if (original != null) throw IllegalStateException("Already renamed $this")
+  if (original != null) err<VirtualReg>("Already renamed $this")
   else {
-    val name = "$reg#${currIndex(this) ?: err("Cannot rename with null index: $this")}"
+    val name = "$id#${currIndex(this) ?: err<String>("Cannot rename with null index: $this")}"
     when (this) {
-      is ArgValue -> copy(reg = name, original = this)
-      is LocalValue -> copy(reg = name, original = this)
+      is ArgValue -> copy(id = name, original = this)
+      is LocalValue -> copy(id = name, original = this)
     }
   }
 
@@ -104,6 +104,7 @@ data class AssignQ(val to: VirtualReg, val from: ValueHolder) : Quadruple {
 }
 
 data class FunCallQ(val to: VirtualReg, val label: Label, val args: List<ValueHolder>) : Quadruple {
+  val argsSize: Int = args.sumOf { it.type.size }
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): FunCallQ {
     val args = args.map { if (it is VirtualReg) it.renameUsage(currIndex) else it }
     val to = to.renameDefinition(currIndex, updateIndex)
@@ -156,14 +157,14 @@ data class PhonyQ(private var _to: VirtualReg, private val _from: HashMap<Label,
   val from: Map<Label, ValueHolder> get() = _from
   fun renameDefinition(currIndex: CurrIndex, updateIndex: UpdateIndex): Unit =
     if (_to == original) _to = _to.renameDefinition(currIndex, updateIndex)
-    else err("Cannot rename Phony multiple times")
+    else err<Unit>("Cannot rename Phony multiple times")
 
   fun renamePathUsage(from: Label, currIndex: CurrIndex) {
     _from[from] = original.renameUsage(currIndex)
   }
 
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple =
-    err("Cannot rename PhonyQ in single step - rename usages and definitions separately")
+    err<Quadruple>("Cannot rename PhonyQ in single step - rename usages and definitions separately")
 }
 
-private fun err(message: String): Nothing = throw IRException(message.msg)
+private fun <T> err(message: String): Nothing = throw IRException(message.msg)
