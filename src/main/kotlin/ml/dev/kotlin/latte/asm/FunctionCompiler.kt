@@ -108,11 +108,11 @@ class FunctionCompiler(
         cmd(MOV, l, EAX)
       },
     )
-    NumOp.DIVIDE -> cdqIDiv(left, right).then { assign(to, EAX, idx) }
-    NumOp.MOD -> cdqIDiv(left, right).then { assign(to, EDX, idx) }
+    NumOp.DIVIDE -> cdqIDiv(to, left, right, EAX, idx)
+    NumOp.MOD -> cdqIDiv(to, left, right, EDX, idx)
   }
 
-  private fun cdqIDiv(left: VirtualReg, right: ValueHolder) {
+  private fun cdqIDiv(to: VirtualReg, left: VirtualReg, right: ValueHolder, from: Reg, idx: StmtIdx) {
     cmd(MOV, EAX, left.get())
     cmd(CDQ)
     val by = when (val by = right.get()) {
@@ -121,6 +121,7 @@ class FunctionCompiler(
       is Reg -> by
     }
     cmd(IDIV, by)
+    assign(to, from, idx)
   }
 
   private fun UnOp.on(to: VirtualReg, from: VirtualReg, idx: StmtIdx): Unit = when (this) {
