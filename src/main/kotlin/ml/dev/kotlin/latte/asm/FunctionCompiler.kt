@@ -54,19 +54,18 @@ class FunctionCompiler(
       cmd(JNZ, toLabel)
     }
     is JumpQ -> cmd(JMP, toLabel)
-    is FunCodeLabelQ -> {
-      val offset = memoryAllocator.localsOffset
+    is FunCodeLabelQ -> with(memoryAllocator) {
       label.insert()
       cmd(PUSH, EBP)
       cmd(MOV, EBP, ESP)
-      cmd(SUB, ESP, offset.imm, offset > 0)
+      cmd(SUB, ESP, localsOffset.imm, localsOffset > 0)
       memoryAllocator.savedByCaller.forEach { cmd(PUSH, it) }
+      args.forEach { assureArgLoaded(it) { to, from -> cmd(MOV, to, from) } }
     }
-    is RetQ -> {
-      val offset = memoryAllocator.localsOffset
+    is RetQ -> with(memoryAllocator) {
       value?.let { cmd(MOV, EAX, it.get()) }
-      memoryAllocator.savedByCaller.asReversed().forEach { cmd(POP, it) }
-      cmd(MOV, ESP, EBP, offset > 0)
+      savedByCaller.asReversed().forEach { cmd(POP, it) }
+      cmd(MOV, ESP, EBP, localsOffset > 0)
       cmd(POP, EBP)
       cmd(RET)
     }
@@ -139,7 +138,7 @@ class FunctionCompiler(
   }
 
   private fun preserveReg(at: StmtIdx, vararg reg: Reg, action: () -> Unit) {
-    val preserve = analysis.aliveOver[at].filter { alive -> reg.any { it == alive.get()  } }
+    val preserve = analysis.aliveOver[at].filter { alive -> reg.any { it == alive.get() } }
     preserve.forEach { cmd(PUSH, it.get()) }
     action()
     preserve.asReversed().forEach { cmd(POP, it.get()) }
@@ -185,8 +184,7 @@ class FunctionCompiler(
 
   private fun Label.insert(): Unit = result.append(name).appendLine(':').unit()
 
-  private fun ValueHolder.get(): VarLoc =
-    memoryAllocator.get(this, strings) { to, from -> cmd(MOV, to, from) }
+  private fun ValueHolder.get(): VarLoc = memoryAllocator.get(this, strings)
 
   private data class LR(val l: VarLoc, val r: VarLoc, val rev: Boolean = false) {
     fun <V> match(

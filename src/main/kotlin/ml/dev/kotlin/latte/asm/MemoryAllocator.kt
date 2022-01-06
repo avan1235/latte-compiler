@@ -47,14 +47,21 @@ class MemoryAllocator(
 
   val savedByCaller: List<Reg> = CALLEE_SAVED_REGISTERS.intersect(assignedRegisters).toList()
 
-  fun get(value: ValueHolder, strings: Map<String, Label>, mov: (to: Reg, from: Arg) -> Unit): VarLoc =
+  fun get(value: ValueHolder, strings: Map<String, Label>): VarLoc =
     when (value) {
-      is ArgValue -> assureArgLoaded(value, mov)
+      is ArgValue -> locations[value.id]
       is LocalValue -> locations[value.id]
       is BooleanConstValue -> Imm(if (value.bool) "1" else "0", BooleanType)
       is IntConstValue -> Imm("${value.int}", IntType)
       is StringConstValue -> Imm(strings[value.str]?.name ?: err("Used not labeled string $this"), StringType)
     } ?: err("Used not defined variable $this")
+
+  fun assureArgLoaded(arg: ArgValue, mov: (Reg, Arg) -> Unit): VarLoc? {
+    val loc = locations[arg.id]
+    val reg = argsMovedToReg[arg]
+    if (reg == loc) reg?.let { mov(reg, Arg(arg.offset, arg.type)) }.then { argsMovedToReg -= arg }
+    return loc
+  }
 
   private fun selectToSplit(withEdges: TreeMap<Int, HashSet<VirtualReg>>): VirtualReg {
     val descendingCounts = withEdges.descendingKeySet()
@@ -82,13 +89,6 @@ class MemoryAllocator(
       in usedArgsLocations -> reserveLocal(register.type)
       else -> arg
     }
-
-  private fun assureArgLoaded(arg: ArgValue, mov: (Reg, Arg) -> Unit): VarLoc? {
-    val loc = locations[arg.id]
-    val reg = argsMovedToReg[arg]
-    if (reg == loc) reg?.let { mov(reg, Arg(arg.offset, arg.type)) }.then { argsMovedToReg -= arg }
-    return loc
-  }
 }
 
 private val ALLOCATED_REGISTERS = Reg.values().toSet() - RESERVED_REGISTERS
