@@ -461,15 +461,14 @@ internal class IRGeneratorTest {
       main():
         a@0#0 = 42
         b@1#0 = 24
-        @T3#0 = 3
-        @T2#0 = @T3#0 minus b@1#0
-        @T4#0 = b@1#0 times @T2#0
-        @T5#0 = @T4#0 divide a@0#0
-        @T6#0 = a@0#0 plus @T5#0
-        @T7#0 = @T6#0 plus 1
-        @T8#0 = @T7#0 mod 49
-        x@9#0 = @T8#0
-        ret x@9#0
+        @T2#0 = 3 minus b@1#0
+        @T3#0 = b@1#0 times @T2#0
+        @T4#0 = @T3#0 divide a@0#0
+        @T5#0 = a@0#0 plus @T4#0
+        @T6#0 = @T5#0 plus 1
+        @T7#0 = @T6#0 mod 49
+        x@8#0 = @T7#0
+        ret x@8#0
       """
     )
 

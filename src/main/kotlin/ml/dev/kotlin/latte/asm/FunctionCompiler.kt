@@ -41,7 +41,7 @@ class FunctionCompiler(
         leftImm = { LR(right, left, rev = true) }
       )
       cmd(CMP, l, r)
-      if (rev) cmd(op.rev.jump, toLabel)
+      if (rev) cmd(op.symmetric.jump, toLabel)
       else cmd(op.jump, toLabel)
     }
     is CondJumpQ -> {
@@ -77,7 +77,7 @@ class FunctionCompiler(
     is PhonyQ -> err("Unexpected $this found in compilation phase")
   }
 
-  private fun NumOp.on(to: VirtualReg, left: VirtualReg, right: ValueHolder, idx: StmtIdx): Unit = when (this) {
+  private fun NumOp.on(to: VirtualReg, left: ValueHolder, right: ValueHolder, idx: StmtIdx): Unit = when (this) {
     NumOp.PLUS -> matchLR(to, left, right, idx).onMatch(
       normal = { cmd(ADD, l, r) },
       bothMem = {
@@ -113,7 +113,7 @@ class FunctionCompiler(
     NumOp.MOD -> cdqIDiv(to, left, right, EDX, idx)
   }
 
-  private fun cdqIDiv(to: VirtualReg, left: VirtualReg, right: ValueHolder, from: Reg, idx: StmtIdx) {
+  private fun cdqIDiv(to: VirtualReg, left: ValueHolder, right: ValueHolder, from: Reg, idx: StmtIdx) {
     cmd(MOV, EAX, left.get())
     cmd(CDQ)
     val by = when (val by = right.get()) {
@@ -125,7 +125,7 @@ class FunctionCompiler(
     assign(to, from, idx)
   }
 
-  private fun UnOp.on(to: VirtualReg, from: VirtualReg, idx: StmtIdx): Unit = when (this) {
+  private fun UnOp.on(to: VirtualReg, from: ValueHolder, idx: StmtIdx): Unit = when (this) {
     UnOp.NEG -> assign(to, from.get(), idx).then { cmd(NEG, to.get()) }
     UnOp.NOT -> {
       val label = labelGenerator()
@@ -188,7 +188,7 @@ class FunctionCompiler(
     }
   }
 
-  private fun matchLR(to: VirtualReg, left: VirtualReg, right: ValueHolder, idx: StmtIdx): LR {
+  private fun matchLR(to: VirtualReg, left: ValueHolder, right: ValueHolder, idx: StmtIdx): LR {
     val resLoc = to.get()
     val lLoc = left.get()
     val rLoc = right.get()

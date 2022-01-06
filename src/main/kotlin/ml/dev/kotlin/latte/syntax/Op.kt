@@ -37,6 +37,16 @@ enum class RelOp : BinOp {
       EQ -> NE
       NE -> EQ
     }
+
+  val symmetric: RelOp
+    get() = when (this) {
+      LT -> GT
+      LE -> GE
+      GT -> LT
+      GE -> LE
+      EQ -> EQ
+      NE -> NE
+    }
 }
 
 enum class BooleanOp : BinOp {

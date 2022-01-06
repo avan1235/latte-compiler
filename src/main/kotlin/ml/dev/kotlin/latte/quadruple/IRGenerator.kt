@@ -101,7 +101,7 @@ private data class IRGenerator(
           lv is IntConstValue && rv is IntConstValue ->
             if (expr.op.rel(lv, rv).bool) emit { JumpQ(onTrue) } else emit { JumpQ(onFalse) }
           else -> {
-            emit { RelCondJumpQ(lv.inMemory(), expr.op, rv, onTrue) }
+            emit { RelCondJumpQ(lv, expr.op, rv, onTrue) }
             emit { JumpQ(onFalse) }
           }
         }
@@ -121,7 +121,7 @@ private data class IRGenerator(
       else -> when (val cond = expr.generate()) {
         is BooleanConstValue -> if (cond.bool) emit { JumpQ(onTrue) } else emit { JumpQ(onFalse) }
         else -> {
-          emit { CondJumpQ(cond.inMemory(), onTrue) }
+          emit { CondJumpQ(cond, onTrue) }
           emit { JumpQ(onFalse) }
         }
       }
@@ -152,10 +152,10 @@ private data class IRGenerator(
       when (op) {
         UnOp.NEG ->
           if (from is IntConstValue) -from
-          else freshTemp(IntType) { to -> emit { UnOpQ(to, op, from.inMemory()) } }
+          else freshTemp(IntType) { to -> emit { UnOpQ(to, op, from) } }
         UnOp.NOT ->
           if (from is BooleanConstValue) !from
-          else freshTemp(BooleanType) { to -> emit { UnOpQ(to, op, from.inMemory()) } }
+          else freshTemp(BooleanType) { to -> emit { UnOpQ(to, op, from) } }
       }
     }
     is BinOpExpr -> when (op) {
@@ -176,11 +176,11 @@ private data class IRGenerator(
           else -> when {
             op is NumOp && op == NumOp.PLUS && lv.type == StringType && rv.type == StringType ->
               freshTemp(StringType) { to -> emit { FunCallQ(to, "__concatString".label, listOf(lv, rv)) } }
-            op is NumOp -> freshTemp(IntType) { to -> emit { BinOpQ(to, lv.inMemory(), op, rv) } }
+            op is NumOp -> freshTemp(IntType) { to -> emit { BinOpQ(to, lv, op, rv) } }
             op is RelOp -> freshTemp(BooleanType) { to ->
               val falseLabel = freshLabel(prefix = "F")
               emit { AssignQ(to, false.bool) }
-              emit { RelCondJumpQ(lv.inMemory(), op.rev, rv, falseLabel) }
+              emit { RelCondJumpQ(lv, op.rev, rv, falseLabel) }
               emit { AssignQ(to, true.bool) }
               emit { CodeLabelQ(falseLabel) }
             }

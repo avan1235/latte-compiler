@@ -69,19 +69,19 @@ fun VirtualReg.renameDefinition(currIndex: CurrIndex, updateIndex: UpdateIndex):
   return renameUsage(currIndex)
 }
 
-data class BinOpQ(val to: VirtualReg, val left: VirtualReg, val op: NumOp, val right: ValueHolder) :
+data class BinOpQ(val to: VirtualReg, val left: ValueHolder, val op: NumOp, val right: ValueHolder) :
   Quadruple {
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): BinOpQ {
     val right = if (right is VirtualReg) right.renameUsage(currIndex) else right
-    val left = left.renameUsage(currIndex)
+    val left = if (left is VirtualReg) left.renameUsage(currIndex) else left
     val to = to.renameDefinition(currIndex, updateIndex)
     return BinOpQ(to, left, op, right)
   }
 }
 
-data class UnOpQ(val to: VirtualReg, val op: UnOp, val from: VirtualReg) : Quadruple {
+data class UnOpQ(val to: VirtualReg, val op: UnOp, val from: ValueHolder) : Quadruple {
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): UnOpQ {
-    val from = from.renameUsage(currIndex)
+    val from = if (from is VirtualReg) from.renameUsage(currIndex) else from
     val to = to.renameDefinition(currIndex, updateIndex)
     return UnOpQ(to, op, from)
   }
@@ -123,18 +123,18 @@ data class CodeLabelQ(override val label: Label) : Quadruple, Labeled {
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple = this
 }
 
-data class CondJumpQ(val cond: VirtualReg, override val toLabel: Label) : Quadruple, Jumping {
+data class CondJumpQ(val cond: ValueHolder, override val toLabel: Label) : Quadruple, Jumping {
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): CondJumpQ {
-    val cond = cond.renameUsage(currIndex)
+    val cond = if (cond is VirtualReg) cond.renameUsage(currIndex) else cond
     return CondJumpQ(cond, toLabel)
   }
 }
 
-data class RelCondJumpQ(val left: VirtualReg, val op: RelOp, val right: ValueHolder, override val toLabel: Label) :
+data class RelCondJumpQ(val left: ValueHolder, val op: RelOp, val right: ValueHolder, override val toLabel: Label) :
   Quadruple, Jumping {
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): RelCondJumpQ {
     val right = if (right is VirtualReg) right.renameUsage(currIndex) else right
-    val left = left.renameUsage(currIndex)
+    val left = if (left is VirtualReg) left.renameUsage(currIndex) else left
     return RelCondJumpQ(left, op, right, toLabel)
   }
 }
