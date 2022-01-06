@@ -202,14 +202,14 @@ private fun testGlobalFlow(
     transformFromSSA()
   }
   val cfg = graph.functions[label.label] ?: fail { "Not found function for label $label" }
-  val analysis = GlobalFlowAnalyzer.analyze(cfg).peepHoleOptimize()
+  val linearAnalysis = GlobalFlowAnalyzer.analyzeToLinear(cfg).peepHoleOptimize()
 
-  assertTrue(analysis.statements.isNotEmpty())
+  assertTrue(linearAnalysis.statements.isNotEmpty())
 
-  aliveBefore?.let { analysis.statements.testAnalysis("aliveBefore", it, analysis.aliveBefore) }
-  aliveAfter?.let { analysis.statements.testAnalysis("aliveAfter", it, analysis.aliveAfter) }
-  definedAt?.let { analysis.statements.testAnalysis("definedAt", it, analysis.definedAt) }
-  usedAt?.let { analysis.statements.testAnalysis("usedAt", it, analysis.usedAt) }
+  aliveBefore?.let { linearAnalysis.statements.testAnalysis("aliveBefore", it, linearAnalysis.aliveBefore) }
+  aliveAfter?.let { linearAnalysis.statements.testAnalysis("aliveAfter", it, linearAnalysis.aliveAfter) }
+  definedAt?.let { linearAnalysis.statements.testAnalysis("definedAt", it, linearAnalysis.definedAt) }
+  usedAt?.let { linearAnalysis.statements.testAnalysis("usedAt", it, linearAnalysis.usedAt) }
 }
 
 private fun intLoc(reg: String): LocalValue =

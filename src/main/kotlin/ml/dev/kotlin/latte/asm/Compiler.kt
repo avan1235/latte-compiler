@@ -2,8 +2,6 @@ package ml.dev.kotlin.latte.asm
 
 import ml.dev.kotlin.latte.quadruple.*
 import ml.dev.kotlin.latte.typecheck.STD_LIB_FUNCTIONS
-import ml.dev.kotlin.latte.util.nlString
-import ml.dev.kotlin.latte.util.unit
 
 fun IR.compile(): String = Compiler().run { this@compile.compile() }
 
@@ -23,7 +21,7 @@ private class Compiler(
 
   private fun IR.compileFunctions(): String = buildString {
     graph.functions.values.forEach {
-      val analysis = GlobalFlowAnalyzer.analyze(it).peepHoleOptimize()
+      val analysis = GlobalFlowAnalyzer.analyzeToLinear(it).peepHoleOptimize()
       FunctionCompiler(analysis, strings, this, labelGenerator).compile()
     }
   }
