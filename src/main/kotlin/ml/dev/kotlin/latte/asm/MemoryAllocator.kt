@@ -28,7 +28,6 @@ class MemoryAllocator(
   private var _localsOffset: Int = 0
   val localsOffset: Int get() = _localsOffset
   private val locations = HashMap<String, VarLoc>()
-  private val usedArgsLocations = HashSet<Arg>()
   private val argsMovedToReg = HashMap<ArgValue, Reg>()
 
   private val aliveOnSomeFunctionCall: Set<VirtualReg> = analysis.statements.asSequence().withIndex()
@@ -83,12 +82,7 @@ class MemoryAllocator(
   }
 
   private fun reserveLocal(type: Type): Loc = Loc(_localsOffset.also { _localsOffset += type.size }, type)
-
-  private fun reserveArg(register: ArgValue): Mem =
-    when (val arg = Arg(register.offset, register.type)) {
-      in usedArgsLocations -> reserveLocal(register.type)
-      else -> arg
-    }
+  private fun reserveArg(register: ArgValue): Arg = Arg(register.offset, register.type)
 }
 
 private val ALLOCATED_REGISTERS = Reg.values().toSet() - RESERVED_REGISTERS
