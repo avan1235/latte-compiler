@@ -7,85 +7,85 @@ sealed interface AstNode {
   val span: Span?
 }
 
-data class Program(val topDefs: List<TopDef>, override val span: Span? = null) : AstNode
+data class ProgramNode(val topDefs: List<TopDefNode>, override val span: Span? = null) : AstNode
 
-sealed interface TopDef : AstNode
+sealed interface TopDefNode : AstNode
 
-data class ClassField(val type: Type, val ident: String, override val span: Span? = null) : AstNode
+data class ClassFieldNode(val type: Type, val ident: String, override val span: Span? = null) : AstNode
 
-data class ClassDef(
+data class ClassDefNode(
   val ident: String,
-  val fields: List<ClassField>,
-  val methods: List<MethodDef>,
+  val fields: List<ClassFieldNode>,
+  val methods: List<MethodDefNode>,
   val parentClass: String? = null,
   override val span: Span? = null,
-) : TopDef
+) : TopDefNode
 
-data class MethodDef(
+data class MethodDefNode(
   val type: Type,
   val ident: String,
-  val args: Args,
-  val block: Block,
+  val args: ArgsNode,
+  val block: BlockNode,
   override val span: Span? = null
 ) : AstNode {
   var mangledName by notNull<String>()
 }
 
-data class FunDef(
+data class FunDefNode(
   val type: Type,
   val ident: String,
-  val args: Args,
-  val block: Block,
+  val args: ArgsNode,
+  val block: BlockNode,
   override val span: Span? = null
-) : TopDef {
+) : TopDefNode {
   var mangledName by notNull<String>()
 }
 
-data class Args(val list: List<Arg>, override val span: Span? = null) : AstNode
-data class Arg(val type: Type, val ident: String)
-data class Block(val stmts: MutableList<Stmt>, override val span: Span? = null) : AstNode
+data class ArgsNode(val list: List<ArgNode>, override val span: Span? = null) : AstNode
+data class ArgNode(val type: Type, val ident: String)
+data class BlockNode(val stmts: MutableList<StmtNode>, override val span: Span? = null) : AstNode
 
-sealed interface Item : AstNode {
+sealed interface ItemNode : AstNode {
   val ident: String
 }
 
-data class NotInitItem(override val ident: String, override val span: Span? = null) : Item
-data class InitItem(override val ident: String, val expr: Expr, override val span: Span? = null) : Item
+data class NotInitItemNode(override val ident: String, override val span: Span? = null) : ItemNode
+data class InitItemNode(override val ident: String, val expr: ExprNode, override val span: Span? = null) : ItemNode
 
-sealed interface Stmt : AstNode
-data class BlockStmt(val block: Block, override val span: Span? = null) : Stmt
-data class DeclStmt(val type: Type, val items: List<Item>, override val span: Span? = null) : Stmt
-data class AssStmt(val ident: String, val expr: Expr, override val span: Span? = null) : Stmt
-data class RefAssStmt(val to: Expr, val field: String, val expr: Expr, override val span: Span? = null) : Stmt
-data class IncrStmt(val ident: String, override val span: Span? = null) : Stmt
-data class DecrStmt(val ident: String, override val span: Span? = null) : Stmt
-data class RetStmt(val expr: Expr, override val span: Span? = null) : Stmt
-data class VRetStmt(override val span: Span? = null) : Stmt
-data class CondStmt(val expr: Expr, val onTrue: Stmt, override val span: Span? = null) : Stmt
-data class CondElseStmt(val expr: Expr, val onTrue: Stmt, val onFalse: Stmt, override val span: Span? = null) : Stmt
-data class WhileStmt(val expr: Expr, val onTrue: Stmt, override val span: Span? = null) : Stmt
-data class ExprStmt(val expr: Expr, override val span: Span? = null) : Stmt
-object EmptyStmt : Stmt {
+sealed interface StmtNode : AstNode
+data class BlockStmtNode(val block: BlockNode, override val span: Span? = null) : StmtNode
+data class DeclStmtNode(val type: Type, val items: List<ItemNode>, override val span: Span? = null) : StmtNode
+data class AssStmtNode(val ident: String, val expr: ExprNode, override val span: Span? = null) : StmtNode
+data class RefAssStmtNode(val to: ExprNode, val field: String, val expr: ExprNode, override val span: Span? = null) : StmtNode
+data class IncrStmtNode(val ident: String, override val span: Span? = null) : StmtNode
+data class DecrStmtNode(val ident: String, override val span: Span? = null) : StmtNode
+data class RetStmtNode(val expr: ExprNode, override val span: Span? = null) : StmtNode
+data class VRetStmtNode(override val span: Span? = null) : StmtNode
+data class CondStmtNode(val expr: ExprNode, val onTrue: StmtNode, override val span: Span? = null) : StmtNode
+data class CondElseStmtNode(val expr: ExprNode, val onTrue: StmtNode, val onFalse: StmtNode, override val span: Span? = null) : StmtNode
+data class WhileStmtNode(val expr: ExprNode, val onTrue: StmtNode, override val span: Span? = null) : StmtNode
+data class ExprStmtNode(val expr: ExprNode, override val span: Span? = null) : StmtNode
+object EmptyStmtNode : StmtNode {
   override val span: Span? = null
 }
 
-sealed interface Expr : AstNode
-data class NullExpr(override val span: Span? = null) : Expr
-data class UnOpExpr(val op: UnOp, val expr: Expr, override val span: Span? = null) : Expr
-data class BinOpExpr(val left: Expr, val op: BinOp, val right: Expr, override val span: Span? = null) : Expr
-data class FieldExpr(val expr: Expr, val value: String, override val span: Span? = null) : Expr
-data class IdentExpr(val value: String, override val span: Span? = null) : Expr
-data class IntExpr(val value: String, override val span: Span? = null) : Expr
-data class BoolExpr(val value: Boolean, override val span: Span? = null) : Expr
-data class StringExpr(val value: String, override val span: Span? = null) : Expr
-data class ConstructorCallExpr(val type: Type, override val span: Span? = null) : Expr
-data class CastExpr(val type: Type, val casted: Expr, override val span: Span? = null) : Expr
-data class FunCallExpr(val name: String, val args: List<Expr>, override val span: Span? = null) : Expr {
+sealed interface ExprNode : AstNode
+data class NullExprNode(override val span: Span? = null) : ExprNode
+data class UnOpExprNode(val op: UnOp, val expr: ExprNode, override val span: Span? = null) : ExprNode
+data class BinOpExprNode(val left: ExprNode, val op: BinOp, val right: ExprNode, override val span: Span? = null) : ExprNode
+data class FieldExprNode(val expr: ExprNode, val value: String, override val span: Span? = null) : ExprNode
+data class IdentExprNode(val value: String, override val span: Span? = null) : ExprNode
+data class IntExprNode(val value: String, override val span: Span? = null) : ExprNode
+data class BoolExprNode(val value: Boolean, override val span: Span? = null) : ExprNode
+data class StringExprNode(val value: String, override val span: Span? = null) : ExprNode
+data class ConstructorCallExprNode(val type: Type, override val span: Span? = null) : ExprNode
+data class CastExprNode(val type: Type, val casted: ExprNode, override val span: Span? = null) : ExprNode
+data class FunCallExprNode(val name: String, val args: List<ExprNode>, override val span: Span? = null) : ExprNode {
   var mangledName by notNull<String>()
 }
 
-data class MethodCallExpr(val self: Expr, val name: String, val args: List<Expr>, override val span: Span? = null) :
-  Expr {
+data class MethodCallExprNode(val self: ExprNode, val name: String, val args: List<ExprNode>, override val span: Span? = null) :
+  ExprNode {
   var mangledName by notNull<String>()
 }
 

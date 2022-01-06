@@ -19,17 +19,17 @@ private data class IRGenerator(
   private var emitting: Boolean = true,
 ) {
   fun TypeCheckedProgram.generate(): IR {
-    program.topDefs.onEach { if (it is FunDef) it.addToFunEnv() }.forEach { if (it is FunDef) it.generate() }
+    program.topDefs.onEach { if (it is FunDefNode) it.addToFunEnv() }.forEach { if (it is FunDefNode) it.generate() }
     val labelGenerator = { freshLabel(prefix = "G") }
     val cfg = quadruples.buildCFG(labelGenerator)
     return IR(cfg, strings, labelGenerator)
   }
 
-  private fun FunDef.addToFunEnv() {
+  private fun FunDefNode.addToFunEnv() {
     funEnv[mangledName] = type
   }
 
-  private fun FunDef.generate() = varEnv.onLevel {
+  private fun FunDefNode.generate() = varEnv.onLevel {
     var argOffset = 0
     val args = args.list.map { (type, name) ->
       addArg(name.label, type, argOffset).also { argOffset += type.size }
@@ -38,19 +38,19 @@ private data class IRGenerator(
     block.generate()
   }
 
-  private fun Block.generate(): Unit = stmts.forEach { it.generate() }
+  private fun BlockNode.generate(): Unit = stmts.forEach { it.generate() }
 
-  private fun Stmt.generate(): Unit = when (this) {
-    EmptyStmt -> Unit
-    is BlockStmt -> varEnv.onLevel { block.generate() }
-    is DeclStmt -> items.forEach { it.generate(type) }
-    is AssStmt -> emit { AssignQ(getVar(ident), expr.generate()) }
-    is DecrStmt -> emit { getVar(ident).let { UnOpModQ(it, UnOpMod.DEC, it) } }
-    is IncrStmt -> emit { getVar(ident).let { UnOpModQ(it, UnOpMod.INC, it) } }
-    is ExprStmt -> expr.generate().unit()
-    is RetStmt -> emit { RetQ(expr.generate()) }
-    is VRetStmt -> emit { RetQ() }
-    is CondStmt -> {
+  private fun StmtNode.generate(): Unit = when (this) {
+    EmptyStmtNode -> Unit
+    is BlockStmtNode -> varEnv.onLevel { block.generate() }
+    is DeclStmtNode -> items.forEach { it.generate(type) }
+    is AssStmtNode -> emit { AssignQ(getVar(ident), expr.generate()) }
+    is DecrStmtNode -> emit { getVar(ident).let { UnOpModQ(it, UnOpMod.DEC, it) } }
+    is IncrStmtNode -> emit { getVar(ident).let { UnOpModQ(it, UnOpMod.INC, it) } }
+    is ExprStmtNode -> expr.generate().unit()
+    is RetStmtNode -> emit { RetQ(expr.generate()) }
+    is VRetStmtNode -> emit { RetQ() }
+    is CondStmtNode -> {
       val (trueLabel, endLabel) = get(count = 2) { freshLabel(prefix = "L") }
       generateCondElse(expr, trueLabel, endLabel)
 
@@ -59,7 +59,7 @@ private data class IRGenerator(
 
       emit { CodeLabelQ(endLabel) }
     }
-    is CondElseStmt -> {
+    is CondElseStmtNode -> {
       val (trueLabel, falseLabel, endLabel) = get(count = 3) { freshLabel(prefix = "L") }
       generateCondElse(expr, trueLabel, falseLabel)
 
@@ -72,7 +72,7 @@ private data class IRGenerator(
 
       emit { CodeLabelQ(endLabel) }
     }
-    is WhileStmt -> {
+    is WhileStmtNode -> {
       val (body, condition, endWhile) = get(count = 3) { freshLabel(prefix = "L") }
       emit { JumpQ(condition) }
 
@@ -84,13 +84,13 @@ private data class IRGenerator(
 
       emit { CodeLabelQ(endWhile) }
     }
-    is RefAssStmt -> TODO()
+    is RefAssStmtNode -> TODO()
   }
 
-  private fun generateCondElse(expr: Expr, onTrue: Label, onFalse: Label): Unit {
+  private fun generateCondElse(expr: ExprNode, onTrue: Label, onFalse: Label): Unit {
     when {
-      expr is UnOpExpr && expr.op == UnOp.NOT -> generateCondElse(expr.expr, onFalse, onTrue)
-      expr is BinOpExpr && expr.op is RelOp -> {
+      expr is UnOpExprNode && expr.op == UnOp.NOT -> generateCondElse(expr.expr, onFalse, onTrue)
+      expr is BinOpExprNode && expr.op is RelOp -> {
         val lv = expr.left.generate()
         val rv = expr.right.generate()
         when {
@@ -106,13 +106,13 @@ private data class IRGenerator(
           }
         }
       }
-      expr is BinOpExpr && expr.op == BooleanOp.AND -> {
+      expr is BinOpExprNode && expr.op == BooleanOp.AND -> {
         val midLabel = freshLabel(prefix = "M")
         generateCondElse(expr.left, midLabel, onFalse)
         emit { CodeLabelQ(midLabel) }
         generateCondElse(expr.right, onTrue, onFalse)
       }
-      expr is BinOpExpr && expr.op == BooleanOp.OR -> {
+      expr is BinOpExprNode && expr.op == BooleanOp.OR -> {
         val midLabel = freshLabel(prefix = "M")
         generateCondElse(expr.left, onTrue, midLabel)
         emit { CodeLabelQ(midLabel) }
@@ -128,26 +128,26 @@ private data class IRGenerator(
     }
   }
 
-  private fun Item.generate(type: Type): Unit = when (this) {
-    is NotInitItem -> emit {
+  private fun ItemNode.generate(type: Type): Unit = when (this) {
+    is NotInitItemNode -> emit {
       val value = type.default
       AssignQ(addLocal(ident.label, type), value)
     }
-    is InitItem -> emit {
+    is InitItemNode -> emit {
       val value = expr.generate()
       AssignQ(addLocal(ident.label, type), value)
     }
   }
 
-  private fun Expr.generate(): ValueHolder = when (this) {
-    is FunCallExpr -> freshTemp(getFunType(mangledName)) { to ->
+  private fun ExprNode.generate(): ValueHolder = when (this) {
+    is FunCallExprNode -> freshTemp(getFunType(mangledName)) { to ->
       emit { FunCallQ(to, mangledName.label, args.map { it.generate() }) }
     }
-    is IdentExpr -> getVar(value)
-    is BoolExpr -> value.bool
-    is IntExpr -> value.int
-    is StringExpr -> addStringConst(value)
-    is UnOpExpr -> {
+    is IdentExprNode -> getVar(value)
+    is BoolExprNode -> value.bool
+    is IntExprNode -> value.int
+    is StringExprNode -> addStringConst(value)
+    is UnOpExprNode -> {
       val from = expr.generate()
       when (op) {
         UnOp.NEG ->
@@ -158,7 +158,7 @@ private data class IRGenerator(
           else freshTemp(BooleanType) { to -> emit { UnOpQ(to, op, from) } }
       }
     }
-    is BinOpExpr -> when (op) {
+    is BinOpExprNode -> when (op) {
       BooleanOp.AND -> generateCondElse(left, BooleanOp.AND, right)
       BooleanOp.OR -> generateCondElse(left, BooleanOp.OR, right)
       else -> {
@@ -189,18 +189,18 @@ private data class IRGenerator(
         }
       }
     }
-    is FieldExpr -> TODO("Not implemented fields accessing")
-    is ConstructorCallExpr -> TODO("Not implemented constructor calls")
-    is MethodCallExpr -> TODO("Not implemented class method calls")
-    is CastExpr -> TODO()
-    is NullExpr -> TODO()
+    is FieldExprNode -> TODO("Not implemented fields accessing")
+    is ConstructorCallExprNode -> TODO("Not implemented constructor calls")
+    is MethodCallExprNode -> TODO("Not implemented class method calls")
+    is CastExprNode -> TODO()
+    is NullExprNode -> TODO()
   }
 
-  private fun generateCondElse(left: Expr, op: BooleanOp, right: Expr): LocalValue = freshTemp(BooleanType) { to ->
-    CondElseStmt(
-      BinOpExpr(left, op, right),
-      AssStmt(to.id, BoolExpr(true)),
-      AssStmt(to.id, BoolExpr(false)),
+  private fun generateCondElse(left: ExprNode, op: BooleanOp, right: ExprNode): LocalValue = freshTemp(BooleanType) { to ->
+    CondElseStmtNode(
+      BinOpExprNode(left, op, right),
+      AssStmtNode(to.id, BoolExprNode(true)),
+      AssStmtNode(to.id, BoolExprNode(false)),
     ).generate()
   }
 
