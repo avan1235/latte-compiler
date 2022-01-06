@@ -1,10 +1,12 @@
 import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import kotlinx.kover.api.KoverTaskExtension
 
 plugins {
   kotlin("jvm") version "1.6.10"
   antlr
   id("com.palantir.graal") version "0.10.0"
+  id("org.jetbrains.kotlinx.kover") version "0.5.0-RC"
 }
 
 group = "ml.dev.kotlin"
@@ -25,7 +27,7 @@ dependencies {
   testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.2")
 }
 
-tasks.getByName<Test>("test") {
+tasks.test {
   useJUnitPlatform()
   ignoreFailures = true
   testLogging { events = setOf(PASSED, SKIPPED, FAILED) }
@@ -37,6 +39,13 @@ tasks.getByName<Test>("test") {
         "Skipped: ${result.skippedTestCount}/${result.testCount}"
     )
   })
+
+  extensions.configure(KoverTaskExtension::class) {
+    isDisabled = false
+    binaryReportFile.set(file("$buildDir/result.bin"))
+    includes = listOf("ml.dev.kotlin.latte.*")
+    excludes = emptyList()
+  }
 }
 
 val buildRuntime = task<Exec>("buildRuntime") {
