@@ -26,16 +26,20 @@ class FunctionCompiler(
   private fun Quadruple.compile(idx: StmtIdx): Unit = when (this@compile) {
     is AssignQ -> assign(to, from.get(), idx)
     is FunCallQ -> {
-      args.asReversed().forEach { cmd(PUSH, it.get()) }
-      cmd(CALL, label)
-      argsSize.takeIf { it > 0 }?.let { cmd(ADD, ESP, it.imm) }
+
+      preserveReg(at = idx, ECX, EDX) {
+        args.asReversed().forEach { cmd(PUSH, it.get()) }
+        cmd(CALL, label)
+        argsSize.takeIf { it > 0 }?.let { cmd(ADD, ESP, it.imm) }
+      }
+
       assign(to, EAX, idx)
     }
     is RelCondJumpQ -> {
       val left = left.get()
       val right = right.get()
-      val (l, r, rev) = LR(left, right).onMatch(
-        normal = { LR(left, right) },
+      val (l, r, rev) = LR(left, right).match(
+        standard = { LR(left, right) },
         bothMem = { cmd(MOV, EAX, left).then { LR(EAX, right) } },
         bothImm = { cmd(MOV, EAX, left).then { LR(EAX, right) } },
         leftImm = { LR(right, left, rev = true) }
@@ -56,12 +60,12 @@ class FunctionCompiler(
       cmd(PUSH, EBP)
       cmd(MOV, EBP, ESP)
       cmd(SUB, ESP, offset.imm, offset > 0)
-      memoryAllocator.preservedOnCall.forEach { cmd(PUSH, it) }
+      memoryAllocator.savedByCaller.forEach { cmd(PUSH, it) }
     }
     is RetQ -> {
       val offset = memoryAllocator.localsOffset
       value?.let { cmd(MOV, EAX, it.get()) }
-      memoryAllocator.preservedOnCall.asReversed().forEach { cmd(POP, it) }
+      memoryAllocator.savedByCaller.asReversed().forEach { cmd(POP, it) }
       cmd(MOV, ESP, EBP, offset > 0)
       cmd(POP, EBP)
       cmd(RET)
@@ -78,15 +82,15 @@ class FunctionCompiler(
   }
 
   private fun NumOp.on(to: VirtualReg, left: ValueHolder, right: ValueHolder, idx: StmtIdx): Unit = when (this) {
-    NumOp.PLUS -> matchLR(to, left, right, idx).onMatch(
-      normal = { cmd(ADD, l, r) },
+    NumOp.PLUS -> matchLR(to, left, right, idx).match(
+      standard = { cmd(ADD, l, r) },
       bothMem = {
         cmd(MOV, EAX, r)
         cmd(ADD, l, EAX)
       },
     )
-    NumOp.MINUS -> matchLR(to, left, right, idx).onMatch(
-      normal = {
+    NumOp.MINUS -> matchLR(to, left, right, idx).match(
+      standard = {
         cmd(SUB, l, r)
         if (rev) cmd(NEG, l)
       },
@@ -101,9 +105,14 @@ class FunctionCompiler(
         }
       },
     )
-    NumOp.TIMES -> matchLR(to, left, right, idx).onMatch(
-      normal = { cmd(IMUL, l, r) },
+    NumOp.TIMES -> matchLR(to, left, right, idx).match(
+      standard = { cmd(IMUL, l, r) },
       bothMem = {
+        cmd(MOV, EAX, l)
+        cmd(IMUL, EAX, r)
+        cmd(MOV, l, EAX)
+      },
+      leftMem = {
         cmd(MOV, EAX, l)
         cmd(IMUL, EAX, r)
         cmd(MOV, l, EAX)
@@ -115,14 +124,25 @@ class FunctionCompiler(
 
   private fun cdqIDiv(to: VirtualReg, left: ValueHolder, right: ValueHolder, from: Reg, idx: StmtIdx) {
     cmd(MOV, EAX, left.get())
-    cmd(CDQ)
-    val by = when (val by = right.get()) {
-      is Imm -> cmd(MOV, ECX, by).then { ECX }
-      is Mem -> by
-      is Reg -> by
+
+    preserveReg(at = idx, ECX, EDX) {
+      val by = when (val by = right.get()) {
+        EDX -> cmd(MOV, ECX, EDX).then { ECX }
+        is Imm -> cmd(MOV, ECX, by).then { ECX }
+        is Mem -> by
+        is Reg -> by
+      }
+      cmd(CDQ)
+      cmd(IDIV, by)
+      assign(to, from, idx)
     }
-    cmd(IDIV, by)
-    assign(to, from, idx)
+  }
+
+  private fun preserveReg(at: StmtIdx, vararg reg: Reg, action: () -> Unit) {
+    val preserve = analysis.aliveOver[at].filter { alive -> reg.any { it == alive.get()  } }
+    preserve.forEach { cmd(PUSH, it.get()) }
+    action()
+    preserve.asReversed().forEach { cmd(POP, it.get()) }
   }
 
   private fun UnOp.on(to: VirtualReg, from: ValueHolder, idx: StmtIdx): Unit = when (this) {
@@ -169,18 +189,19 @@ class FunctionCompiler(
     memoryAllocator.get(this, strings) { to, from -> cmd(MOV, to, from) }
 
   private data class LR(val l: VarLoc, val r: VarLoc, val rev: Boolean = false) {
-    fun <V> onMatch(
-      normal: LR.() -> V,
+    fun <V> match(
+      standard: LR.() -> V,
       bothMem: LR.() -> V,
       leftImm: LR.() -> V = { err("Unexpected case for $l and $r") },
       bothImm: LR.() -> V = { err("Unexpected case for $l and $r") },
+      leftMem: (LR.() -> V)? = null,
     ): V = when {
-      l is Reg && r is Reg -> this.normal()
-      l is Mem && r is Reg -> this.normal()
-      l is Reg && r is Mem -> this.normal()
-      l is Reg && r is Imm -> this.normal()
-      l is Mem && r is Imm -> this.normal()
+      l is Reg && r is Reg -> this.standard()
+      l is Reg && r is Mem -> this.standard()
+      l is Reg && r is Imm -> this.standard()
       l is Mem && r is Mem -> this.bothMem()
+      l is Mem && r is Reg -> this.(leftMem ?: standard)()
+      l is Mem && r is Imm -> this.(leftMem ?: standard)()
       l is Imm && r is Imm -> this.bothImm()
       l is Imm && r is Reg -> this.leftImm()
       l is Imm && r is Mem -> this.leftImm()

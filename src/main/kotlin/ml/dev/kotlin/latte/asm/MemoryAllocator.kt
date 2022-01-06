@@ -31,7 +31,7 @@ class MemoryAllocator(
   private val usedArgsLocations = HashSet<Arg>()
   private val argsMovedToReg = HashMap<ArgValue, Reg>()
 
-  private val aliveOnFunctionCall: Set<VirtualReg> = analysis.statements.asSequence().withIndex()
+  private val aliveOnSomeFunctionCall: Set<VirtualReg> = analysis.statements.asSequence().withIndex()
     .filter { it.value is FunCallQ }.map { it.index }
     .flatMapTo(HashSet()) { analysis.aliveOver[it] }
 
@@ -45,7 +45,7 @@ class MemoryAllocator(
   private val assignedRegisters: HashSet<Reg> =
     HashSet<Reg>().apply { graphColoring.coloring.values.forEach { if (it is Reg) add(it) } }
 
-  val preservedOnCall: List<Reg> = CALLEE_SAVED_REGISTERS.intersect(assignedRegisters).toList()
+  val savedByCaller: List<Reg> = CALLEE_SAVED_REGISTERS.intersect(assignedRegisters).toList()
 
   fun get(value: ValueHolder, strings: Map<String, Label>, mov: (to: Reg, from: Arg) -> Unit): VarLoc =
     when (value) {
@@ -58,7 +58,7 @@ class MemoryAllocator(
 
   private fun selectToSplit(withEdges: TreeMap<Int, HashSet<VirtualReg>>): VirtualReg {
     val descendingCounts = withEdges.descendingKeySet()
-    return descendingCounts.firstNotNullOfOrNull { withEdges[it]?.intersect(aliveOnFunctionCall)?.firstOrNull() }
+    return descendingCounts.firstNotNullOfOrNull { withEdges[it]?.intersect(aliveOnSomeFunctionCall)?.firstOrNull() }
       ?: descendingCounts.firstNotNullOfOrNull { withEdges[it]?.firstOrNull() }
       ?: withEdges.values.last().first()
   }
@@ -91,6 +91,6 @@ class MemoryAllocator(
   }
 }
 
-private val ALLOCATED_REGISTERS = CALLEE_SAVED_REGISTERS
+private val ALLOCATED_REGISTERS = Reg.values().toSet() - RESERVED_REGISTERS
 
 private fun err(message: String): Nothing = throw MemoryAllocationException(message.msg)

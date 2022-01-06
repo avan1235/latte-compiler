@@ -14,6 +14,5 @@ enum class Reg : Named, VarLoc {
   ESI,
 }
 
-val RESERVED_REGISTERS = setOf(ESP, EBP)
-val CALLER_SAVED_REGISTERS = setOf(EAX, EDX, ECX)
-val CALLEE_SAVED_REGISTERS = setOf(EDI, ESI, EBX)
+val RESERVED_REGISTERS = linkedSetOf(ESP, EBP, EAX)
+val CALLEE_SAVED_REGISTERS = linkedSetOf(EDI, ESI, EBX)
