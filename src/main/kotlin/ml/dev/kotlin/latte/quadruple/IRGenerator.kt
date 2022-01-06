@@ -222,7 +222,7 @@ private data class IRGenerator(
     StringConstValue(strings[value] ?: freshLabel(prefix = "S").also { strings[value] = it }, value)
 
   private fun freshIdx(): Int = labelIdx.also { labelIdx += 1 }
-  private fun freshLabel(prefix: String): Label = "@$prefix${freshIdx()}".label
+  private fun freshLabel(prefix: String): Label = "$prefix${freshIdx()}".label
 
   private fun addArg(label: Label, type: Type, currOffset: Int): ArgValue =
     ArgValue(label.name, currOffset, type).also { varEnv[label.name] = it }

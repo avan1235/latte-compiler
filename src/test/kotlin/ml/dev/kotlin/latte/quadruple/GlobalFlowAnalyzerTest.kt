@@ -69,15 +69,15 @@ internal class GlobalFlowAnalyzerTest {
       /**
        * 0:  f@int(x#0):
        * 1:    y@1#0 = 0
-       * 2:    if x#0 eq 42 goto @L2
+       * 2:    if x#0 eq 42 goto L2
        * 3:    y@1#3 = x#0
        * 4:    y@1#2 = y@1#3
-       * 5:    goto @L4
-       * 6:  @L2:
+       * 5:    goto L4
+       * 6:  L2:
        * 7:    @T5#0 = neg x#0
        * 8:    y@1#1 = @T5#0
        * 9:    y@1#2 = y@1#1
-       * 10: @L4:
+       * 10: L4:
        * 11:   ret y@1#2
        */
       label = "f" mangled listOf(IntType),
@@ -157,12 +157,12 @@ internal class GlobalFlowAnalyzerTest {
        * 0:  f@int(x#0):
        * 1:    y@1#0 = 0
        * 2:    y@1#1 = y@1#0
-       * 3:    goto @L3
-       * 4:  @L2:
+       * 3:    goto L3
+       * 4:  L2:
        * 5:    y@1#2 = inc y@1#1
        * 6:    y@1#1 = y@1#2
-       * 7:  @L3:
-       * 8:    if y@1#1 lt x#0 goto @L2
+       * 7:  L3:
+       * 8:    if y@1#1 lt x#0 goto L2
        * 9:    ret y@1#1
        */
       label = "f" mangled listOf(IntType),
@@ -260,18 +260,18 @@ internal class GlobalFlowAnalyzerTest {
       /**
        * 0:  f@int(x#0):
        * 1:    y@1#0 = 0
-       * 2:    if x#0 eq 42 goto @L2
-       * 3:  @G6:
-       * 4:    goto @L3
-       * 5:  @L3:
+       * 2:    if x#0 eq 42 goto L2
+       * 3:  G6:
+       * 4:    goto L3
+       * 5:  L3:
        * 6:    y@1#3 = x#0
        * 7:    y@1#2 = y@1#3
-       * 8:    goto @L4
-       * 9:  @L2:
+       * 8:    goto L4
+       * 9:  L2:
        * 10:   @T5#0 = neg x#0
        * 11:   y@1#1 = @T5#0
        * 12:   y@1#2 = y@1#1
-       * 13: @L4:
+       * 13: L4:
        * 14:   ret y@1#2
        */
       label = "f" mangled listOf(IntType),
@@ -281,23 +281,23 @@ internal class GlobalFlowAnalyzerTest {
           1 to setOf(intArg("x#0", 0)),
           2 to setOf(intArg("x#0", 0)),
         ),
-        "@G6".label to mapOf(
+        "G6".label to mapOf(
           0 to setOf(intArg("x#0", 0)),
           1 to setOf(intArg("x#0", 0)),
         ),
-        "@L3".label to mapOf(
+        "L3".label to mapOf(
           0 to setOf(intArg("x#0", 0)),
           1 to setOf(intArg("x#0", 0)),
           2 to setOf(intLoc("y@1#3")),
           3 to setOf(intLoc("y@1#2")),
         ),
-        "@L2".label to mapOf(
+        "L2".label to mapOf(
           0 to setOf(intArg("x#0", 0)),
           1 to setOf(intArg("x#0", 0)),
           2 to setOf(intLoc("@T5#0")),
           3 to setOf(intLoc("y@1#1")),
         ),
-        "@L4".label to mapOf(
+        "L4".label to mapOf(
           0 to setOf(intLoc("y@1#2")),
           1 to setOf(intLoc("y@1#2")),
         )
@@ -308,17 +308,17 @@ internal class GlobalFlowAnalyzerTest {
           1 to setOf(intArg("x#0", 0)),
           2 to setOf(intArg("x#0", 0)),
         ),
-        "@G6".label to mapOf(
+        "G6".label to mapOf(
           0 to setOf(intArg("x#0", 0)),
           1 to setOf(intArg("x#0", 0)),
         ),
-        "@L3".label to mapOf(
+        "L3".label to mapOf(
           0 to setOf(intArg("x#0", 0)),
           1 to setOf(intLoc("y@1#3")),
           2 to setOf(intLoc("y@1#2")),
           3 to setOf(intLoc("y@1#2")),
         ),
-        "@L2".label to mapOf(
+        "L2".label to mapOf(
           0 to setOf(intArg("x#0", 0)),
           1 to setOf(intLoc("@T5#0")),
           2 to setOf(intLoc("y@1#1")),
@@ -326,7 +326,7 @@ internal class GlobalFlowAnalyzerTest {
           4 to setOf(intLoc("y@1#2")),
           5 to setOf(),
         ),
-        "@L4".label to mapOf(
+        "L4".label to mapOf(
           0 to setOf(intLoc("y@1#2")),
           1 to setOf(),
         ),
@@ -351,15 +351,15 @@ internal class GlobalFlowAnalyzerTest {
         * 0:  f@int(x#0):
         * 1:    y@1#0 = 0
         * 2:    y@1#1 = y@1#0
-        * 3:    goto @L3
-        * 4:  @L2:
+        * 3:    goto L3
+        * 4:  L2:
         * 5:    y@1#2 = inc y@1#1
         * 6:    y@1#1 = y@1#2
-        * 7:  @L3:
-        * 8:    if y@1#1 lt x#0 goto @L2
-        * 9:  @G5:
-        * 10:   goto @L4
-        * 11: @L4:
+        * 7:  L3:
+        * 8:    if y@1#1 lt x#0 goto L2
+        * 9:  G5:
+        * 10:   goto L4
+        * 11: L4:
         * 12:   ret y@1#1
        */
       label = "f" mangled listOf(IntType),
@@ -370,20 +370,20 @@ internal class GlobalFlowAnalyzerTest {
           2 to setOf(intArg("x#0", 0), intLoc("y@1#0")),
           3 to setOf(intArg("x#0", 0), intLoc("y@1#1")),
         ),
-        "@L2".label to mapOf(
+        "L2".label to mapOf(
           0 to setOf(intArg("x#0", 0), intLoc("y@1#1")),
           1 to setOf(intArg("x#0", 0), intLoc("y@1#1")),
           2 to setOf(intArg("x#0", 0), intLoc("y@1#2")),
         ),
-        "@L3".label to mapOf(
+        "L3".label to mapOf(
           0 to setOf(intArg("x#0", 0), intLoc("y@1#1")),
           1 to setOf(intArg("x#0", 0), intLoc("y@1#1")),
         ),
-        "@G5".label to mapOf(
+        "G5".label to mapOf(
           0 to setOf(intLoc("y@1#1")),
           1 to setOf(intLoc("y@1#1")),
         ),
-        "@L4".label to mapOf(
+        "L4".label to mapOf(
           0 to setOf(intLoc("y@1#1")),
           1 to setOf(intLoc("y@1#1")),
         ),
@@ -395,20 +395,20 @@ internal class GlobalFlowAnalyzerTest {
           2 to setOf(intArg("x#0", 0), intLoc("y@1#1")),
           3 to setOf(intArg("x#0", 0), intLoc("y@1#1")),
         ),
-        "@L2".label to mapOf(
+        "L2".label to mapOf(
           0 to setOf(intArg("x#0", 0), intLoc("y@1#1")),
           1 to setOf(intArg("x#0", 0), intLoc("y@1#2")),
           2 to setOf(intArg("x#0", 0), intLoc("y@1#1")),
         ),
-        "@L3".label to mapOf(
+        "L3".label to mapOf(
           0 to setOf(intArg("x#0", 0), intLoc("y@1#1")),
           1 to setOf(intLoc("y@1#1"), intArg("x#0", 0)),
         ),
-        "@G5".label to mapOf(
+        "G5".label to mapOf(
           0 to setOf(intLoc("y@1#1")),
           1 to setOf(intLoc("y@1#1")),
         ),
-        "@L4".label to mapOf(
+        "L4".label to mapOf(
           0 to setOf(intLoc("y@1#1")),
           1 to setOf(),
         ),
