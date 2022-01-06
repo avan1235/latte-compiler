@@ -23,7 +23,7 @@ fun main(args: Array<String>): Unit = args.takeIf { it.isNotEmpty() }?.forEach {
     eprintln(e.userMessage)
     eprintln("ERROR")
   } catch (e: Throwable) {
-    eprintln("Unknown error: $e")
+    eprintln(e.message)
     eprintln("ERROR")
   }
 } ?: println("Usage: ./latte <input-file-paths>")
