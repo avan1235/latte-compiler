@@ -33,3 +33,9 @@ jobs:
         with:
           name: latc_x86
           path: latc_x86
+      - name: Release build artifact
+        uses: skx/github-action-publish-binaries@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: 'latc_x86'
