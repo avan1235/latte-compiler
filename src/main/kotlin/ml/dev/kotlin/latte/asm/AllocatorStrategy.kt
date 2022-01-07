@@ -23,12 +23,10 @@ open class AllocatorStrategy(
 
   protected open fun selectColor(virtualReg: VirtualReg, available: Set<Reg>, coloring: Map<VirtualReg, VarLoc>): Reg {
     val regCounts = coloring.values.filterIsInstance<Reg>().groupingBy { it }.eachCountTo(EnumMap(Reg::class.java))
-    val reg = available.minByOrNull { regCounts[it] ?: 0 } ?: available.first()
-    if (virtualReg is ArgValue) memoryManager.moveArgToReg(virtualReg, reg)
-    return reg
+    return available.minByOrNull { regCounts[it] ?: 0 } ?: available.first()
   }
 
-  protected open fun assignDefault(register: VirtualReg): Mem = when (register) {
+  private fun assignDefault(register: VirtualReg): Mem = when (register) {
     is LocalValue -> memoryManager.reserveLocal(register.type)
     is ArgValue -> memoryManager.reserveArg(register)
   }
@@ -42,7 +40,9 @@ open class AllocatorStrategy(
     node: VirtualReg,
     available: Set<Reg>,
     coloring: Map<VirtualReg, VarLoc>
-  ): Reg = selectColor(node, available, coloring)
+  ): Reg = selectColor(node, available, coloring).also {
+    if (node is ArgValue) memoryManager.moveArgToReg(node, it)
+  }
 }
 
 interface MemoryManager {

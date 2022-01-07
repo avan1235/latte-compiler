@@ -6,7 +6,6 @@ import ml.dev.kotlin.latte.runCompiler
 import ml.dev.kotlin.latte.util.dir
 import ml.dev.kotlin.latte.util.invoke
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Nested
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
 import java.io.File
@@ -19,15 +18,15 @@ internal class CompilerTest {
   @ParameterizedTest
   @MethodSource("goodExamplesProvider")
   fun `should accept valid input files and match their output with default allocator`(input: File) =
-    testCompilerWithAllocatorStrategy(input, "default", DEFAULT_ALLOCATOR_STRATEGY)
+    testCompilerWithAllocatorStrategy(input, name = "default", strategy = DEFAULT_ALLOCATOR_STRATEGY)
 
   @ParameterizedTest
   @MethodSource("goodExamplesProvider")
   fun `should accept valid input files and match their output with first allocator`(input: File) =
-    testCompilerWithAllocatorStrategy(input, "first") { analysis, manager ->
+    testCompilerWithAllocatorStrategy(input, name = "first") { analysis, manager ->
       object : AllocatorStrategy(analysis, manager) {
         override fun selectToSplit(withEdges: TreeMap<Int, HashSet<VirtualReg>>): VirtualReg =
-          withEdges.values.first().first()
+          withEdges.values.flatten().first()
 
         override fun selectColor(virtualReg: VirtualReg, available: Set<Reg>, coloring: Map<VirtualReg, VarLoc>): Reg =
           available.first()
@@ -37,16 +36,28 @@ internal class CompilerTest {
   @ParameterizedTest
   @MethodSource("goodExamplesProvider")
   fun `should accept valid input files and match their output with last allocator`(input: File) =
-    testCompilerWithAllocatorStrategy(input, "last") { analysis, manager ->
+    testCompilerWithAllocatorStrategy(input, name = "last") { analysis, manager ->
       object : AllocatorStrategy(analysis, manager) {
         override fun selectToSplit(withEdges: TreeMap<Int, HashSet<VirtualReg>>): VirtualReg =
-          withEdges.values.last().last()
+          withEdges.values.flatten().last()
 
         override fun selectColor(virtualReg: VirtualReg, available: Set<Reg>, coloring: Map<VirtualReg, VarLoc>): Reg =
           available.last()
       }
     }
 
+  @ParameterizedTest
+  @MethodSource("goodExamplesProvider")
+  fun `should accept valid input files and match their output with random allocator`(input: File) =
+    testCompilerWithAllocatorStrategy(input, name = "random") { analysis, manager ->
+      object : AllocatorStrategy(analysis, manager) {
+        override fun selectToSplit(withEdges: TreeMap<Int, HashSet<VirtualReg>>): VirtualReg =
+          withEdges.values.flatten().random()
+
+        override fun selectColor(virtualReg: VirtualReg, available: Set<Reg>, coloring: Map<VirtualReg, VarLoc>): Reg =
+          available.random()
+      }
+    }
 
   companion object {
     @JvmStatic
@@ -57,7 +68,12 @@ internal class CompilerTest {
   }
 }
 
-private fun testCompilerWithAllocatorStrategy(input: File, name: String, strategy: AllocatorStrategyProducer) {
+private fun testCompilerWithAllocatorStrategy(
+  input: File,
+  name: String,
+  removeOutputs: Boolean = true,
+  strategy: AllocatorStrategyProducer
+) {
   val expected = File(input.dir, "${input.nameWithoutExtension}.output").readText()
   val inputFile = File(input.dir, "${input.nameWithoutExtension}.input").takeIf { it.exists() }
   val compiled = input.runCompiler(strategy)
@@ -68,5 +84,5 @@ private fun testCompilerWithAllocatorStrategy(input: File, name: String, strateg
   exe.absolutePath(inputFile, outFile, errFile)
   assertEquals(expected, outFile.readText())
   assertEquals("", errFile.readText())
-  listOf(asmFile, o, exe, outFile, errFile).forEach { it.delete() }
+  if (removeOutputs) listOf(asmFile, o, exe, outFile, errFile).forEach { it.delete() }
 }

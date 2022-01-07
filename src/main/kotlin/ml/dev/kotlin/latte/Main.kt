@@ -16,9 +16,11 @@ import java.io.File
 fun main(args: Array<String>): Unit = args.takeIf { it.isNotEmpty() }?.forEach { path ->
   try {
     val inputFile = File(path)
-    inputFile.runCompiler().let { code ->
-      val asm = inputFile.dir.resolve("${inputFile.nameWithoutExtension}.s").apply { writeText(code) }
-      nasm(asm).run { oFile.delete() }.unit()
+    val asmCode = inputFile.runCompiler()
+    val asmFile = inputFile.dir.resolve("${inputFile.nameWithoutExtension}.s")
+    with(asmFile) {
+      writeText(asmCode)
+      nasm(this).run { oFile.delete() }.unit()
     }
     println("OK")
   } catch (e: LatteException) {
