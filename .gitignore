@@ -3,3 +3,4 @@
 build/
 lib/runtime.o
 latc_x86
+/src/main/resources/ml/dev/kotlin/latte/asm/runtime.o
