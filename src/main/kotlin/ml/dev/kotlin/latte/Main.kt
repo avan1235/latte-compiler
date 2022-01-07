@@ -1,14 +1,16 @@
 package ml.dev.kotlin.latte
 
+import ml.dev.kotlin.latte.asm.AllocatorStrategy
+import ml.dev.kotlin.latte.asm.AllocatorStrategyProducer
 import ml.dev.kotlin.latte.asm.compile
 import ml.dev.kotlin.latte.asm.nasm
-import ml.dev.kotlin.latte.quadruple.instructions
-import ml.dev.kotlin.latte.quadruple.peepHoleOptimize
-import ml.dev.kotlin.latte.quadruple.repr
 import ml.dev.kotlin.latte.quadruple.toIR
 import ml.dev.kotlin.latte.syntax.parse
 import ml.dev.kotlin.latte.typecheck.typeCheck
-import ml.dev.kotlin.latte.util.*
+import ml.dev.kotlin.latte.util.LatteException
+import ml.dev.kotlin.latte.util.dir
+import ml.dev.kotlin.latte.util.eprintln
+import ml.dev.kotlin.latte.util.unit
 import java.io.File
 
 fun main(args: Array<String>): Unit = args.takeIf { it.isNotEmpty() }?.forEach { path ->
@@ -28,7 +30,12 @@ fun main(args: Array<String>): Unit = args.takeIf { it.isNotEmpty() }?.forEach {
   }
 } ?: println("Usage: ./latte <input-file-paths>")
 
-internal fun File.runCompiler(): String = inputStream()
+private val DEFAULT_ALLOCATOR_STRATEGY: AllocatorStrategyProducer =
+  { analysis, manager -> AllocatorStrategy(analysis, manager) }
+
+internal fun File.runCompiler(
+  strategy: AllocatorStrategyProducer = DEFAULT_ALLOCATOR_STRATEGY
+): String = inputStream()
   .parse()
   .typeCheck()
   .toIR().apply {
@@ -37,4 +44,4 @@ internal fun File.runCompiler(): String = inputStream()
     // TODO run optimizations on graph in SSA
     graph.transformFromSSA()
   }
-  .compile()
+  .compile(strategy)

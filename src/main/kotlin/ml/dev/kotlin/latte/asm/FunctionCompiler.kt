@@ -15,9 +15,10 @@ class FunctionCompiler(
   private val analysis: FlowAnalysis,
   private val strings: Map<String, Label>,
   private val result: StringBuilder,
-  private val labelGenerator: () -> Label
+  private val labelGenerator: () -> Label,
+  strategy: AllocatorStrategyProducer
 ) {
-  private val memoryAllocator = MemoryAllocator(analysis)
+  private val allocator = Allocator(analysis, strategy)
 
   internal fun compile() {
     analysis.statements.forEachIndexed { idx, stmt -> stmt.compile(idx) }
@@ -54,17 +55,17 @@ class FunctionCompiler(
       cmd(JNZ, toLabel)
     }
     is JumpQ -> cmd(JMP, toLabel)
-    is FunCodeLabelQ -> with(memoryAllocator) {
+    is FunCodeLabelQ -> with(allocator) {
       label.insert()
       cmd(PUSH, EBP)
       cmd(MOV, EBP, ESP)
       cmd(SUB, ESP, localsOffset.imm, localsOffset > 0)
-      memoryAllocator.savedByCaller.forEach { cmd(PUSH, it) }
+      savedByCallee.forEach { cmd(PUSH, it) }
       args.forEach { assureArgLoaded(it) { to, from -> cmd(MOV, to, from) } }
     }
-    is RetQ -> with(memoryAllocator) {
+    is RetQ -> with(allocator) {
       value?.let { cmd(MOV, EAX, it.get()) }
-      savedByCaller.asReversed().forEach { cmd(POP, it) }
+      savedByCallee.asReversed().forEach { cmd(POP, it) }
       cmd(MOV, ESP, EBP, localsOffset > 0)
       cmd(POP, EBP)
       cmd(RET)
@@ -184,7 +185,7 @@ class FunctionCompiler(
 
   private fun Label.insert(): Unit = result.append(name).appendLine(':').unit()
 
-  private fun ValueHolder.get(): VarLoc = memoryAllocator.get(this, strings)
+  private fun ValueHolder.get(): VarLoc = allocator.get(this, strings)
 
   private data class LR(val l: VarLoc, val r: VarLoc, val rev: Boolean = false) {
     fun <V> match(

@@ -1,11 +1,15 @@
 package ml.dev.kotlin.latte.asm
 
-import ml.dev.kotlin.latte.quadruple.*
+import ml.dev.kotlin.latte.quadruple.GlobalFlowAnalyzer
+import ml.dev.kotlin.latte.quadruple.IR
+import ml.dev.kotlin.latte.quadruple.Label
+import ml.dev.kotlin.latte.quadruple.peepHoleOptimize
 import ml.dev.kotlin.latte.typecheck.STD_LIB_FUNCTIONS
 
-fun IR.compile(): String = Compiler().run { this@compile.compile() }
+fun IR.compile(strategy: AllocatorStrategyProducer): String = Compiler(strategy).run { this@compile.compile() }
 
 private class Compiler(
+  private val strategy: AllocatorStrategyProducer,
   private val result: StringBuilder = StringBuilder(),
 ) {
 
@@ -22,7 +26,7 @@ private class Compiler(
   private fun IR.compileFunctions(): String = buildString {
     graph.functions.values.forEach {
       val analysis = GlobalFlowAnalyzer.analyzeToLinear(it).peepHoleOptimize()
-      FunctionCompiler(analysis, strings, this, labelGenerator).compile()
+      FunctionCompiler(analysis, strings, this, labelGenerator, strategy).compile()
     }
   }
 
