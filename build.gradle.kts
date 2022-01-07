@@ -54,7 +54,7 @@ val buildRuntime = task<Exec>("buildRuntime") {
 
 tasks.withType<KotlinCompile> {
   dependsOn(buildRuntime)
-  kotlinOptions.jvmTarget = "${JavaVersion.VERSION_1_8}"
+  kotlinOptions.jvmTarget = "${JavaVersion.VERSION_11}"
   dependsOn(tasks.generateGrammarSource)
 }
 
@@ -63,12 +63,12 @@ tasks.generateGrammarSource {
 }
 
 java {
-  sourceCompatibility = JavaVersion.VERSION_1_8
-  targetCompatibility = JavaVersion.VERSION_1_8
+  sourceCompatibility = JavaVersion.VERSION_11
+  targetCompatibility = JavaVersion.VERSION_11
 }
 
 graal {
-  javaVersion("8")
+  javaVersion("11")
   graalVersion("21.2.0")
   outputName("latc_x86")
   mainClass("ml.dev.kotlin.latte.MainKt")
