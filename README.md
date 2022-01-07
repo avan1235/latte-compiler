@@ -21,4 +21,3 @@ Use `make` tool to easily run the defined commands:
 - [antlr](https://www.antlr.org/) as parser generator framework (with Gradle plugin)
 - [gradle-graal](https://github.com/palantir/gradle-graal) for using GraalVM from Gradle to generate native binaries
 
-https://github.com/avan1235/latte-compiler/releases/latest
