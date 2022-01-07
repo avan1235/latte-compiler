@@ -5,9 +5,7 @@ import java.util.*
 class GraphColoring<V, Common, Colored : Common, Default : Common>(
   private val graph: UndirectedGraph<V>,
   private val colors: Set<Colored>,
-  private val extraColor: (V) -> Default,
-  private val spillSelectHeuristics: (withEdges: TreeMap<Int, HashSet<V>>) -> V,
-  private val colorSelectHeuristics: (node: V, available: Set<Colored>, coloring: Map<V, Common>) -> Colored,
+  private val strategy: GraphColoringStrategy<V, Common, Colored, Default>,
 ) {
   val coloring: Map<V, Common> = HashMap<V, Common>().also { coloring ->
     val graphSize = graph.nodes.size
@@ -47,7 +45,7 @@ class GraphColoring<V, Common, Colored : Common, Default : Common>(
 
       if (stack.size >= graphSize) stack.toList().asReversed().assignColors(neigh, coloring)
       else {
-        val spill = spillSelectHeuristics(withEdges)
+        val spill = strategy.spillSelectHeuristics(withEdges)
         val spilledCount = edgesCount[spill]!!
         SN(spill, spill = true).also { removeNode(it) }.let { stack += it }
         withEdges[spilledCount]?.remove(spill)
@@ -57,13 +55,30 @@ class GraphColoring<V, Common, Colored : Common, Default : Common>(
 
   private fun List<SN<V>>.assignColors(neigh: DefaultMap<V, Set<V>>, coloring: MutableMap<V, Common>): Unit =
     forEach { node ->
-      if (node.spill) coloring[node.n] = extraColor(node.n)
+      if (node.spill) coloring[node.n] = strategy.extraColor(node.n)
       else {
         val neighColors = coloring.keys.intersect(neigh[node.n]).mapTo(HashSet()) { coloring[it]!! }
         val candidates = colors.filterNotTo(HashSet()) { neighColors.contains<Common>(it) }
-        coloring[node.n] = colorSelectHeuristics(node.n, candidates, coloring)
+        coloring[node.n] = strategy.colorSelectHeuristics(node.n, candidates, coloring)
       }
     }
+}
+
+interface GraphColoringStrategy<V, Common, Colored : Common, Default : Common> {
+  fun extraColor(v: V): Default
+  fun spillSelectHeuristics(withEdges: TreeMap<Int, HashSet<V>>): V
+  fun colorSelectHeuristics(node: V, available: Set<Colored>, coloring: Map<V, Common>): Colored
+}
+
+inline fun <V, Common, Colored : Common, Default : Common> graphColoringStrategy(
+  crossinline extraColor: (V) -> Default,
+  crossinline spillSelectHeuristics: (withEdges: TreeMap<Int, HashSet<V>>) -> V,
+  crossinline colorSelectHeuristics: (node: V, available: Set<Colored>, coloring: Map<V, Common>) -> Colored,
+): GraphColoringStrategy<V, Common, Colored, Default> = object : GraphColoringStrategy<V, Common, Colored, Default> {
+  override fun extraColor(v: V): Default = extraColor(v)
+  override fun spillSelectHeuristics(withEdges: TreeMap<Int, HashSet<V>>): V = spillSelectHeuristics(withEdges)
+  override fun colorSelectHeuristics(node: V, available: Set<Colored>, coloring: Map<V, Common>): Colored =
+    colorSelectHeuristics(node, available, coloring)
 }
 
 private data class SN<N>(val n: N, val spill: Boolean = false) {

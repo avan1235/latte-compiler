@@ -29,9 +29,12 @@ internal class GraphColoringTest {
     val graphColoring = GraphColoring(
       graph,
       colors = setOf(A, B, C),
-      extraColor,
-      spillSelectHeuristics = { it.firstEntry().value.first() }
-    ) { _, available, _ -> available.first() }
+      strategy = graphColoringStrategy(
+        extraColor,
+        spillSelectHeuristics = { it.firstEntry().value.first() },
+        colorSelectHeuristics = { _, available, _ -> available.first() }
+      )
+    )
     graphColoring.assertValidOn(graph, extraColor)
   }
 
@@ -53,9 +56,12 @@ internal class GraphColoringTest {
     val graphColoring = GraphColoring(
       graph,
       colors = setOf(A, B, C),
-      extraColor,
-      spillSelectHeuristics = { it.firstEntry().value.last() }
-    ) { _, available, _ -> available.last() }
+      strategy = graphColoringStrategy(
+        extraColor,
+        spillSelectHeuristics = { it.firstEntry().value.last() },
+        colorSelectHeuristics = { _, available, _ -> available.last() }
+      )
+    )
     graphColoring.assertValidOn(graph, extraColor)
   }
 
@@ -68,9 +74,12 @@ internal class GraphColoringTest {
     val graphColoring = GraphColoring(
       graph,
       colors = setOf(A, B, C),
-      extraColor,
-      spillSelectHeuristics = { it.firstEntry().value.last() }
-    ) { _, available, _ -> available.last() }
+      strategy = graphColoringStrategy(
+        extraColor,
+        spillSelectHeuristics = { it.firstEntry().value.last() },
+        colorSelectHeuristics = { _, available, _ -> available.last() }
+      )
+    )
     graphColoring.assertValidOn(graph, extraColor)
   }
 
@@ -84,9 +93,12 @@ internal class GraphColoringTest {
     val graphColoring = GraphColoring(
       graph,
       colors = setOf(A, B, C, D, E, F, G, H),
-      extraColor,
-      spillSelectHeuristics = { it.firstEntry().value.toList().random() }
-    ) { _, available, _ -> available.random() }
+      strategy = graphColoringStrategy(
+        extraColor,
+        spillSelectHeuristics = { it.firstEntry().value.toList().random() },
+        colorSelectHeuristics = { _, available, _ -> available.random() }
+      )
+    )
     graphColoring.assertValidOn(graph, extraColor)
   }
 
@@ -102,9 +114,12 @@ internal class GraphColoringTest {
       GraphColoring(
         graph,
         colors = setOf(A, B, C),
-        extraColor,
-        spillSelectHeuristics = { it.firstEntry().value.toList().random() }
-      ) { _, available, _ -> available.random() }
+        strategy = graphColoringStrategy(
+          extraColor,
+          spillSelectHeuristics = { it.firstEntry().value.toList().random() },
+          colorSelectHeuristics = { _, available, _ -> available.random() }
+        )
+      )
     }
   }
 }
