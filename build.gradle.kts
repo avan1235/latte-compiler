@@ -1,5 +1,6 @@
 import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 
 plugins {
   kotlin("jvm") version "1.6.10"
@@ -28,7 +29,10 @@ dependencies {
 tasks.test {
   useJUnitPlatform()
   ignoreFailures = true
-  testLogging { events = setOf(PASSED, SKIPPED, FAILED) }
+  testLogging {
+    events = setOf(PASSED, SKIPPED, FAILED)
+    exceptionFormat = FULL
+  }
   afterSuite(closure<TestDescriptor, TestResult> { suite, result ->
     if (suite.parent == null) println(
       "TEST RESULTS: ${suite.displayName}\n" +
