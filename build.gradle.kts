@@ -44,6 +44,12 @@ tasks.test {
 
 val buildRuntime = task<Exec>("buildRuntime") {
   commandLine("gcc", "-m32", "-c", "lib/runtime.c", "-o", "lib/runtime.o")
+  doLast {
+    copy {
+      from("$projectDir/lib/runtime.o")
+      into("$projectDir/src/main/resources/ml/dev/kotlin/latte/asm")
+    }
+  }
 }
 
 tasks.withType<KotlinCompile> {
@@ -68,6 +74,7 @@ graal {
   mainClass("ml.dev.kotlin.latte.MainKt")
   option("--verbose")
   option("--no-fallback")
+  option("-H:IncludeResources=ml/dev/kotlin/latte/asm/runtime.o")
 }
 
 tasks.nativeImage {

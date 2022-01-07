@@ -27,7 +27,7 @@ fun main(args: Array<String>): Unit = args.takeIf { it.isNotEmpty() }?.forEach {
     eprintln(e.userMessage)
     eprintln("ERROR")
   } catch (e: Throwable) {
-    eprintln(e.message)
+    eprintln(e)
     eprintln("ERROR")
   }
 } ?: println("Usage: ./latte <input-file-paths>")
