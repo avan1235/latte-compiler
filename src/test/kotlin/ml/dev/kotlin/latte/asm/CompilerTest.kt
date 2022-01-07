@@ -18,12 +18,12 @@ internal class CompilerTest {
   @ParameterizedTest
   @MethodSource("goodExamplesProvider")
   fun `should accept valid input files and match their output with default allocator`(input: File) =
-    testCompilerWithAllocatorStrategy(input, name = "default", strategy = DEFAULT_ALLOCATOR_STRATEGY)
+    testCompilerWithAllocatorStrategy(input, AllocatorName.DEFAULT, strategy = DEFAULT_ALLOCATOR_STRATEGY)
 
   @ParameterizedTest
   @MethodSource("goodExamplesProvider")
   fun `should accept valid input files and match their output with first allocator`(input: File) =
-    testCompilerWithAllocatorStrategy(input, name = "first") { analysis, manager ->
+    testCompilerWithAllocatorStrategy(input, AllocatorName.FIRST) { analysis, manager ->
       object : AllocatorStrategy(analysis, manager) {
         override fun selectToSplit(withEdges: TreeMap<Int, HashSet<VirtualReg>>): VirtualReg =
           withEdges.values.flatten().first()
@@ -36,7 +36,7 @@ internal class CompilerTest {
   @ParameterizedTest
   @MethodSource("goodExamplesProvider")
   fun `should accept valid input files and match their output with last allocator`(input: File) =
-    testCompilerWithAllocatorStrategy(input, name = "last") { analysis, manager ->
+    testCompilerWithAllocatorStrategy(input, AllocatorName.LAST) { analysis, manager ->
       object : AllocatorStrategy(analysis, manager) {
         override fun selectToSplit(withEdges: TreeMap<Int, HashSet<VirtualReg>>): VirtualReg =
           withEdges.values.flatten().last()
@@ -49,7 +49,7 @@ internal class CompilerTest {
   @ParameterizedTest
   @MethodSource("goodExamplesProvider")
   fun `should accept valid input files and match their output with random allocator`(input: File) =
-    testCompilerWithAllocatorStrategy(input, name = "random") { analysis, manager ->
+    testCompilerWithAllocatorStrategy(input, AllocatorName.RANDOM) { analysis, manager ->
       object : AllocatorStrategy(analysis, manager) {
         override fun selectToSplit(withEdges: TreeMap<Int, HashSet<VirtualReg>>): VirtualReg =
           withEdges.values.flatten().random()
@@ -68,19 +68,24 @@ internal class CompilerTest {
   }
 }
 
+private enum class AllocatorName {
+  DEFAULT, FIRST, RANDOM, LAST
+}
+
 private fun testCompilerWithAllocatorStrategy(
   input: File,
-  name: String,
+  name: AllocatorName,
   removeOutputs: Boolean = true,
   strategy: AllocatorStrategyProducer
 ) {
+  val shortcut = name.name.lowercase()
   val expected = File(input.dir, "${input.nameWithoutExtension}.output").readText()
   val inputFile = File(input.dir, "${input.nameWithoutExtension}.input").takeIf { it.exists() }
   val compiled = input.runCompiler(strategy)
-  val asmFile = File(input.dir, "${input.nameWithoutExtension}.${name}.asm").apply { writeText(compiled) }
+  val asmFile = File(input.dir, "${input.nameWithoutExtension}.${shortcut}.asm").apply { writeText(compiled) }
   val (o, exe) = nasm(asmFile, libFile = File("lib/runtime.o"))
-  val outFile = File(input.dir, "${input.nameWithoutExtension}.${name}.outputTest").apply { createNewFile() }
-  val errFile = File(input.dir, "${input.nameWithoutExtension}.${name}.errorTest").apply { createNewFile() }
+  val outFile = File(input.dir, "${input.nameWithoutExtension}.${shortcut}.outputTest").apply { createNewFile() }
+  val errFile = File(input.dir, "${input.nameWithoutExtension}.${shortcut}.errorTest").apply { createNewFile() }
   exe.absolutePath(inputFile, outFile, errFile)
   assertEquals(expected, outFile.readText())
   assertEquals("", errFile.readText())
