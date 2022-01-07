@@ -10,6 +10,7 @@ on:
 jobs:
   build:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    needs: [ create_release ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -38,4 +39,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          releaseId: ${{ needs.create_release.outputs.id }}
           args: 'latc_x86'
