@@ -14,22 +14,118 @@ internal class CompilerDataTest {
 
   @ParameterizedTest
   @MethodSource("allocatorsProvider")
-  fun `should work with function that have multiple args`(alloc: TestAllocator) =
+  fun `should work with arithmetic on different locations`(alloc: TestAllocator) =
     testCompilerWithAllocatorStrategy(
       alloc,
       program = """
       int main() {
-        int x = f(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+        int x = f(42, 24);
         printInt(x);
         return 0;
       }
-      int f(int a, int b, int c, int d, int e, int f, int g, int h,
-            int i, int j, int k, int l, int m, int n, int o, int p) {
-        return a + b + c + d + e + f + g + h + i + j + k + l + m + n + o + p;
+      int f(int a, int b) {
+        int x = 2;
+        int y = 3;
+        printInt(a / b);
+        printInt(a / x);
+        printInt(a / 3);
+        printInt(b / a);
+        printInt(b / x);
+        printInt(b / 3);
+        printInt(85 / a);
+        printInt(85 / x);
+        printInt(85 / 3);
+
+        printInt(a % b);
+        printInt(a % x);
+        printInt(a % 3);
+        printInt(b % a);
+        printInt(b % x);
+        printInt(b % 3);
+        printInt(85 % a);
+        printInt(85 % x);
+        printInt(85 % 3);
+
+        printInt(a + b);
+        printInt(a + x);
+        printInt(a + 3);
+        printInt(b + a);
+        printInt(b + x);
+        printInt(b + 3);
+        printInt(85 + a);
+        printInt(85 + x);
+        printInt(85 + 3);
+
+        printInt(a - b);
+        printInt(a - x);
+        printInt(a - 3);
+        printInt(b - a);
+        printInt(b - x);
+        printInt(b - 3);
+        printInt(85 - a);
+        printInt(85 - x);
+        printInt(85 - 3);
+
+        printInt(a * b);
+        printInt(a * x);
+        printInt(a * 3);
+        printInt(b * a);
+        printInt(b * x);
+        printInt(b * 3);
+        printInt(85 * a);
+        printInt(85 * x);
+        printInt(85 * 3);
+
+        return a + b * x - y;
       }
       """,
       output = """
-      120
+      1
+      21
+      14
+      0
+      12
+      8
+      2
+      42
+      28
+      18
+      0
+      0
+      24
+      0
+      0
+      1
+      1
+      1
+      66
+      44
+      45
+      66
+      26
+      27
+      127
+      87
+      88
+      18
+      40
+      39
+      -18
+      22
+      21
+      43
+      83
+      82
+      1008
+      84
+      126
+      1008
+      48
+      72
+      3570
+      170
+      255
+      87
 
       """
     )
