@@ -1,52 +1,45 @@
 package ml.dev.kotlin.latte.asm
 
-import ml.dev.kotlin.latte.quadruple.*
-import ml.dev.kotlin.latte.syntax.Type
+import ml.dev.kotlin.latte.quadruple.FlowAnalysis
+import ml.dev.kotlin.latte.quadruple.FunCallQ
+import ml.dev.kotlin.latte.quadruple.LocalValue
+import ml.dev.kotlin.latte.quadruple.VirtualReg
 import ml.dev.kotlin.latte.util.GraphColoringStrategy
 import java.util.*
 
 open class AllocatorStrategy(
   private val analysis: FlowAnalysis,
   private val memoryManager: MemoryManager,
-) : GraphColoringStrategy<VirtualReg, VarLoc, Reg, Mem> {
+) : GraphColoringStrategy<LocalValue, VarLoc, Reg, Loc> {
 
-  private val aliveOnSomeFunctionCall: Set<VirtualReg> = analysis.statements.asSequence().withIndex()
+  private val aliveOnSomeFunctionCall: Set<LocalValue> = analysis.statements.asSequence().withIndex()
     .filter { it.value is FunCallQ }.map { it.index }
-    .flatMapTo(HashSet()) { analysis.aliveOver[it] }
+    .flatMap { analysis.aliveOver[it] }
+    .filterIsInstanceTo(HashSet())
 
-  protected open fun selectToSplit(withEdges: TreeMap<Int, HashSet<VirtualReg>>): VirtualReg {
+  protected open fun selectToSplit(withEdges: TreeMap<Int, HashSet<LocalValue>>): LocalValue {
     val descendingCounts = withEdges.descendingKeySet()
     return descendingCounts.firstNotNullOfOrNull { withEdges[it]?.intersect(aliveOnSomeFunctionCall)?.firstOrNull() }
       ?: descendingCounts.firstNotNullOfOrNull { withEdges[it]?.firstOrNull() }
       ?: withEdges.values.last().first()
   }
 
-  protected open fun selectColor(virtualReg: VirtualReg, available: Set<Reg>, coloring: Map<VirtualReg, VarLoc>): Reg {
+  protected open fun selectColor(virtualReg: VirtualReg, available: Set<Reg>, coloring: Map<LocalValue, VarLoc>): Reg {
     val regCounts = coloring.values.filterIsInstance<Reg>().groupingBy { it }.eachCountTo(EnumMap(Reg::class.java))
     return available.minByOrNull { regCounts[it] ?: 0 } ?: available.first()
   }
 
-  private fun assignDefault(register: VirtualReg): Mem = when (register) {
-    is LocalValue -> memoryManager.reserveLocal(register.type)
-    is ArgValue -> memoryManager.reserveArg(register)
-  }
+  private fun assignDefault(register: LocalValue): Loc = memoryManager.reserveLocal(register.id, register.type)
 
-  final override fun extraColor(v: VirtualReg): Mem = assignDefault(v)
+  final override fun extraColor(v: LocalValue): Loc = assignDefault(v)
 
-  final override fun spillSelectHeuristics(withEdges: TreeMap<Int, HashSet<VirtualReg>>): VirtualReg =
+  final override fun spillSelectHeuristics(withEdges: TreeMap<Int, HashSet<LocalValue>>): LocalValue =
     selectToSplit(withEdges)
 
   final override fun colorSelectHeuristics(
-    node: VirtualReg,
+    node: LocalValue,
     available: Set<Reg>,
-    coloring: Map<VirtualReg, VarLoc>
-  ): Reg = selectColor(node, available, coloring).also {
-    if (node is ArgValue) memoryManager.moveArgToReg(node, it)
-  }
+    coloring: Map<LocalValue, VarLoc>
+  ): Reg = selectColor(node, available, coloring)
 }
 
-interface MemoryManager {
-  fun reserveLocal(type: Type): Loc
-  fun reserveArg(register: ArgValue): Arg
-  fun moveArgToReg(arg: ArgValue, reg: Reg)
-}

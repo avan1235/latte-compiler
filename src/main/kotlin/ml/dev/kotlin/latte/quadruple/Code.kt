@@ -12,24 +12,18 @@ data class Label(override val name: String) : Named
 
 sealed interface ValueHolder {
   val type: Type
-  fun renameUsage(currIndex: CurrIndex): ValueHolder
+  fun renameUsage(currIndex: CurrIndex): ValueHolder = this
 }
 
-sealed class ConstValue(override val type: Type) : ValueHolder {
-  override fun renameUsage(currIndex: CurrIndex): ValueHolder = this
-}
-
+sealed class ConstValue(override val type: Type) : ValueHolder
 data class IntConstValue(val int: Int) : ConstValue(IntType)
 data class BooleanConstValue(val bool: Boolean) : ConstValue(BooleanType)
 data class StringConstValue(val label: Label, val str: String) : ConstValue(StringType)
 
 sealed class VirtualReg(open val id: String, open val original: VirtualReg?) : ValueHolder {
-  override fun renameUsage(currIndex: CurrIndex): VirtualReg = if (original == null) {
-    val name = "$id#${currIndex(this) ?: err<String>("Cannot rename with null index: $this")}"
-    when (this) {
-      is ArgValue -> copy(id = name, original = this)
-      is LocalValue -> copy(id = name, original = this)
-    }
+  abstract override fun renameUsage(currIndex: CurrIndex): VirtualReg
+  protected fun createRenamedId(currIndex: CurrIndex): String = if (original == null) {
+    "$id#${currIndex(this) ?: err<String>("Cannot rename with null index: $this")}"
   } else err("Already renamed $this")
 
   fun renameDefinition(currIndex: CurrIndex, updateIndex: UpdateIndex): VirtualReg {
@@ -42,14 +36,22 @@ data class LocalValue(
   override val id: String,
   override val type: Type,
   override val original: VirtualReg? = null,
-) : VirtualReg(id, original)
+) : VirtualReg(id, original) {
+  override fun renameUsage(currIndex: CurrIndex): LocalValue =
+    LocalValue(createRenamedId(currIndex), type, this)
+}
 
 data class ArgValue(
   override val id: String,
   val offset: Int,
   override val type: Type,
   override val original: VirtualReg? = null,
-) : VirtualReg(id, original)
+) : VirtualReg(id, original) {
+  override fun renameUsage(currIndex: CurrIndex): VirtualReg = when (currIndex(this)) {
+    FIRST_DEFINITION_COUNT -> ArgValue(createRenamedId(currIndex), offset, type, this)
+    else -> LocalValue(createRenamedId(currIndex), type, this)
+  }
+}
 
 sealed interface Rename {
   fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple

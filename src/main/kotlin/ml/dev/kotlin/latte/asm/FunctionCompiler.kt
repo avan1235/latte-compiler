@@ -27,13 +27,11 @@ class FunctionCompiler(
   private fun Quadruple.compile(idx: StmtIdx): Unit = when (this@compile) {
     is AssignQ -> assign(to, from.get(), idx)
     is FunCallQ -> {
-
-      preserveReg(at = idx, ECX, EDX) {
+      preserveReg(ECX, EDX, at = idx) {
         args.asReversed().forEach { cmd(PUSH, it.get()) }
         cmd(CALL, label)
         argsSize.takeIf { it > 0 }?.let { cmd(ADD, ESP, it.imm) }
       }
-
       assign(to, EAX, idx)
     }
     is RelCondJumpQ -> {
@@ -61,7 +59,6 @@ class FunctionCompiler(
       cmd(MOV, EBP, ESP)
       cmd(SUB, ESP, localsOffset.imm, localsOffset > 0)
       savedByCallee.forEach { cmd(PUSH, it) }
-      args.forEach { assureArgLoaded(it) { to, from -> cmd(MOV, to, from) } }
     }
     is RetQ -> with(allocator) {
       value?.let { cmd(MOV, EAX, it.get()) }
@@ -125,7 +122,7 @@ class FunctionCompiler(
   private fun cdqIDiv(to: VirtualReg, left: ValueHolder, right: ValueHolder, from: Reg, idx: StmtIdx) {
     cmd(MOV, EAX, left.get())
 
-    preserveReg(at = idx, ECX, EDX) {
+    preserveReg(ECX, EDX, at = idx) {
       val by = when (val by = right.get()) {
         EDX -> cmd(MOV, ECX, EDX).then { ECX }
         is Imm -> cmd(MOV, ECX, by).then { ECX }
@@ -138,7 +135,7 @@ class FunctionCompiler(
     }
   }
 
-  private fun preserveReg(at: StmtIdx, vararg reg: Reg, action: () -> Unit) {
+  private fun preserveReg(vararg reg: Reg, at: StmtIdx, action: () -> Unit) {
     val preserve = analysis.aliveOver[at].filter { alive -> reg.any { it == alive.get() } }
     preserve.forEach { cmd(PUSH, it.get()) }
     action()

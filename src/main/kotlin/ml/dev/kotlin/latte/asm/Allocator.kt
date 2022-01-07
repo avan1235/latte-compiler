@@ -8,7 +8,6 @@ import ml.dev.kotlin.latte.syntax.Type
 import ml.dev.kotlin.latte.util.GraphColoring
 import ml.dev.kotlin.latte.util.MemoryAllocationException
 import ml.dev.kotlin.latte.util.msg
-import ml.dev.kotlin.latte.util.then
 import kotlin.collections.set
 
 class Allocator(
@@ -18,14 +17,13 @@ class Allocator(
   private var _localsOffset: Int = 0
   val localsOffset: Int get() = _localsOffset
   private val locations = HashMap<String, VarLoc>()
-  private val argsMovedToReg = HashMap<ArgValue, Reg>()
 
   private val memoryManager = object : MemoryManager {
-    override fun reserveLocal(type: Type): Loc = Loc(_localsOffset.also { _localsOffset += type.size }, type)
-    override fun reserveArg(register: ArgValue): Arg = Arg(register.offset, register.type)
-    override fun moveArgToReg(arg: ArgValue, reg: Reg) {
-      argsMovedToReg[arg] = reg
-    }
+    override fun reserveLocal(id: String, type: Type): Loc =
+      Loc(_localsOffset.also { _localsOffset += type.size }, type).also { locations[id] = it }
+
+    override fun reserveArg(register: ArgValue): Arg =
+      Arg(register.offset, register.type).also { locations[register.id] = it }
   }
 
   private val graphColoring =
@@ -34,10 +32,13 @@ class Allocator(
   private val assignedRegisters: HashSet<Reg> =
     HashSet<Reg>().apply { graphColoring.coloring.values.forEach { if (it is Reg) add(it) } }
 
+  private val definedArgs = analysis.definedAt[0].filterIsInstance<ArgValue>()
+
   val savedByCallee: List<Reg> = CALLEE_SAVED_REGISTERS.intersect(assignedRegisters).toList()
 
   init {
-    graphColoring.coloring.forEach { (virtualReg, varLoc) -> locations[virtualReg.id] = varLoc }
+    graphColoring.coloring.forEach { (localValue, varLoc) -> locations[localValue.id] = varLoc }
+    definedArgs.forEach { memoryManager.reserveArg(it) }
   }
 
   fun get(value: ValueHolder, strings: Map<String, Label>): VarLoc =
@@ -47,14 +48,12 @@ class Allocator(
       is BooleanConstValue -> Imm(if (value.bool) "1" else "0", BooleanType)
       is IntConstValue -> Imm("${value.int}", IntType)
       is StringConstValue -> Imm(strings[value.str]?.name ?: err("Used not labeled string $this"), StringType)
-    } ?: err("Used not defined variable $this")
+    } ?: err("Used not defined variable $value")
+}
 
-  fun assureArgLoaded(arg: ArgValue, mov: (Reg, Arg) -> Unit): VarLoc? {
-    val loc = locations[arg.id]
-    val reg = argsMovedToReg[arg]
-    if (reg == loc) reg?.let { mov(reg, Arg(arg.offset, arg.type)) }.then { argsMovedToReg -= arg }
-    return loc
-  }
+interface MemoryManager {
+  fun reserveLocal(id: String, type: Type): Loc
+  fun reserveArg(register: ArgValue): Arg
 }
 
 typealias AllocatorStrategyProducer = (FlowAnalysis, MemoryManager) -> AllocatorStrategy

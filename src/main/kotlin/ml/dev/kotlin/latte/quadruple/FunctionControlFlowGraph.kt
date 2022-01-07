@@ -103,7 +103,7 @@ class FunctionControlFlowGraph private constructor(
    */
   private fun renameVariables(dominance: Dominance<Label>) {
     val dominanceTree = dominance.dominanceTree
-    val counters = MutableDefaultMap<VirtualReg, Int>({ 0 })
+    val counters = MutableDefaultMap<VirtualReg, Int>({ FIRST_DEFINITION_COUNT })
     val stacks = MutableDefaultMap<VirtualReg, ArrayDeque<Int>>({ ArrayDeque() })
     val renamed = HashSet<Label>()
 
@@ -148,6 +148,8 @@ class FunctionControlFlowGraph private constructor(
     }
   }
 }
+
+const val FIRST_DEFINITION_COUNT: Int = 0
 
 private data class Variables(val inBlocks: DefaultMap<VirtualReg, Set<Label>>, val defined: Set<VirtualReg>)
 
