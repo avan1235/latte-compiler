@@ -30,7 +30,7 @@ fun main(args: Array<String>): Unit = args.takeIf { it.isNotEmpty() }?.forEach {
   }
 } ?: println("Usage: ./latte <input-file-paths>")
 
-private val DEFAULT_ALLOCATOR_STRATEGY: AllocatorStrategyProducer =
+internal val DEFAULT_ALLOCATOR_STRATEGY: AllocatorStrategyProducer =
   { analysis, manager -> AllocatorStrategy(analysis, manager) }
 
 internal fun File.runCompiler(

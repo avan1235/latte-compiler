@@ -6,29 +6,29 @@ import ml.dev.kotlin.latte.util.GraphColoringStrategy
 import java.util.*
 
 open class AllocatorStrategy(
-  protected val analysis: FlowAnalysis,
-  protected val memoryManager: MemoryManager,
+  private val analysis: FlowAnalysis,
+  private val memoryManager: MemoryManager,
 ) : GraphColoringStrategy<VirtualReg, VarLoc, Reg, Mem> {
 
-  protected val aliveOnSomeFunctionCall: Set<VirtualReg> = analysis.statements.asSequence().withIndex()
+  private val aliveOnSomeFunctionCall: Set<VirtualReg> = analysis.statements.asSequence().withIndex()
     .filter { it.value is FunCallQ }.map { it.index }
     .flatMapTo(HashSet()) { analysis.aliveOver[it] }
 
-  protected fun selectToSplit(withEdges: TreeMap<Int, HashSet<VirtualReg>>): VirtualReg {
+  protected open fun selectToSplit(withEdges: TreeMap<Int, HashSet<VirtualReg>>): VirtualReg {
     val descendingCounts = withEdges.descendingKeySet()
     return descendingCounts.firstNotNullOfOrNull { withEdges[it]?.intersect(aliveOnSomeFunctionCall)?.firstOrNull() }
       ?: descendingCounts.firstNotNullOfOrNull { withEdges[it]?.firstOrNull() }
       ?: withEdges.values.last().first()
   }
 
-  protected fun selectColor(forVirtualReg: VirtualReg, available: Set<Reg>, coloring: Map<VirtualReg, VarLoc>): Reg {
+  protected open fun selectColor(virtualReg: VirtualReg, available: Set<Reg>, coloring: Map<VirtualReg, VarLoc>): Reg {
     val regCounts = coloring.values.filterIsInstance<Reg>().groupingBy { it }.eachCountTo(EnumMap(Reg::class.java))
     val reg = available.minByOrNull { regCounts[it] ?: 0 } ?: available.first()
-    if (forVirtualReg is ArgValue) memoryManager.moveArgToReg(forVirtualReg, reg)
+    if (virtualReg is ArgValue) memoryManager.moveArgToReg(virtualReg, reg)
     return reg
   }
 
-  protected fun assignDefault(register: VirtualReg): Mem = when (register) {
+  protected open fun assignDefault(register: VirtualReg): Mem = when (register) {
     is LocalValue -> memoryManager.reserveLocal(register.type)
     is ArgValue -> memoryManager.reserveArg(register)
   }

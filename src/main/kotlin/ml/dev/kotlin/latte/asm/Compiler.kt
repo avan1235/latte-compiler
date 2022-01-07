@@ -12,7 +12,6 @@ private class Compiler(
   private val strategy: AllocatorStrategyProducer,
   private val result: StringBuilder = StringBuilder(),
 ) {
-
   fun IR.compile(): String {
     STD_LIB_FUNCTIONS.keys.forEach { result.append("extern ").appendLine(it) }
     graph.functions.keys.forEach { result.append("global ").appendLine(it.name) }
