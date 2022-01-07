@@ -9,8 +9,6 @@ on:
 
 jobs:
   build:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    needs: [ create_release ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -24,7 +22,7 @@ jobs:
       - name: Make Gradle executable and prepare env
         run: chmod u+x ./gradlew && sudo apt-get install -y gcc-multilib
       - name: Build with Gradle
-        run: ./gradlew nativeImage
+        run: ./gradlew clean nativeImage
       - name: Cleanup Gradle Cache
         run: |
           rm -f ~/.gradle/caches/modules-2/modules-2.lock
@@ -35,9 +33,11 @@ jobs:
           name: latc_x86
           path: latc_x86
       - name: Release build artifact
-        uses: skx/github-action-publish-binaries@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: "marvinpinto/action-automatic-releases@latest"
         with:
-          releaseId: ${{ needs.create_release.outputs.id }}
-          args: 'latc_x86'
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
+          automatic_release_tag: "latest"
+          files: |
+            latc_x86
+            lib/runtime.o
