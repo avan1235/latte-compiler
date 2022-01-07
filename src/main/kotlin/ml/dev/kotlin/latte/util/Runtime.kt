@@ -8,9 +8,16 @@ operator fun String.invoke(
   outFile: File? = null,
   errFile: File? = null,
   workingDir: File = exeFile()
+): Int = listOf(this).invoke(inputFile, outFile, errFile, workingDir)
+
+operator fun List<String>.invoke(
+  inputFile: File? = null,
+  outFile: File? = null,
+  errFile: File? = null,
+  workingDir: File = exeFile()
 ): Int {
   return try {
-    val pb = ProcessBuilder(*split(" ").toTypedArray()).directory(workingDir.dir)
+    val pb = ProcessBuilder(this).directory(workingDir.dir)
     if (inputFile != null) pb.redirectInput(inputFile) else pb.redirectInput(ProcessBuilder.Redirect.INHERIT)
     if (outFile != null) pb.redirectOutput(outFile) else pb.redirectOutput(ProcessBuilder.Redirect.INHERIT)
     if (errFile != null) pb.redirectError(errFile) else pb.redirectError(ProcessBuilder.Redirect.INHERIT)

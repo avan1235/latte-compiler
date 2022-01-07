@@ -37,6 +37,9 @@ tasks.test {
         "Skipped: ${result.skippedTestCount}/${result.testCount}"
     )
   })
+  maxParallelForks = Runtime.getRuntime().availableProcessors() / 2 + 1
+  systemProperties["junit.jupiter.execution.parallel.enabled"] = "true"
+  systemProperties["junit.jupiter.execution.parallel.mode.default"] = "concurrent"
 }
 
 val buildRuntime = task<Exec>("buildRuntime") {

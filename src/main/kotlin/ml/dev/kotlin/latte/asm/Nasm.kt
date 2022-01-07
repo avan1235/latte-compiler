@@ -11,13 +11,14 @@ fun nasm(assembly: File, libFile: File = DEFAULT_LIB_FILE): CompilationResult {
   val name = assembly.nameWithoutExtension
   val o = File(asmDir, "$name.o")
   val result = File(asmDir, name)
-  "nasm -f elf32 ${assembly.absolutePath} -o ${o.absolutePath}".checkCode()
-  "gcc -m32 -static ${libFile.absolutePath} ${o.absolutePath} -o ${result.absolutePath}".checkCode()
+  listOf("nasm", "-f", "elf32", assembly.absolutePath, "-o", o.absolutePath).run()
+  listOf("gcc", "-m32", "-static", libFile.absolutePath, o.absolutePath, "-o", result.absolutePath).run()
   return CompilationResult(o, result)
 }
 
 data class CompilationResult(val oFile: File, val binFile: File)
 
-private fun String.checkCode(): Unit = this().let { if (it != 0) throw CompileException(this, it) else Unit }
+private fun List<String>.run(): Unit =
+  this().let { if (it != 0) throw CompileException(this.joinToString(" "), it) else Unit }
 
 private val DEFAULT_LIB_FILE: File = File(exeFile().dir.absolutePath).resolve("lib").resolve("runtime.o")
