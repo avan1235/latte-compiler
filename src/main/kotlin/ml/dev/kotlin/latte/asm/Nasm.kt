@@ -27,7 +27,7 @@ private fun withLibFile(libFile: File, action: (File) -> Unit) {
   val useTemp = !libFile.exists()
   val lib = if (useTemp) createTempLibFromResources() else libFile
   try {
-    if (useTemp) eprintln("using runtime.o included in compiler binary as $libFile wasn't found")
+    if (useTemp) println("using runtime.o included in compiler binary as $libFile wasn't found")
     action(lib)
   } finally {
     if (useTemp) lib.delete()

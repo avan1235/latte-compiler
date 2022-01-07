@@ -9,8 +9,7 @@ import ml.dev.kotlin.latte.syntax.parse
 import ml.dev.kotlin.latte.typecheck.typeCheck
 import ml.dev.kotlin.latte.util.LatteException
 import ml.dev.kotlin.latte.util.dir
-import ml.dev.kotlin.latte.util.eprintln
-import ml.dev.kotlin.latte.util.unit
+import ml.dev.kotlin.latte.util.exit
 import java.io.File
 
 fun main(args: Array<String>): Unit = args.takeIf { it.isNotEmpty() }?.forEach { path ->
@@ -18,19 +17,15 @@ fun main(args: Array<String>): Unit = args.takeIf { it.isNotEmpty() }?.forEach {
     val inputFile = File(path)
     val asmCode = inputFile.runCompiler()
     val asmFile = inputFile.dir.resolve("${inputFile.nameWithoutExtension}.s")
-    with(asmFile) {
-      writeText(asmCode)
-      nasm(this).run { oFile.delete() }.unit()
-    }
-    println("OK")
+    asmFile.writeText(asmCode)
+    nasm(asmFile).run { oFile.delete() }
+    exit("OK", exitCode = 0)
   } catch (e: LatteException) {
-    eprintln(e.userMessage)
-    eprintln("ERROR")
+    exit("ERROR", e.userMessage, exitCode = 2)
   } catch (e: Throwable) {
-    eprintln(e)
-    eprintln("ERROR")
+    exit("ERROR", e, exitCode = 3)
   }
-} ?: println("Usage: ./latte <input-file-paths>")
+} ?: exit("Usage: ./latte <input-file-paths>", exitCode = 1)
 
 internal val DEFAULT_ALLOCATOR_STRATEGY: AllocatorStrategyProducer =
   { analysis, manager -> AllocatorStrategy(analysis, manager) }

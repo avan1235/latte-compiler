@@ -1,5 +1,7 @@
 package ml.dev.kotlin.latte.util
 
+import kotlin.system.exitProcess
+
 @Suppress("NOTHING_TO_INLINE")
 inline fun eprintln(message: Any?) = System.err.println(message)
 
@@ -15,3 +17,8 @@ data class LocalizedMessage(val description: String, val location: FileLocation?
 }
 
 inline val String.msg: LocalizedMessage get() = LocalizedMessage(this)
+
+fun exit(vararg lines: Any, exitCode: Int = 0) {
+  lines.forEach { eprintln(it) }
+  exitProcess(exitCode)
+}
