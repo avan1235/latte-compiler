@@ -55,12 +55,12 @@ jobs:
       - name: Set up MinGW
         uses: egor-tensin/setup-mingw@v2
         with:
-          version: latest
+          version: platform
           platform: i686
       - uses: ilammy/msvc-dev-cmd@v1.5.0
       - uses: microsoft/setup-msbuild@v1
       - name: Build with Gradle
-        run: ./gradlew.bat clean nativeImage
+        run: ./gradlew.bat --no-daemon clean nativeImage
         shell: powershell
       - name: Upload build artifact
         uses: actions/upload-artifact@v2
