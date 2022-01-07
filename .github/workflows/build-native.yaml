@@ -31,7 +31,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: latc_x86
-          path: latc_x86
+          path: build/graal/latc_x86
       - name: Release build artifact
         uses: "marvinpinto/action-automatic-releases@latest"
         with:
@@ -39,8 +39,7 @@ jobs:
           prerelease: false
           automatic_release_tag: "latest"
           files: |
-            latc_x86
-            lib/runtime.o
+            build/graal/latc_x86
 
   buildWindows:
     runs-on: windows-latest
@@ -66,5 +65,5 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v2
         with:
-          name: latc_x86
-          path: latc_x86
+          name: latc_x86.exe
+          path: build/graal/latc_x86.exe

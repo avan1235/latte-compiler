@@ -84,7 +84,7 @@ graal {
 tasks.nativeImage {
   doLast {
     copy {
-      from("$buildDir/graal/latc_x86*")
+      from("$buildDir/graal/latc_x86")
       into("$projectDir")
     }
   }
