@@ -19,113 +19,230 @@ internal class CompilerDataTest {
       alloc,
       program = """
       int main() {
-        int x = f(42, 24);
-        printInt(x);
+        f(43, 24);
         return 0;
       }
-      int f(int a, int b) {
-        int x = 2;
-        int y = 3;
-        printInt(a / b);
-        printInt(a / x);
-        printInt(a / 3);
-        printInt(b / a);
-        printInt(b / x);
-        printInt(b / 3);
+      void f(int a, int b) {
+        int x = 7;
+        int y;
+
+        // DIV
+
+        a = 42;
+        a = a / b;
+        printInt(a);
+        a = 42;
+        a = a / x;
+        printInt(a);
+        a = 42;
+        a = a / 3;
+        printInt(a);
+
+        y = 312;
+        y = y / b;
+        printInt(y);
+        y = 312;
+        y = y / x;
+        printInt(y);
+        y = 312;
+        y = y / 3;
+        printInt(y);
+
+        a = 42;
         printInt(85 / a);
         printInt(85 / x);
         printInt(85 / 3);
 
-        printInt(a % b);
-        printInt(a % x);
-        printInt(a % 3);
-        printInt(b % a);
-        printInt(b % x);
-        printInt(b % 3);
+        // MOD
+
+        a = 42;
+        a = a % b;
+        printInt(a);
+        a = 42;
+        a = a % x;
+        printInt(a);
+        a = 42;
+        a = a % 3;
+        printInt(a);
+
+        y = 312;
+        y = y % b;
+        printInt(y);
+        y = 312;
+        y = y % x;
+        printInt(y);
+        y = 312;
+        y = y % 3;
+        printInt(y);
+
+        a = 42;
         printInt(85 % a);
         printInt(85 % x);
         printInt(85 % 3);
 
-        printInt(a + b);
-        printInt(a + x);
-        printInt(a + 3);
-        printInt(b + a);
-        printInt(b + x);
-        printInt(b + 3);
+        // PLUS
+
+        a = 42;
+        a = a + b;
+        printInt(a);
+        a = 42;
+        a = a + x;
+        printInt(a);
+        a = 42;
+        a = a + 3;
+        printInt(a);
+
+        y = 312;
+        y = y + b;
+        printInt(y);
+        y = 312;
+        y = y + x;
+        printInt(y);
+        y = 312;
+        y = y + 3;
+        printInt(y);
+
+        a = 42;
         printInt(85 + a);
         printInt(85 + x);
         printInt(85 + 3);
 
-        printInt(a - b);
-        printInt(a - x);
-        printInt(a - 3);
-        printInt(b - a);
-        printInt(b - x);
-        printInt(b - 3);
+        // MINUS
+
+        a = 42;
+        a = a - b;
+        printInt(a);
+        a = 42;
+        a = a - x;
+        printInt(a);
+        a = 42;
+        a = a - 3;
+        printInt(a);
+
+        y = 312;
+        y = y - b;
+        printInt(y);
+        y = 312;
+        y = y - x;
+        printInt(y);
+        y = 312;
+        y = y - 3;
+        printInt(y);
+
+        a = 42;
         printInt(85 - a);
         printInt(85 - x);
         printInt(85 - 3);
 
-        printInt(a * b);
-        printInt(a * x);
-        printInt(a * 3);
-        printInt(b * a);
-        printInt(b * x);
-        printInt(b * 3);
+        // TIMES
+
+        a = 42;
+        a = a * b;
+        printInt(a);
+        a = 42;
+        a = a * x;
+        printInt(a);
+        a = 42;
+        a = a * 3;
+        printInt(a);
+
+        y = 312;
+        y = y * b;
+        printInt(y);
+        y = 312;
+        y = y * x;
+        printInt(y);
+        y = 312;
+        y = y * 3;
+        printInt(y);
+
+        a = 42;
         printInt(85 * a);
         printInt(85 * x);
         printInt(85 * 3);
-
-        return a + b * x - y;
       }
       """,
       output = """
       1
-      21
+      6
       14
-      0
-      12
-      8
+      13
+      44
+      104
       2
-      42
+      12
       28
       18
       0
       0
-      24
       0
+      4
       0
       1
       1
       1
       66
-      44
+      49
       45
-      66
-      26
-      27
+      336
+      319
+      315
       127
-      87
+      92
       88
       18
-      40
+      35
       39
-      -18
-      22
-      21
+      288
+      305
+      309
       43
-      83
+      78
       82
       1008
-      84
+      294
       126
-      1008
-      48
-      72
+      7488
+      2184
+      936
       3570
-      170
+      595
       255
-      87
+
+      """
+    )
+
+  @ParameterizedTest
+  @MethodSource("allocatorsProvider")
+  fun `should work with unary op on different locations`(alloc: TestAllocator) =
+    testCompilerWithAllocatorStrategy(
+      alloc,
+      program = """
+      int main() {
+        f(42);
+        return 0;
+      }
+      void f(int a) {
+        int x = 2;
+        printInt(a);
+        printInt(x);
+        a++;
+        x++;
+        printInt(a);
+        printInt(x);
+        a--;
+        x--;
+        printInt(a);
+        printInt(x);
+      }
+      """,
+      output = """
+      42
+      2
+      43
+      3
+      42
+      2
 
       """
     )
@@ -159,4 +276,4 @@ private fun testCompilerWithAllocatorStrategy(
 }
 
 private fun File.withExtension(ext: String, data: String? = null): File =
-  dir.resolve("${nameWithoutExtension}$ext").apply { createNewFile() }.apply { data?.let { writeText(it) } }
+  dir.resolve("${nameWithoutExtension}$ext").apply { data?.let { writeText(it) } }
