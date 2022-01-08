@@ -28,6 +28,9 @@ operator fun List<String>.invoke(
   }
 }
 
+fun Int.zeroCode(): Unit =
+  if (this == 0) Unit else throw LatteRuntimeException("Process returned not zero code $this".msg)
+
 val File.dir: File get() = let { if (it.isFile) it.parentFile else it }
 
 fun exeFile(): File =

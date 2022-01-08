@@ -17,3 +17,4 @@ class CompileException(cmd: String, code: Int) :
 
 class GraphException(userMessage: LocalizedMessage) : LatteException(userMessage)
 class LatteIllegalStateException(userMessage: LocalizedMessage) : LatteException(userMessage)
+class LatteRuntimeException(userMessage: LocalizedMessage) : LatteException(userMessage)

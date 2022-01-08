@@ -3,6 +3,7 @@ package ml.dev.kotlin.latte.asm
 import ml.dev.kotlin.latte.runCompiler
 import ml.dev.kotlin.latte.util.dir
 import ml.dev.kotlin.latte.util.invoke
+import ml.dev.kotlin.latte.util.zeroCode
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
@@ -19,12 +20,21 @@ internal class CompilerDataTest {
       alloc,
       program = """
       int main() {
-        f(43, 24);
+        int x = f(43, 24);
+        printInt(x);
         return 0;
       }
-      void f(int a, int b) {
+      int f(int a, int b) {
         int x = 7;
         int y;
+        int m = 1;
+        int n = 2;
+        int o = 3;
+        int p = 4;
+        int q = 5;
+        int r = 6;
+        int s = 7;
+        int t = 8;
 
         // DIV
 
@@ -160,6 +170,8 @@ internal class CompilerDataTest {
         printInt(85 * a);
         printInt(85 * x);
         printInt(85 * 3);
+
+        return m + n + o + p + q + r + s + t;
       }
       """,
       output = """
@@ -208,6 +220,7 @@ internal class CompilerDataTest {
       3570
       595
       255
+      36
 
       """
     )
@@ -269,7 +282,7 @@ private fun testCompilerWithAllocatorStrategy(
   val (o, exe) = nasm(asmFile, libFile = File("lib/runtime.o"))
   val outFile = programFile.withExtension(".outputTest")
   val errFile = programFile.withExtension(".errorTest")
-  exe.absolutePath(inputFile, outFile, errFile)
+  exe.absolutePath(inputFile, outFile, errFile).zeroCode()
   assertEquals(output.trimIndent(), outFile.readText())
   assertEquals("", errFile.readText())
   listOfNotNull(programFile, inputFile, asmFile, o, exe, outFile, errFile).forEach { it.delete() }

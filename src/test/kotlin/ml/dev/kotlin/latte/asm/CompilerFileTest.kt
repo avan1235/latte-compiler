@@ -3,6 +3,7 @@ package ml.dev.kotlin.latte.asm
 import ml.dev.kotlin.latte.runCompiler
 import ml.dev.kotlin.latte.util.dir
 import ml.dev.kotlin.latte.util.invoke
+import ml.dev.kotlin.latte.util.zeroCode
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
@@ -54,7 +55,7 @@ private fun testCompilerWithAllocatorStrategy(
   val (o, exe) = nasm(asmFile, libFile = File("lib/runtime.o"))
   val outFile = File(input.dir, "${input.nameWithoutExtension}.${shortcut}.outputTest").apply { createNewFile() }
   val errFile = File(input.dir, "${input.nameWithoutExtension}.${shortcut}.errorTest").apply { createNewFile() }
-  exe.absolutePath(inputFile, outFile, errFile)
+  exe.absolutePath(inputFile, outFile, errFile).zeroCode()
   assertEquals(expected, outFile.readText())
   assertEquals("", errFile.readText())
   if (removeOutputs) listOf(asmFile, o, exe, outFile, errFile).forEach { it.delete() }
