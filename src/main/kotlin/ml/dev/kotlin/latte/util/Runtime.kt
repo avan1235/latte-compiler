@@ -31,7 +31,7 @@ operator fun List<String>.invoke(
 fun Int.zeroCode(): Unit =
   if (this == 0) Unit else throw LatteRuntimeException("Process returned not zero code $this".msg)
 
-val File.dir: File get() = let { if (it.isFile) it.parentFile else it }
+val File.dir: File get() = let { if (it.isFile) it.absoluteFile.parentFile else it }
 
 fun exeFile(): File =
   Runtime.javaClass.protectionDomain?.codeSource?.location?.toURI()?.let { File(it) } ?: File(".")
