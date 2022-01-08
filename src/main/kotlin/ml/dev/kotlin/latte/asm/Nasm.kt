@@ -5,10 +5,8 @@ import java.io.File
 import java.nio.file.Files
 
 fun nasm(assembly: File, libFile: File = DEFAULT_LIB_FILE): CompilationResult {
-  val asmDir = assembly.dir.absolutePath
-  val name = assembly.nameWithoutExtension
-  val o = File(asmDir, "$name.o")
-  val result = File(asmDir, name)
+  val o = assembly.withExtension(".o")
+  val result = assembly.withExtension("")
   listOf("nasm", "-f", "elf32", assembly.absolutePath, "-o", o.absolutePath).run()
   withLibFile(libFile) { lib ->
     listOf("gcc", "-m32", "-static", lib.absolutePath, o.absolutePath, "-o", result.absolutePath).run()

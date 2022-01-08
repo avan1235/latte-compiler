@@ -1,8 +1,8 @@
 package ml.dev.kotlin.latte.asm
 
 import ml.dev.kotlin.latte.runCompiler
-import ml.dev.kotlin.latte.util.dir
 import ml.dev.kotlin.latte.util.invoke
+import ml.dev.kotlin.latte.util.withExtension
 import ml.dev.kotlin.latte.util.zeroCode
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
@@ -48,13 +48,13 @@ private fun testCompilerWithAllocatorStrategy(
   removeOutputs: Boolean = true,
 ) {
   val shortcut = allocator.name.lowercase()
-  val expected = File(input.dir, "${input.nameWithoutExtension}.output").readText()
-  val inputFile = File(input.dir, "${input.nameWithoutExtension}.input").takeIf { it.exists() }
+  val expected = input.withExtension(".output").readText()
+  val inputFile = input.withExtension(".input").takeIf { it.exists() }
   val compiled = input.runCompiler(allocator.strategy)
-  val asmFile = File(input.dir, "${input.nameWithoutExtension}.${shortcut}.asm").apply { writeText(compiled) }
+  val asmFile = input.withExtension(".${shortcut}.asm").apply { writeText(compiled) }
   val (o, exe) = nasm(asmFile, libFile = File("lib/runtime.o"))
-  val outFile = File(input.dir, "${input.nameWithoutExtension}.${shortcut}.outputTest").apply { createNewFile() }
-  val errFile = File(input.dir, "${input.nameWithoutExtension}.${shortcut}.errorTest").apply { createNewFile() }
+  val outFile = input.withExtension(".${shortcut}.outputTest").apply { createNewFile() }
+  val errFile = input.withExtension(".${shortcut}.errorTest").apply { createNewFile() }
   exe.absolutePath(inputFile, outFile, errFile).zeroCode()
   assertEquals(expected, outFile.readText())
   assertEquals("", errFile.readText())

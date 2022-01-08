@@ -3,6 +3,7 @@ package ml.dev.kotlin.latte.asm
 import ml.dev.kotlin.latte.runCompiler
 import ml.dev.kotlin.latte.util.dir
 import ml.dev.kotlin.latte.util.invoke
+import ml.dev.kotlin.latte.util.withExtension
 import ml.dev.kotlin.latte.util.zeroCode
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
@@ -288,5 +289,3 @@ private fun testCompilerWithAllocatorStrategy(
   listOfNotNull(programFile, inputFile, asmFile, o, exe, outFile, errFile).forEach { it.delete() }
 }
 
-private fun File.withExtension(ext: String, data: String? = null): File =
-  dir.resolve("${nameWithoutExtension}$ext").apply { data?.let { writeText(it) } }

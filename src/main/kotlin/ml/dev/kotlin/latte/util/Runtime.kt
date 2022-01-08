@@ -33,6 +33,9 @@ fun Int.zeroCode(): Unit =
 
 val File.dir: File get() = let { if (it.isFile) it.absoluteFile.parentFile else it }
 
+fun File.withExtension(ext: String, data: String? = null): File =
+  dir.resolve("${nameWithoutExtension}$ext").apply { data?.let { writeText(it) } }
+
 fun exeFile(): File =
   Runtime.javaClass.protectionDomain?.codeSource?.location?.toURI()?.let { File(it) } ?: File(".")
 
