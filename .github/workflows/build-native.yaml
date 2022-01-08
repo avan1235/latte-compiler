@@ -37,7 +37,7 @@ jobs:
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: false
-          automatic_release_tag: "latest"
+          automatic_release_tag: "latc_x86"
           files: |
             build/graal/latc_x86
 
@@ -67,3 +67,11 @@ jobs:
         with:
           name: latc_x86.exe
           path: build/graal/latc_x86.exe
+      - name: Release build artifact
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
+          automatic_release_tag: "latc_x86.exe"
+          files: |
+            build/graal/latc_x86.exe
