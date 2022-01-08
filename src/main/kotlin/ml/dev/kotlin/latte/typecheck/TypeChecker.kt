@@ -7,8 +7,7 @@ import ml.dev.kotlin.latte.util.TypeCheckException
 
 fun ProgramNode.typeCheck(): TypeCheckedProgram = TypeChecker().run { this@typeCheck.typeCheck() }
 
-@JvmInline
-value class TypeCheckedProgram(val program: ProgramNode)
+data class TypeCheckedProgram(val program: ProgramNode)
 
 private class TypeChecker(
   private val funEnv: MutableMap<String, Type> = STD_LIB_FUNCTIONS.toMutableMap(),

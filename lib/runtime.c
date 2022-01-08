@@ -87,14 +87,3 @@ char* __concatString(char* l, char* r) {
     data[length] = 0;
     return data;
 }
-
-int __equalString(char* l, char* r) {
-    while (*l != 0 && *r != 0) {
-        if (*l != *r) return 0;
-        l++;
-        r++;
-    }
-    if (*l != *r) return 0;
-    return 1;
-}
-
