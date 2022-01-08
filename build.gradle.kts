@@ -27,6 +27,10 @@ dependencies {
 }
 
 tasks.test {
+  var failedTests = false
+  doFirst {
+    failedTests = false
+  }
   useJUnitPlatform()
   ignoreFailures = true
   testLogging {
@@ -40,10 +44,14 @@ tasks.test {
         "Failed: ${result.failedTestCount}/${result.testCount}\t" +
         "Skipped: ${result.skippedTestCount}/${result.testCount}"
     )
+    if (result.failedTestCount > 0) failedTests = true
   })
   maxParallelForks = Runtime.getRuntime().availableProcessors() / 2 + 1
   systemProperties["junit.jupiter.execution.parallel.enabled"] = "true"
   systemProperties["junit.jupiter.execution.parallel.mode.default"] = "concurrent"
+  doLast {
+    if (failedTests) throw GradleException("Some tests failed")
+  }
 }
 
 val buildRuntime = task<Exec>("buildRuntime") {
