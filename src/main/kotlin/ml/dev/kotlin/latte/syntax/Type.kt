@@ -4,30 +4,27 @@ import ml.dev.kotlin.latte.util.LatteIllegalStateException
 import ml.dev.kotlin.latte.util.Span
 import ml.dev.kotlin.latte.util.msg
 
-sealed class Type(private val name: String) : AstNode {
-  override val span: Span? = null
-  abstract val size: Bytes
-  override fun toString(): String = name
+sealed interface Type : AstNode {
+  val typeName: String
+  val size: Bytes
+  override fun toString(): String
 }
 
 typealias Bytes = Int
 
-object IntType : Type("int") {
-  override val size = 4
+enum class PrimitiveType(override val typeName: String, override val size: Bytes) : Type {
+  IntType("int", 4),
+  StringType("string", 4),
+  BooleanType("boolean", 4),
+  VoidType("void", 4) {
+    override val size: Bytes get() = throw LatteIllegalStateException("Cannot get size of $this type".msg)
+  };
+
+  override val span: Span? = null
+  override fun toString(): String = typeName
 }
 
-object StringType : Type("string") {
-  override val size = 4
-}
-
-object BooleanType : Type("boolean") {
-  override val size = 4
-}
-
-object VoidType : Type("void") {
-  override val size get() = throw LatteIllegalStateException("Cannot get size of $this type".msg)
-}
-
-class RefType(name: String, override val span: Span) : Type(name) {
-  override val size = 4
+class RefType(override val typeName: String, override val span: Span) : Type {
+  override val size: Bytes = 4
+  override fun toString(): String = typeName
 }

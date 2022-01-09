@@ -1,11 +1,9 @@
 package ml.dev.kotlin.latte.typecheck
 
-import ml.dev.kotlin.latte.quadruple.Label
-import ml.dev.kotlin.latte.quadruple.label
-import ml.dev.kotlin.latte.syntax.IntType
-import ml.dev.kotlin.latte.syntax.StringType
+import ml.dev.kotlin.latte.syntax.PrimitiveType.IntType
+import ml.dev.kotlin.latte.syntax.PrimitiveType.StringType
 import ml.dev.kotlin.latte.syntax.Type
-import ml.dev.kotlin.latte.syntax.VoidType
+import ml.dev.kotlin.latte.syntax.PrimitiveType.VoidType
 
 private val STD_LIB_FUNCTIONS_SIGNATURES = setOf(
   "printInt" withArgs listOf(IntType),

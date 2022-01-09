@@ -3,7 +3,7 @@ package ml.dev.kotlin.latte.asm
 import ml.dev.kotlin.latte.asm.Cmd.*
 import ml.dev.kotlin.latte.asm.Reg.*
 import ml.dev.kotlin.latte.quadruple.*
-import ml.dev.kotlin.latte.syntax.IntType
+import ml.dev.kotlin.latte.syntax.PrimitiveType.IntType
 import ml.dev.kotlin.latte.syntax.NumOp
 import ml.dev.kotlin.latte.syntax.UnOp
 import ml.dev.kotlin.latte.util.AsmBuildException

@@ -1,6 +1,7 @@
 package ml.dev.kotlin.latte.typecheck
 
 import ml.dev.kotlin.latte.syntax.*
+import ml.dev.kotlin.latte.syntax.PrimitiveType.*
 import ml.dev.kotlin.latte.util.LocalizedMessage
 import ml.dev.kotlin.latte.util.StackTable
 import ml.dev.kotlin.latte.util.TypeCheckException
@@ -11,12 +12,21 @@ data class TypeCheckedProgram(val program: ProgramNode)
 
 private class TypeChecker(
   private val funEnv: MutableMap<String, Type> = STD_LIB_FUNCTIONS.toMutableMap(),
+  private val hierarchy: ClassHierarchy = ClassHierarchy(),
   private val varEnv: StackTable<String, Type> = StackTable(),
   private var expectedReturnType: Type? = null,
 ) {
 
   fun ProgramNode.typeCheck(): TypeCheckedProgram {
-    topDefs.onEach { if (it is FunDefNode) it.addToFunEnv() }.forEach { if (it is FunDefNode) it.typeCheck() }
+    val functions = topDefs.filterIsInstance<FunDefNode>()
+    val classes = topDefs.filterIsInstance<ClassDefNode>()
+
+    classes.forEach { hierarchy.addClass(it) }
+    functions.onEach { it.addToFunEnv() }
+
+    hierarchy.buildClassStructure()
+    functions.forEach { it.typeCheck() }
+
     if (ENTRY_LABEL !in funEnv) err("No main function defined")
     return TypeCheckedProgram(this)
   }

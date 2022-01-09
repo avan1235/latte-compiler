@@ -7,6 +7,7 @@ abstract class LatteException(val userMessage: LocalizedMessage) : CancellationE
 sealed class FrontendException(userMessage: LocalizedMessage) : LatteException(userMessage)
 class ParseException(userMessage: LocalizedMessage) : FrontendException(userMessage)
 class TypeCheckException(userMessage: LocalizedMessage) : FrontendException(userMessage)
+class ClassHierarchyException(userMessage: LocalizedMessage) : FrontendException(userMessage)
 
 class IRException(userMessage: LocalizedMessage) : LatteException(userMessage)
 

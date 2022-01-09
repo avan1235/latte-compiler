@@ -2,6 +2,7 @@ package ml.dev.kotlin.latte.quadruple
 
 import ml.dev.kotlin.latte.quadruple.ControlFlowGraph.Companion.buildCFG
 import ml.dev.kotlin.latte.syntax.*
+import ml.dev.kotlin.latte.syntax.PrimitiveType.*
 import ml.dev.kotlin.latte.typecheck.STD_LIB_FUNCTIONS
 import ml.dev.kotlin.latte.typecheck.TypeCheckedProgram
 import ml.dev.kotlin.latte.util.*

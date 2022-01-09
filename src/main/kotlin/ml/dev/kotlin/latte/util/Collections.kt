@@ -72,5 +72,5 @@ abstract class UndirectedGraph<V> : DirectedGraph<V> {
 inline fun <U> get(count: Int, produce: (Int) -> U): List<U> = List(count, produce)
 
 sealed interface TopologicalSortResult<V>
-data class Sorted<V>(val nodes: List<V>) : TopologicalSortResult<V>
-data class WithCycle<V>(val nodes: Set<V>) : TopologicalSortResult<V>
+data class Sorted<V>(val sorted: List<V>) : TopologicalSortResult<V>
+data class WithCycle<V>(val cycle: Set<V>) : TopologicalSortResult<V>

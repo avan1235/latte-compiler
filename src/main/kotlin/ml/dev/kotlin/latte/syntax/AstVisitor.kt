@@ -1,5 +1,6 @@
 package ml.dev.kotlin.latte.syntax
 
+import ml.dev.kotlin.latte.syntax.PrimitiveType.*
 import ml.dev.kotlin.latte.util.FileLocation
 import ml.dev.kotlin.latte.util.Span
 import org.antlr.v4.runtime.ParserRuleContext
@@ -63,7 +64,8 @@ object AstVisitor : LatteBaseVisitor<AstNode>() {
   override fun visitVRet(ctx: LatteParser.VRetContext) = VRetStmtNode(ctx.span())
   override fun visitSExp(ctx: LatteParser.SExpContext) = ExprStmtNode(ctx.expr().visit(), ctx.span())
   override fun visitRefAss(ctx: LatteParser.RefAssContext) =
-    ctx.expr().map { it.visit() }.let { expr -> RefAssStmtNode(expr.first(), ctx.ID().visit(), expr.last(), ctx.span()) }
+    ctx.expr().map { it.visit() }
+      .let { expr -> RefAssStmtNode(expr.first(), ctx.ID().visit(), expr.last(), ctx.span()) }
 
   override fun visitDecl(ctx: LatteParser.DeclContext) =
     DeclStmtNode(ctx.type().visit(), ctx.item().map { visitItem(it) }, ctx.span())
@@ -84,7 +86,10 @@ object AstVisitor : LatteBaseVisitor<AstNode>() {
   }
 
   override fun visitItem(ctx: LatteParser.ItemContext) =
-    ctx.expr()?.visit()?.let { InitItemNode(ctx.ID().visit(), it, ctx.span()) } ?: NotInitItemNode(ctx.ID().visit(), ctx.span())
+    ctx.expr()?.visit()?.let { InitItemNode(ctx.ID().visit(), it, ctx.span()) } ?: NotInitItemNode(
+      ctx.ID().visit(),
+      ctx.span()
+    )
 
   override fun visitEFunCall(ctx: LatteParser.EFunCallContext) =
     FunCallExprNode(ctx.ID().visit(), ctx.expr().orEmpty().map { it.visit() }, ctx.span())
@@ -115,7 +120,9 @@ object AstVisitor : LatteBaseVisitor<AstNode>() {
 
   override fun visitENull(ctx: LatteParser.ENullContext): NullExprNode = NullExprNode(ctx.span())
   override fun visitEId(ctx: LatteParser.EIdContext) = IdentExprNode(ctx.ID().visit(), ctx.span())
-  override fun visitEUnOp(ctx: LatteParser.EUnOpContext) = UnOpExprNode(ctx.unOp().visit(), ctx.expr().visit(), ctx.span())
+  override fun visitEUnOp(ctx: LatteParser.EUnOpContext) =
+    UnOpExprNode(ctx.unOp().visit(), ctx.expr().visit(), ctx.span())
+
   override fun visitEParen(ctx: LatteParser.EParenContext) = ctx.expr().visit()
   override fun visitEInt(ctx: LatteParser.EIntContext) = IntExprNode(ctx.INT().visit(), ctx.span())
   override fun visitETrue(ctx: LatteParser.ETrueContext) = BoolExprNode(true, ctx.span())

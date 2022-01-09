@@ -72,7 +72,7 @@ internal class CollectionsTest {
       val sorted = graph.topologicalSort()
       assertTrue(sorted is Sorted)
       sorted as Sorted
-      assertEquals(expected, sorted.nodes)
+      assertEquals(expected, sorted.sorted)
     }
 
     @Test
@@ -91,7 +91,7 @@ internal class CollectionsTest {
       val sorted = graph.topologicalSort()
       assertTrue(sorted is Sorted)
       sorted as Sorted
-      val returnedFromSort = sorted.nodes.toSet()
+      val returnedFromSort = sorted.sorted.toSet()
       assertEquals(expected, returnedFromSort)
     }
 
@@ -107,7 +107,7 @@ internal class CollectionsTest {
       val returnedFromSort = graph.topologicalSort()
       assertTrue(returnedFromSort is WithCycle)
       returnedFromSort as WithCycle
-      assertEquals(expected, returnedFromSort.nodes)
+      assertEquals(expected, returnedFromSort.cycle)
     }
   }
 }

@@ -11,7 +11,7 @@ data class StackTable<K, V>(
 
   operator fun get(key: K): V? = levelValues[key].lastOrNull()
   operator fun set(key: K, value: V) {
-    if (key in currentLevelNames) throw IllegalArgumentException("Cannot redefine $key with $value for $this")
+    if (key in currentLevelNames) throw LatteIllegalStateException("Cannot redefine $key with $value for $this".msg)
     levelValues[key] += value
     levelNames[leve] += key
   }
@@ -21,7 +21,7 @@ data class StackTable<K, V>(
   }
 
   fun endLevel(): List<Pair<K, V>> {
-    if (leve == 0) throw IllegalStateException("Ended too many levels for $this")
+    if (leve == 0) throw LatteIllegalStateException("Ended too many levels for $this".msg)
     val levelNames = levelNames.remove(leve)
     val levelValues = levelNames.map { it to levelValues[it].removeLast() }
     leve -= 1

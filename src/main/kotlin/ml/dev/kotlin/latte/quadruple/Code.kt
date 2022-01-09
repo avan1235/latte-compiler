@@ -1,6 +1,7 @@
 package ml.dev.kotlin.latte.quadruple
 
 import ml.dev.kotlin.latte.syntax.*
+import ml.dev.kotlin.latte.syntax.PrimitiveType.*
 import ml.dev.kotlin.latte.util.IRException
 import ml.dev.kotlin.latte.util.msg
 

@@ -1,6 +1,6 @@
 package ml.dev.kotlin.latte.quadruple
 
-import ml.dev.kotlin.latte.syntax.IntType
+import ml.dev.kotlin.latte.syntax.PrimitiveType.IntType
 import ml.dev.kotlin.latte.syntax.parse
 import ml.dev.kotlin.latte.typecheck.mangled
 import ml.dev.kotlin.latte.typecheck.typeCheck
