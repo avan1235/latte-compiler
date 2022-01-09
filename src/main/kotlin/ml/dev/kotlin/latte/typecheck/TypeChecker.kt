@@ -43,7 +43,7 @@ private class TypeChecker(
   }
 
   private fun FunDefNode.typeCheck(inClass: String? = null, parentClass: String? = null): Unit = varEnv.onLevel {
-    expectReturn(type, ident, addVoidRetTo = block) {
+    expectReturn {
       thisClass = inClass
       thisFields.apply { clear() }
       thisMethods.apply { clear() }
@@ -66,16 +66,11 @@ private class TypeChecker(
     err("Return type of $ident doesn't match overridden function return type")
   }
 
-  private fun AstNode.expectReturn(
-    type: Type,
-    ident: String,
-    addVoidRetTo: BlockNode,
-    onAction: () -> LastReturnType
-  ): Unit = with(hierarchy) {
+  private fun FunDefNode.expectReturn(onAction: () -> LastReturnType): Unit = with(hierarchy) {
     expectedReturnType = type
     val last = onAction()
     when {
-      last == null && type == VoidType -> addVoidRetTo.stmts += VRetStmtNode()
+      last == null && type == VoidType -> block.stmts += VRetStmtNode()
       last != null && last isSubTypeOf type -> Unit
       else -> err("Expected $ident to return $type")
     }
