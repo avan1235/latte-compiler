@@ -47,7 +47,7 @@ sealed interface StmtNode : AstNode
 data class BlockStmtNode(val block: BlockNode, override val span: Span? = null) : StmtNode
 data class DeclStmtNode(val type: Type, val items: List<ItemNode>, override val span: Span? = null) : StmtNode
 data class AssStmtNode(val ident: String, val expr: ExprNode, override val span: Span? = null) : StmtNode
-data class RefAssStmtNode(val to: ExprNode, val field: String, val expr: ExprNode, override val span: Span? = null) : StmtNode
+data class RefAssStmtNode(val to: ExprNode, val fieldName: String, val expr: ExprNode, override val span: Span? = null) : StmtNode
 data class IncrStmtNode(val ident: String, override val span: Span? = null) : StmtNode
 data class DecrStmtNode(val ident: String, override val span: Span? = null) : StmtNode
 data class RetStmtNode(val expr: ExprNode, override val span: Span? = null) : StmtNode
@@ -65,7 +65,7 @@ data class NullExprNode(override val span: Span? = null) : ExprNode
 data class ThisExprNode(override val span: Span? = null) : ExprNode
 data class UnOpExprNode(val op: UnOp, val expr: ExprNode, override val span: Span? = null) : ExprNode
 data class BinOpExprNode(val left: ExprNode, val op: BinOp, val right: ExprNode, override val span: Span? = null) : ExprNode
-data class FieldExprNode(val expr: ExprNode, val value: String, override val span: Span? = null) : ExprNode
+data class FieldExprNode(val expr: ExprNode, val fieldName: String, override val span: Span? = null) : ExprNode
 data class IdentExprNode(val value: String, override val span: Span? = null) : ExprNode
 data class IntExprNode(val value: String, override val span: Span? = null) : ExprNode
 data class BoolExprNode(val value: Boolean, override val span: Span? = null) : ExprNode

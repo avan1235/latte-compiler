@@ -48,6 +48,7 @@ class Allocator(
       is BooleanConstValue -> Imm(if (value.bool) "1" else "0", BooleanType)
       is IntConstValue -> Imm("${value.int}", IntType)
       is StringConstValue -> Imm(strings[value.str]?.name ?: err("Used not labeled string $this"), StringType)
+      is NullConstValue -> TODO()
     } ?: err("Used not defined variable $value")
 }
 

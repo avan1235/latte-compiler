@@ -14,8 +14,9 @@ private class TypeChecker(
   private val funEnv: MutableMap<String, Type> = STD_LIB_FUNCTIONS.toMutableMap(),
   private val hierarchy: ClassHierarchy = ClassHierarchy(),
   private val varEnv: StackTable<String, Type> = StackTable(),
-  private val thisFields: MutableMap<String, Type> = HashMap(),
   private val thisMethods: MutableMap<String, Type> = HashMap(),
+  private val thisFields: MutableMap<String, Type> = HashMap(),
+  private var thisClass: String? = null,
   private var expectedReturnType: Type? = null,
 ) {
 
@@ -43,6 +44,7 @@ private class TypeChecker(
 
   private fun FunDefNode.typeCheck(inClass: String? = null, parentClass: String? = null): Unit = varEnv.onLevel {
     expectReturn(type, ident, addVoidRetTo = block) {
+      thisClass = inClass
       thisFields.apply { clear() }
       thisMethods.apply { clear() }
       inClass?.let {
@@ -55,21 +57,26 @@ private class TypeChecker(
     }
   }
 
-  private fun FunDefNode.verifyReturnTypeMatchesOverride(inClass: String?, parentClass: String?) {
+  private fun FunDefNode.verifyReturnTypeMatchesOverride(inClass: String?, parent: String?): Unit = with(hierarchy) {
     if (inClass == null) return
-    if (parentClass == null) return
+    if (parent == null) return
     val thisReturns = thisMethods[mangledName] ?: err("Not defined function $ident which should be available")
-    val parentReturns = hierarchy.classMethods(parentClass)[mangledName] ?: return
-    if (hierarchy.isSubType(thisReturns, parentReturns)) return
+    val parentReturns = hierarchy.classMethods(parent)[mangledName] ?: return
+    if (thisReturns isSubTypeOf parentReturns) return
     err("Return type of $ident doesn't match overridden function return type")
   }
 
-  private fun AstNode.expectReturn(type: Type, ident: String, addVoidRetTo: BlockNode, onAction: () -> LastReturnType) {
+  private fun AstNode.expectReturn(
+    type: Type,
+    ident: String,
+    addVoidRetTo: BlockNode,
+    onAction: () -> LastReturnType
+  ): Unit = with(hierarchy) {
     expectedReturnType = type
     val last = onAction()
     when {
       last == null && type == VoidType -> addVoidRetTo.stmts += VRetStmtNode()
-      last != null && hierarchy.isSubType(last, type) -> Unit
+      last != null && last isSubTypeOf type -> Unit
       else -> err("Expected $ident to return $type")
     }
     expectedReturnType = null
@@ -87,38 +94,50 @@ private class TypeChecker(
     is BlockStmtNode -> varEnv.onLevel { block.typeCheck() }
     is AssStmtNode -> noReturn { typeCheckAss(this) }
     is DeclStmtNode -> noReturn { items.forEach { typeCheckDecl(it, type) } }
-    is DecrStmtNode -> noReturn { typeCheckUnOp(ident, IntType) }
-    is IncrStmtNode -> noReturn { typeCheckUnOp(ident, IntType) }
+    is DecrStmtNode -> noReturn { typeCheckUnOp(ident) }
+    is IncrStmtNode -> noReturn { typeCheckUnOp(ident) }
     is WhileStmtNode -> noReturn { typeCheckCond(expr, onTrue) }
     is CondStmtNode -> noReturn { typeCheckCond(expr, onTrue) }
+    is RefAssStmtNode -> noReturn { typeCheckRefAss(this) }
     is CondElseStmtNode -> typeCheckCondElse(expr, onTrue, onFalse)
     is VRetStmtNode -> typeCheckReturn(VoidType)
     is RetStmtNode -> typeCheckReturn(expr.type())
-    is RefAssStmtNode -> TODO()
   }
 
-  private fun typeCheckAss(assStmt: AssStmtNode) {
-    val varType = varEnv[assStmt.ident] ?: assStmt.err("Cannot assign value to not declared variable")
-    val exprType = assStmt.expr.type()
-    if (varType != exprType) assStmt.err("Cannot assign value of type $exprType to variable of type $varType")
+  private fun typeCheckRefAss(assStmt: RefAssStmtNode): Unit = with(assStmt) {
+    val exprType = expr.type()
+    val fieldName = fieldName
+    val fieldType = hierarchy.classFields(to.type().typeName)[fieldName]
+      ?: err("Cannot assign value to not existing field $fieldName")
+    if (!with(hierarchy) { exprType isSubTypeOf fieldType })
+      err("Cannot assign value of type $exprType to field of type $fieldType")
   }
 
-  private fun typeCheckDecl(item: ItemNode, type: Type) {
-    item.addToVarEnv(type, item.ident)
-    when (item) {
+  private fun typeCheckAss(assStmt: AssStmtNode): Unit = with(assStmt) {
+    val varType = getVarType(ident) ?: err("Cannot assign value to not declared variable")
+    val exprType = expr.type()
+    if (!with(hierarchy) { exprType isSubTypeOf varType })
+      err("Cannot assign value of type $exprType to variable of type $varType")
+  }
+
+  private fun typeCheckDecl(item: ItemNode, type: Type): Unit = with(item) {
+    addToVarEnv(type, item.ident)
+    when (this) {
       is InitItemNode -> {
-        val exprType = item.expr.type()
-        if (exprType != type) item.err("Cannot assign value of type $exprType to variable of type $type")
+        val exprType = expr.type()
+        if (!with(hierarchy) { exprType isSubTypeOf type })
+          err("Cannot assign value of type $exprType to variable of type $type")
       }
       is NotInitItemNode -> Unit
     }
   }
 
-  private fun AstNode.typeCheckUnOp(name: String, type: Type): LastReturnType =
-    if (varEnv[name] == type) null else err("Expected $type for operation")
+  private fun AstNode.typeCheckUnOp(ident: String): LastReturnType =
+    if (getVarType(ident) == IntType) null else err("Expected $IntType for operation")
 
-  private fun AstNode.typeCheckReturn(type: Type): LastReturnType =
-    if (expectedReturnType == type) type else err("Expected to return $expectedReturnType but got $type")
+  private fun AstNode.typeCheckReturn(type: Type): LastReturnType = with(hierarchy) {
+    if (type isSubTypeOf expectedReturnType) type else err("Expected to return $expectedReturnType but got $type")
+  }
 
   private fun typeCheckCondElse(expr: ExprNode, onTrue: StmtNode, onFalse: StmtNode): LastReturnType {
     val checkType = expr.type()
@@ -140,6 +159,8 @@ private class TypeChecker(
     varEnv[name] = type
   }
 
+  private fun getVarType(ident: String): Type? = varEnv[ident] ?: thisClass?.let { hierarchy.classFields(it)[ident] }
+
   private fun ExprNode.type(): Type = when (this) {
     is BinOpExprNode -> {
       val left = left.type()
@@ -155,7 +176,9 @@ private class TypeChecker(
         NumOp.PLUS -> bothOf(IntType, StringType).let { left }
         is BooleanOp -> bothOf(BooleanType).let { BooleanType }
         is NumOp -> bothOf(IntType).let { left }
-        is RelOp -> bothOf(IntType, BooleanType).let { BooleanType }
+        is RelOp ->
+          if (left is ClassType && right is ClassType) BooleanType
+          else bothOf(IntType, BooleanType).let { BooleanType }
       }
     }
     is BoolExprNode -> BooleanType
@@ -163,24 +186,47 @@ private class TypeChecker(
       val argsTypes = args.map { it.type() }
       val name = name mangled argsTypes
       mangledName = name
-      funEnv[name] ?: err("Not defined function ${this.name}$argsTypes")
+      funEnv[name] ?: err("Not defined function ${this@type.name}$argsTypes")
     }
-    is IdentExprNode -> varEnv[value] ?: err("Not defined variable with name $value")
+    is IdentExprNode -> getVarType(value) ?: err("Not defined variable with name $value")
     is IntExprNode -> IntType
     is StringExprNode -> StringType
     is UnOpExprNode -> expr.type().let { type ->
       when {
         op == UnOp.NEG && type == IntType -> type
         op == UnOp.NOT && type == BooleanType -> type
-        else -> err("Invalid unary operation types")
+        else -> err("Invalid types of unary operation")
       }
     }
-    is FieldExprNode -> TODO("Handle field expressions for classes")
-    is ConstructorCallExprNode -> TODO("Handle constructor calls for classes")
-    is MethodCallExprNode -> TODO()
-    is CastExprNode -> TODO()
-    is NullExprNode -> TODO()
-    is ThisExprNode -> TODO()
+    is FieldExprNode -> {
+      val fieldOf = expr.type()
+      hierarchy.classFields(fieldOf.typeName)[fieldName] ?: err("Not defined field $fieldName for $fieldOf")
+    }
+    is ConstructorCallExprNode -> when (type) {
+      NullType -> err("Cannot create new instance of null type")
+      is PrimitiveType -> err("Cannot create new instance of primitive type")
+      is ClassType -> if (hierarchy.isTypeDefined(type)) type
+      else err("Cannot create new instance of not defined type $type")
+    }
+    is MethodCallExprNode -> {
+      val selfType = self.type()
+      if (selfType !is ClassType) err("Cannot call ${this.name} on $selfType")
+      val argsTypes = args.map { it.type() }
+      val name = name mangled argsTypes
+      mangledName = name
+      hierarchy.classMethods(selfType.typeName)[name]
+        ?: err("Not defined method ${this.name}$argsTypes for $selfType")
+    }
+    is CastExprNode -> with(hierarchy) {
+      val castTo = if (hierarchy.isTypeDefined(type)) type else err("Cannot cast to undefined type $type")
+      when (val exprType = casted.type()) {
+        is PrimitiveType -> if (castTo == exprType) castTo else err("Cannot cast $exprType to $castTo")
+        is ClassType -> if (exprType isSubTypeOf castTo) castTo else err("Cannot cast $exprType to $castTo")
+        NullType -> castTo
+      }
+    }
+    is NullExprNode -> NullType
+    is ThisExprNode -> ClassType(thisClass ?: err("Used 'this' expression with no class scope"))
   }
 }
 

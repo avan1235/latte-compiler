@@ -20,6 +20,7 @@ sealed class ConstValue(override val type: Type) : ValueHolder
 data class IntConstValue(val int: Int) : ConstValue(IntType)
 data class BooleanConstValue(val bool: Boolean) : ConstValue(BooleanType)
 data class StringConstValue(val label: Label, val str: String) : ConstValue(StringType)
+data class NullConstValue(val label: Label, val str: String) : ConstValue(NullType)
 
 sealed class VirtualReg(open val id: String, open val original: VirtualReg?) : ValueHolder {
   abstract override fun renameUsage(currIndex: CurrIndex): VirtualReg

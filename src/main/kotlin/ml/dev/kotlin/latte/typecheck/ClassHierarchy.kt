@@ -16,6 +16,7 @@ data class ClassHierarchy(
     classFields[className].entries.map { ClassField(it.key, it.value) }
 
   fun addClass(classNode: ClassDefNode): Unit = with(classNode) {
+    if (ident in RESERVED_IDENTIFIERS) err("Cannot define class with name $ident")
     if (ident in classes.keys) err("Redefined class with name $ident")
     classes[ident] = this
     classParents[ident] = parentClass?.let { linkedSetOf(it) } ?: linkedSetOf()
@@ -58,10 +59,16 @@ data class ClassHierarchy(
     }
   }
 
-  fun isSubType(type: Type, of: Type): Boolean = when {
-    type is PrimitiveType && of is PrimitiveType -> type == of
-    type is RefType && of is RefType -> of.typeName in classParents[type.typeName]
+  infix fun Type.isSubTypeOf(of: Type?): Boolean = when {
+    this is PrimitiveType && of is PrimitiveType -> this == of
+    this is ClassType && of is ClassType -> typeName == of.typeName || of.typeName in classParents[typeName]
     else -> false
+  }
+
+  fun isTypeDefined(type: Type): Boolean = when (type) {
+    is PrimitiveType -> true
+    NullType -> true
+    is ClassType -> type.typeName in classes
   }
 
   private inner class ClassHierarchyGraph : DirectedGraph<String> {
@@ -69,6 +76,11 @@ data class ClassHierarchy(
     override fun successors(v: String): Set<String> = classChildren[v]
     override fun predecessors(v: String): Set<String> = setOfNotNull(classParents[v].firstOrNull())
   }
+}
+
+private val RESERVED_IDENTIFIERS = buildSet {
+  PrimitiveType.values().forEach { add(it.typeName) }
+  add(NullType.typeName)
 }
 
 data class ClassField(val name: String, val type: Type)

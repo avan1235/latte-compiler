@@ -36,6 +36,7 @@ internal fun ValueHolder.repr(): String = when (this) {
   is StringConstValue -> label.name
   is ArgValue -> id
   is LocalValue -> id
+  is NullConstValue -> TODO()
 }
 
 internal fun Quadruple.repr(): String = when (this) {

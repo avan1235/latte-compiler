@@ -24,7 +24,16 @@ enum class PrimitiveType(override val typeName: String, override val size: Bytes
   override fun toString(): String = typeName
 }
 
-class RefType(override val typeName: String, override val span: Span) : Type {
+class ClassType(override val typeName: String, override val span: Span? = null) : Type {
   override val size: Bytes = 4
+  override fun toString(): String = typeName
+  override fun hashCode(): Int = typeName.hashCode()
+  override fun equals(other: Any?): Boolean = (other as? ClassType)?.typeName == typeName
+}
+
+object NullType : Type {
+  override val span: Span? = null
+  override val typeName: String = "null"
+  override val size: Bytes get() = throw LatteIllegalStateException("Cannot get size of $this type".msg)
   override fun toString(): String = typeName
 }

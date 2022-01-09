@@ -210,13 +210,6 @@ private data class IRGenerator(
     if (emitting) quadruples += emit()
   }
 
-  private fun ValueHolder.inMemory(): VirtualReg = when (this) {
-    is IntConstValue -> freshTemp(IntType) { to -> emit { AssignQ(to, this) } }
-    is StringConstValue -> freshTemp(StringType) { to -> emit { AssignQ(to, this) } }
-    is BooleanConstValue -> freshTemp(BooleanType) { to -> emit { AssignQ(to, this) } }
-    is VirtualReg -> this
-  }
-
   private fun freshTemp(type: Type, action: (LocalValue) -> Unit = {}): LocalValue =
     LocalValue("@T${freshIdx()}", type).also { varEnv[it.id] = it }.also(action)
 
@@ -242,7 +235,8 @@ private inline val Type.default: ConstValue
     IntType -> IntConstValue(0)
     StringType -> StringConstValue(EMPTY_STRING_LABEL, "")
     VoidType -> err("No default value for void type as it cannot be assigned")
-    is RefType -> TODO()
+    is ClassType -> TODO()
+    NullType -> TODO()
   }
 
 val EMPTY_STRING_LABEL: Label = "S@EMPTY".label

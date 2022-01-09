@@ -48,7 +48,7 @@ type
     | 'string'  # Str
     | 'boolean' # Bool
     | 'void'    # Void
-    | ID        # Ref
+    | ID        # ClassType
     ;
 
 item
@@ -57,7 +57,9 @@ item
     ;
 
 expr
-    : unOp expr                                    # EUnOp
+    : expr '.' ID '(' ( expr ( ',' expr )* )? ')'  # EClassMethodCall
+    | expr '.' ID                                  # EClassField
+    | unOp expr                                    # EUnOp
     | expr mulOp expr                              # EMulOp
     | expr addOp expr                              # EAddOp
     | expr relOp expr                              # ERelOp
@@ -65,17 +67,15 @@ expr
     | <assoc=right> expr '||' expr                 # EOr
     | 'new' type                                   # EClassConstructorCall
     | 'null'                                       # ENull
-    | 'this'                                       # EThis
+    | 'self'                                       # EThis
     | 'true'                                       # ETrue
     | 'false'                                      # EFalse
     | '(' type ')' expr                            # ECast
-    | ID                                           # EId
-    | INT                                          # EInt
+    | '(' expr ')'                                 # EParen
     | ID '(' ( expr ( ',' expr )* )? ')'           # EFunCall
     | STR                                          # EStr
-    | '(' expr ')'                                 # EParen
-    | expr '.' ID                                  # EClassField
-    | expr '.' ID '(' ( expr ( ',' expr )* )? ')'  # EClassMethodCall
+    | INT                                          # EInt
+    | ID                                           # EId
     ;
 
 addOp

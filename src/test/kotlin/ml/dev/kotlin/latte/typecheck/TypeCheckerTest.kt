@@ -21,7 +21,7 @@ internal class TypeCheckerTest {
   @ParameterizedTest
   @MethodSource("extensionsExamplesProvider")
   fun `should accept valid extension input files`(input: File) {
-    input.inputStream().parse()
+    input.inputStream().parse().typeCheck()
   }
 
   @ParameterizedTest
@@ -45,5 +45,6 @@ internal class TypeCheckerTest {
 
     private fun File.testLatteFilesStream(): Stream<File> =
       StreamSupport.stream(walkTopDown().toList().spliterator(), false).filter { it.isFile && it.extension == "lat" }
+//        .filter { it.name.contains("linked") }
   }
 }
