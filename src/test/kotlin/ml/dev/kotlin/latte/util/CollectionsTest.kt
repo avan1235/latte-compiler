@@ -38,6 +38,73 @@ internal class CollectionsTest {
       last = { it == 1 },
     )
   }
+
+  @Nested
+  inner class GraphTest {
+    @Test
+    fun `should return reachable nodes from specified node`() {
+      val graph = TestDirectedGraph(
+        1 to 2,
+        1 to 3,
+        2 to 3,
+        2 to 4,
+        2 to 5,
+        5 to 1,
+        6 to 7,
+      )
+      val expected = setOf(1, 2, 3, 4, 5)
+      val reachable = graph.reachable(from = 1)
+      assertEquals(expected, reachable)
+    }
+
+    @Test
+    fun `should return valid topological sort of nodes`() {
+      val graph = TestDirectedGraph(
+        1 to 2,
+        1 to 3,
+        2 to 3,
+        2 to 4,
+        2 to 5,
+        5 to 4,
+      )
+      val expected = listOf(1, 2, 3, 5, 4)
+      val sorted = graph.topologicalSort()
+      assertEquals(expected, sorted)
+    }
+
+    @Test
+    fun `should return all nodes on topological sort of nodes`() {
+      val graph = TestDirectedGraph(
+        1 to 2,
+        1 to 3,
+        2 to 3,
+        2 to 4,
+        2 to 5,
+        5 to 4,
+        6 to 7,
+        8 to 9,
+      )
+      val expected = setOf(1, 2, 3, 4, 5, 6, 7, 8, 9)
+      val returnedFromSort = graph.topologicalSort()?.toSet()
+      assertEquals(expected, returnedFromSort)
+    }
+
+    @Test
+    fun `should return null in topological sort when cycle detected`() {
+      val graph = TestDirectedGraph(
+        1 to 2,
+        1 to 3,
+        2 to 3,
+        2 to 4,
+        2 to 5,
+        5 to 4,
+        4 to 1,
+      )
+      val expected = null
+      val returnedFromSort = graph.topologicalSort()
+      assertEquals(expected, returnedFromSort)
+    }
+  }
 }
 
 private fun <T> testSplitAtLast(

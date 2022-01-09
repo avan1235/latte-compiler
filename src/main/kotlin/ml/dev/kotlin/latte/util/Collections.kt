@@ -38,6 +38,29 @@ interface DirectedGraph<V> {
     }
     return visited.also { go(from) }
   }
+
+  fun topologicalSort(): List<V>? {
+    val succ = MutableDefaultMap<V, Set<V>>({ successors(it) })
+    val inDegree = MutableDefaultMap<V, Int>({ 0 })
+    for (n in nodes) succ[n].forEach { inDegree[it] += 1 }
+
+    val queue = ArrayDeque<V>()
+    nodes.forEach { if (inDegree[it] == 0) queue += it }
+
+    var visited = 0
+    val topOrder = ArrayList<V>()
+    while (true) {
+      val u = queue.removeFirstOrNull() ?: break
+      topOrder += u
+      succ[u].forEach {
+        inDegree[it] -= 1
+        if (inDegree[it] == 0) queue += it
+      }
+      visited += 1
+    }
+    if (visited < nodes.size) return null
+    return topOrder
+  }
 }
 
 abstract class UndirectedGraph<V> : DirectedGraph<V> {
