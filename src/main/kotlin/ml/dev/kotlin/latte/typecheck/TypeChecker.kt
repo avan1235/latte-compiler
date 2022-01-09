@@ -226,7 +226,7 @@ private class TypeChecker(
       }
     }
     is NullExprNode -> NullType
-    is ThisExprNode -> ClassType(thisClass ?: err("Used 'this' expression with no class scope"))
+    is ThisExprNode -> ClassType(thisClass ?: err("Used 'self' expression with no class scope"))
   }
 }
 
