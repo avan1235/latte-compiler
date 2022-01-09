@@ -39,7 +39,7 @@ interface DirectedGraph<V> {
     return visited.also { go(from) }
   }
 
-  fun topologicalSort(): List<V>? {
+  fun topologicalSort(): TopologicalSortResult<V> {
     val succ = MutableDefaultMap<V, Set<V>>({ successors(it) })
     val inDegree = MutableDefaultMap<V, Int>({ 0 })
     for (n in nodes) succ[n].forEach { inDegree[it] += 1 }
@@ -47,19 +47,18 @@ interface DirectedGraph<V> {
     val queue = ArrayDeque<V>()
     nodes.forEach { if (inDegree[it] == 0) queue += it }
 
-    var visited = 0
+    val visited = HashSet<V>()
     val topOrder = ArrayList<V>()
     while (true) {
-      val u = queue.removeFirstOrNull() ?: break
-      topOrder += u
+      val u = queue.removeFirstOrNull()?.also { topOrder += it } ?: break
       succ[u].forEach {
         inDegree[it] -= 1
         if (inDegree[it] == 0) queue += it
       }
-      visited += 1
+      visited += u
     }
-    if (visited < nodes.size) return null
-    return topOrder
+    if (visited != nodes) return WithCycle(nodes - visited)
+    return Sorted(topOrder)
   }
 }
 
@@ -71,3 +70,7 @@ abstract class UndirectedGraph<V> : DirectedGraph<V> {
 }
 
 inline fun <U> get(count: Int, produce: (Int) -> U): List<U> = List(count, produce)
+
+sealed interface TopologicalSortResult<V>
+data class Sorted<V>(val nodes: List<V>) : TopologicalSortResult<V>
+data class WithCycle<V>(val nodes: Set<V>) : TopologicalSortResult<V>

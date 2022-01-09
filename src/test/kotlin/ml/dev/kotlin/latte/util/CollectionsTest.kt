@@ -1,6 +1,7 @@
 package ml.dev.kotlin.latte.util
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
@@ -69,7 +70,9 @@ internal class CollectionsTest {
       )
       val expected = listOf(1, 2, 3, 5, 4)
       val sorted = graph.topologicalSort()
-      assertEquals(expected, sorted)
+      assertTrue(sorted is Sorted)
+      sorted as Sorted
+      assertEquals(expected, sorted.nodes)
     }
 
     @Test
@@ -85,24 +88,26 @@ internal class CollectionsTest {
         8 to 9,
       )
       val expected = setOf(1, 2, 3, 4, 5, 6, 7, 8, 9)
-      val returnedFromSort = graph.topologicalSort()?.toSet()
+      val sorted = graph.topologicalSort()
+      assertTrue(sorted is Sorted)
+      sorted as Sorted
+      val returnedFromSort = sorted.nodes.toSet()
       assertEquals(expected, returnedFromSort)
     }
 
     @Test
-    fun `should return null in topological sort when cycle detected`() {
+    fun `should return not visited in topological sort when cycle detected`() {
       val graph = TestDirectedGraph(
+        5 to 6,
         1 to 2,
-        1 to 3,
-        2 to 3,
-        2 to 4,
-        2 to 5,
-        5 to 4,
-        4 to 1,
+        3 to 3,
+        3 to 1,
       )
-      val expected = null
+      val expected = setOf(1, 2, 3)
       val returnedFromSort = graph.topologicalSort()
-      assertEquals(expected, returnedFromSort)
+      assertTrue(returnedFromSort is WithCycle)
+      returnedFromSort as WithCycle
+      assertEquals(expected, returnedFromSort.nodes)
     }
   }
 }
