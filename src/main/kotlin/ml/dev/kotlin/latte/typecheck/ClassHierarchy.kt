@@ -8,8 +8,12 @@ data class ClassHierarchy(
   private val classParents: MutableDefaultMap<String, LinkedHashSet<String>> = MutableDefaultMap({ LinkedHashSet() }),
   private val classChildren: MutableDefaultMap<String, HashSet<String>> = MutableDefaultMap({ HashSet() }),
   private val classFields: MutableDefaultMap<String, LinkedHashMap<String, Type>> = MutableDefaultMap({ LinkedHashMap() }),
-  private val classMethods: MutableDefaultMap<String, MutableMap<String, Type>> = MutableDefaultMap({ HashMap() }),
+  private val classMethods: MutableDefaultMap<String, HashMap<String, Type>> = MutableDefaultMap({ HashMap() }),
 ) {
+  fun classMethods(className: String): Map<String, Type> = classMethods[className]
+  fun classFields(className: String): Map<String, Type> = classFields[className]
+  fun orderedClassFields(className: String): List<ClassField> =
+    classFields[className].entries.map { ClassField(it.key, it.value) }
 
   fun addClass(classNode: ClassDefNode): Unit = with(classNode) {
     if (ident in classes.keys) err("Redefined class with name $ident")
@@ -49,8 +53,8 @@ data class ClassHierarchy(
     for (method in methods) {
       val methodName = method.ident mangled method.args.list.map { it.type }
       if (methodName in thisClassMethods && methodName !in parentClassMethods) err("Redefined method ${method.ident}")
-      thisClassMethods[methodName] = method.type
-      method.mangledName
+      thisClassMethods[methodName] = method.type // TODO check if this type matches type from parent class
+      method.mangledName = methodName
     }
   }
 
@@ -66,5 +70,7 @@ data class ClassHierarchy(
     override fun predecessors(v: String): Set<String> = setOfNotNull(classParents[v].firstOrNull())
   }
 }
+
+data class ClassField(val name: String, val type: Type)
 
 private fun AstNode.err(message: String): Nothing = throw ClassHierarchyException(LocalizedMessage(message, span?.from))

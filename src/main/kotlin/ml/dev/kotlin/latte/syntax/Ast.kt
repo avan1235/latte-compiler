@@ -1,5 +1,6 @@
 package ml.dev.kotlin.latte.syntax
 
+import ml.dev.kotlin.latte.typecheck.ClassField
 import ml.dev.kotlin.latte.util.Span
 import kotlin.properties.Delegates.notNull
 
@@ -16,20 +17,10 @@ data class ClassFieldNode(val type: Type, val ident: String, override val span: 
 data class ClassDefNode(
   val ident: String,
   val fields: List<ClassFieldNode>,
-  val methods: List<MethodDefNode>,
+  val methods: List<FunDefNode>,
   val parentClass: String? = null,
   override val span: Span? = null,
 ) : TopDefNode
-
-data class MethodDefNode(
-  val type: Type,
-  val ident: String,
-  val args: ArgsNode,
-  val block: BlockNode,
-  override val span: Span? = null
-) : AstNode {
-  var mangledName by notNull<String>()
-}
 
 data class FunDefNode(
   val type: Type,
@@ -71,6 +62,7 @@ object EmptyStmtNode : StmtNode {
 
 sealed interface ExprNode : AstNode
 data class NullExprNode(override val span: Span? = null) : ExprNode
+data class ThisExprNode(override val span: Span? = null) : ExprNode
 data class UnOpExprNode(val op: UnOp, val expr: ExprNode, override val span: Span? = null) : ExprNode
 data class BinOpExprNode(val left: ExprNode, val op: BinOp, val right: ExprNode, override val span: Span? = null) : ExprNode
 data class FieldExprNode(val expr: ExprNode, val value: String, override val span: Span? = null) : ExprNode

@@ -65,6 +65,7 @@ expr
     | <assoc=right> expr '||' expr                 # EOr
     | 'new' type                                   # EClassConstructorCall
     | 'null'                                       # ENull
+    | 'this'                                       # EThis
     | 'true'                                       # ETrue
     | 'false'                                      # EFalse
     | '(' type ')' expr                            # ECast

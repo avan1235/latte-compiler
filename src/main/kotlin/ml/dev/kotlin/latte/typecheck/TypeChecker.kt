@@ -14,6 +14,8 @@ private class TypeChecker(
   private val funEnv: MutableMap<String, Type> = STD_LIB_FUNCTIONS.toMutableMap(),
   private val hierarchy: ClassHierarchy = ClassHierarchy(),
   private val varEnv: StackTable<String, Type> = StackTable(),
+  private val thisFields: MutableMap<String, Type> = HashMap(),
+  private val thisMethods: MutableMap<String, Type> = HashMap(),
   private var expectedReturnType: Type? = null,
 ) {
 
@@ -21,11 +23,12 @@ private class TypeChecker(
     val functions = topDefs.filterIsInstance<FunDefNode>()
     val classes = topDefs.filterIsInstance<ClassDefNode>()
 
+    functions.forEach { it.addToFunEnv() }
     classes.forEach { hierarchy.addClass(it) }
-    functions.onEach { it.addToFunEnv() }
 
     hierarchy.buildClassStructure()
     functions.forEach { it.typeCheck() }
+    classes.forEach { classDef -> with(classDef) { methods.forEach { it.typeCheck(ident, parentClass) } } }
 
     if (ENTRY_LABEL !in funEnv) err("No main function defined")
     return TypeCheckedProgram(this)
@@ -38,12 +41,37 @@ private class TypeChecker(
     mangledName = name
   }
 
-  private fun FunDefNode.typeCheck(): Unit = varEnv.onLevel {
+  private fun FunDefNode.typeCheck(inClass: String? = null, parentClass: String? = null): Unit = varEnv.onLevel {
+    expectReturn(type, ident, addVoidRetTo = block) {
+      thisFields.apply { clear() }
+      thisMethods.apply { clear() }
+      inClass?.let {
+        thisFields.putAll(hierarchy.classFields(it))
+        thisMethods.putAll(hierarchy.classMethods(it))
+      }
+      verifyReturnTypeMatchesOverride(inClass, parentClass)
+      args.list.forEach { args.addToVarEnv(it.type, it.ident) }
+      block.typeCheck()
+    }
+  }
+
+  private fun FunDefNode.verifyReturnTypeMatchesOverride(inClass: String?, parentClass: String?) {
+    if (inClass == null) return
+    if (parentClass == null) return
+    val thisReturns = thisMethods[mangledName] ?: err("Not defined function $ident which should be available")
+    val parentReturns = hierarchy.classMethods(parentClass)[mangledName] ?: return
+    if (hierarchy.isSubType(thisReturns, parentReturns)) return
+    err("Return type of $ident doesn't match overridden function return type")
+  }
+
+  private fun AstNode.expectReturn(type: Type, ident: String, addVoidRetTo: BlockNode, onAction: () -> LastReturnType) {
     expectedReturnType = type
-    args.list.forEach { args.addToVarEnv(it.type, it.ident) }
-    val last = block.typeCheck()
-    if (last != type && type != VoidType) err("Expected $ident to return $type")
-    if (last == null && type == VoidType) block.stmts += VRetStmtNode()
+    val last = onAction()
+    when {
+      last == null && type == VoidType -> addVoidRetTo.stmts += VRetStmtNode()
+      last != null && hierarchy.isSubType(last, type) -> Unit
+      else -> err("Expected $ident to return $type")
+    }
     expectedReturnType = null
   }
 
@@ -152,6 +180,7 @@ private class TypeChecker(
     is MethodCallExprNode -> TODO()
     is CastExprNode -> TODO()
     is NullExprNode -> TODO()
+    is ThisExprNode -> TODO()
   }
 }
 

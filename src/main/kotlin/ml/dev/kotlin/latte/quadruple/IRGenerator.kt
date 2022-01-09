@@ -195,6 +195,7 @@ private data class IRGenerator(
     is MethodCallExprNode -> TODO("Not implemented class method calls")
     is CastExprNode -> TODO()
     is NullExprNode -> TODO()
+    is ThisExprNode -> TODO()
   }
 
   private fun generateCondElse(left: ExprNode, op: BooleanOp, right: ExprNode): LocalValue = freshTemp(BooleanType) { to ->

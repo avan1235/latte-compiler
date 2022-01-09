@@ -19,7 +19,7 @@ object AstVisitor : LatteBaseVisitor<AstNode>() {
   override fun visitClassNotExtendingDef(ctx: LatteParser.ClassNotExtendingDefContext): ClassDefNode {
     val bodyDefs = ctx.classBodyDef().map { it.visitReturning<AstNode>() }
     val fields = bodyDefs.filterIsInstance<ClassFieldNode>()
-    val methods = bodyDefs.filterIsInstance<MethodDefNode>()
+    val methods = bodyDefs.filterIsInstance<FunDefNode>()
     return ClassDefNode(ctx.ID().visit(), fields, methods, parentClass = null, ctx.span())
   }
 
@@ -27,7 +27,7 @@ object AstVisitor : LatteBaseVisitor<AstNode>() {
     val (name, parent) = ctx.ID().map { it.visit() }
     val bodyDefs = ctx.classBodyDef().map { it.visitReturning<AstNode>() }
     val fields = bodyDefs.filterIsInstance<ClassFieldNode>()
-    val methods = bodyDefs.filterIsInstance<MethodDefNode>()
+    val methods = bodyDefs.filterIsInstance<FunDefNode>()
     return ClassDefNode(name, fields, methods, parent, ctx.span())
   }
 
@@ -44,8 +44,8 @@ object AstVisitor : LatteBaseVisitor<AstNode>() {
   override fun visitClassField(ctx: LatteParser.ClassFieldContext): ClassFieldNode =
     ClassFieldNode(ctx.type().visit(), ctx.ID().visit(), ctx.span())
 
-  override fun visitClassMethod(ctx: LatteParser.ClassMethodContext): MethodDefNode =
-    MethodDefNode(ctx.type().visit(), ctx.ID().visit(), visitArg(ctx.arg()), visitBlock(ctx.block()), ctx.span())
+  override fun visitClassMethod(ctx: LatteParser.ClassMethodContext): FunDefNode =
+    FunDefNode(ctx.type().visit(), ctx.ID().visit(), visitArg(ctx.arg()), visitBlock(ctx.block()), ctx.span())
 
   override fun visitArg(ctx: LatteParser.ArgContext?) = ArgsNode(
     ctx?.type().orEmpty().zip(ctx?.ID().orEmpty()).map { (type, ident) -> ArgNode(type.visit(), ident.visit()) },
@@ -119,6 +119,7 @@ object AstVisitor : LatteBaseVisitor<AstNode>() {
     StringExprNode(ctx.STR().text.run { substring(1, length - 1) }, ctx.span())
 
   override fun visitENull(ctx: LatteParser.ENullContext): NullExprNode = NullExprNode(ctx.span())
+  override fun visitEThis(ctx: LatteParser.EThisContext): ThisExprNode = ThisExprNode(ctx.span())
   override fun visitEId(ctx: LatteParser.EIdContext) = IdentExprNode(ctx.ID().visit(), ctx.span())
   override fun visitEUnOp(ctx: LatteParser.EUnOpContext) =
     UnOpExprNode(ctx.unOp().visit(), ctx.expr().visit(), ctx.span())
