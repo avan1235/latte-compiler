@@ -8,6 +8,47 @@ import org.junit.jupiter.api.Test
 internal class CollectionsTest {
 
   @Nested
+  inner class TransposedTest {
+    @Test
+    fun `should output all possible combinations`() {
+      val given = listOf(
+        listOf(1, 2, 3),
+        listOf(4, 5),
+        listOf(6, 7, 8, 9),
+        listOf(1)
+      )
+      val expected = setOf(
+        listOf(1, 4, 6, 1),
+        listOf(1, 4, 7, 1),
+        listOf(1, 4, 8, 1),
+        listOf(1, 4, 9, 1),
+        listOf(1, 5, 6, 1),
+        listOf(1, 5, 7, 1),
+        listOf(1, 5, 8, 1),
+        listOf(1, 5, 9, 1),
+        listOf(2, 4, 6, 1),
+        listOf(2, 4, 7, 1),
+        listOf(2, 4, 8, 1),
+        listOf(2, 4, 9, 1),
+        listOf(2, 5, 6, 1),
+        listOf(2, 5, 7, 1),
+        listOf(2, 5, 8, 1),
+        listOf(2, 5, 9, 1),
+        listOf(3, 4, 6, 1),
+        listOf(3, 4, 7, 1),
+        listOf(3, 4, 8, 1),
+        listOf(3, 4, 9, 1),
+        listOf(3, 5, 6, 1),
+        listOf(3, 5, 7, 1),
+        listOf(3, 5, 8, 1),
+        listOf(3, 5, 9, 1),
+      )
+      val transposed = given.combinations().toSet()
+      assertEquals(expected, transposed)
+    }
+  }
+
+  @Nested
   inner class SplitAtTest {
     @Test
     fun `should split on last element`() = testSplitAtLast(

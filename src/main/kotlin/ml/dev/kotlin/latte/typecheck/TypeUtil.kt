@@ -1,9 +1,7 @@
 package ml.dev.kotlin.latte.typecheck
 
-import ml.dev.kotlin.latte.syntax.PrimitiveType.IntType
-import ml.dev.kotlin.latte.syntax.PrimitiveType.StringType
+import ml.dev.kotlin.latte.syntax.PrimitiveType.*
 import ml.dev.kotlin.latte.syntax.Type
-import ml.dev.kotlin.latte.syntax.PrimitiveType.VoidType
 
 private val STD_LIB_FUNCTIONS_SIGNATURES = setOf(
   "printInt" withArgs listOf(IntType),
@@ -27,6 +25,7 @@ const val ENTRY_LABEL: String = "main"
 infix fun String.mangled(args: List<Type>): String =
   if (this withArgs args in STD_LIB_FUNCTIONS_SIGNATURES) "__$this" else "$this${args.joinToString("") { "@$it" }}"
 
-data class FunctionSignature(val name: String, val args: List<Type>)
+data class FunSignature(val name: String, val args: List<Type>)
+data class FunDeclaration(val name: String, val args: List<Type>, val ret: Type)
 
-private infix fun String.withArgs(args: List<Type>) = FunctionSignature(this, args)
+private infix fun String.withArgs(args: List<Type>) = FunSignature(this, args)

@@ -1,5 +1,6 @@
 package ml.dev.kotlin.latte.util
 
+
 inline fun <T> Iterable<T>.splitAt(
   crossinline first: (T) -> Boolean = { false },
   crossinline last: (T) -> Boolean = { false },
@@ -19,6 +20,27 @@ inline fun <T> Iterable<T>.splitAt(
   }
   yield(curr)
 }.filter { it.isNotEmpty() }
+
+fun <T> List<List<T>>.combinations(): Set<List<T>> {
+  if (isEmpty()) return emptySet()
+  var combinations = HashSet<List<T>>()
+  for (i in this[0]) combinations += ArrayList<T>().also { it += i }
+
+  repeat(size - 1) { idx ->
+    val currList = this[idx + 1]
+    val combinationsUpdate = HashSet<List<T>>()
+    for (first in combinations) {
+      for (currElem in currList) {
+        val newList = ArrayList(first)
+        newList += currElem
+        combinationsUpdate += newList
+      }
+    }
+    combinations = combinationsUpdate
+  }
+  return combinations
+}
+
 
 fun <T> Iterable<T>.nlString(transform: ((T) -> CharSequence)? = null) =
   joinToString("\n", "\n", "\n", transform = transform)

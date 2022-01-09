@@ -14,6 +14,10 @@ data class ClassHierarchy(
   fun classFields(className: String): Map<String, Type> = classFields[className]
   fun orderedClassFields(className: String): List<ClassField> =
     classFields[className].entries.map { ClassField(it.key, it.value) }
+  fun orderedClassParents(className: String): List<String> = buildList {
+    add(className)
+    addAll(classParents[className])
+  }
 
   fun addClass(classNode: ClassDefNode): Unit = with(classNode) {
     if (ident in RESERVED_IDENTIFIERS) err("Cannot define class with name $ident")
@@ -21,6 +25,10 @@ data class ClassHierarchy(
     classes[ident] = this
     classParents[ident] = parentClass?.let { linkedSetOf(it) } ?: linkedSetOf()
     parentClass?.let { classChildren[it] += ident }
+  }
+
+  fun addFun(ident: String, args: List<Type>, ret: Type) {
+
   }
 
   fun buildClassStructure(): Unit = when (val nodes = ClassHierarchyGraph().topologicalSort()) {

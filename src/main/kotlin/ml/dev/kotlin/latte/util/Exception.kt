@@ -8,6 +8,7 @@ sealed class FrontendException(userMessage: LocalizedMessage) : LatteException(u
 class ParseException(userMessage: LocalizedMessage) : FrontendException(userMessage)
 class TypeCheckException(userMessage: LocalizedMessage) : FrontendException(userMessage)
 class ClassHierarchyException(userMessage: LocalizedMessage) : FrontendException(userMessage)
+class FunEnvException(userMessage: LocalizedMessage) : FrontendException(userMessage)
 
 class IRException(userMessage: LocalizedMessage) : LatteException(userMessage)
 
