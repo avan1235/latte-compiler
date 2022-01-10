@@ -22,7 +22,7 @@ inline fun <T> Iterable<T>.splitAt(
 }.filter { it.isNotEmpty() }
 
 fun <T> List<List<T>>.combinations(): Set<List<T>> {
-  if (isEmpty()) return emptySet()
+  if (isEmpty()) return setOf(emptyList())
   var combinations = HashSet<List<T>>()
   for (i in this[0]) combinations += ArrayList<T>().also { it += i }
 

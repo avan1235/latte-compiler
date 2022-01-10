@@ -11,11 +11,10 @@ fun ProgramNode.typeCheck(): TypeCheckedProgram = TypeChecker().run { this@typeC
 data class TypeCheckedProgram(val program: ProgramNode)
 
 private class TypeChecker(
-  private val funEnv: MutableMap<String, Type> = STD_LIB_FUNCTIONS.toMutableMap(),
   private val hierarchy: ClassHierarchy = ClassHierarchy(),
   private val varEnv: StackTable<String, Type> = StackTable(),
-  private val thisMethods: MutableMap<String, Type> = HashMap(),
-  private val thisFields: MutableMap<String, Type> = HashMap(),
+  private var thisMethods: FunEnv? = null,
+  private var thisFields: Map<String, Type>? = null,
   private var thisClass: String? = null,
   private var expectedReturnType: Type? = null,
 ) {
@@ -31,38 +30,35 @@ private class TypeChecker(
     functions.forEach { it.typeCheck() }
     classes.forEach { classDef -> with(classDef) { methods.forEach { it.typeCheck(ident, parentClass) } } }
 
-    if (ENTRY_LABEL !in funEnv) err("No main function defined")
+    if (hierarchy[ENTRY_LABEL, NO_ARGS] == null) err("No main function defined")
     return TypeCheckedProgram(this)
   }
 
-  private fun FunDefNode.addToFunEnv() {
-    val name = ident mangled args.list.map { it.type }
-    if (name in funEnv) err("Redefined function $ident")
-    funEnv[name] = type
-    mangledName = name
-  }
+  private fun FunDefNode.addToFunEnv(): Unit = hierarchy.addFun(this)
 
   private fun FunDefNode.typeCheck(inClass: String? = null, parentClass: String? = null): Unit = varEnv.onLevel {
     expectReturn {
       thisClass = inClass
-      thisFields.apply { clear() }
-      thisMethods.apply { clear() }
+      thisFields = null
+      thisMethods = null
       inClass?.let {
-        thisFields.putAll(hierarchy.classFields(it))
-        thisMethods.putAll(hierarchy.classMethods(it))
+        thisFields = hierarchy.classFields(it)
+        thisMethods = hierarchy.classMethods(it)
       }
-      verifyReturnTypeMatchesOverride(inClass, parentClass)
+      verifyOverrideReturnTypeMatchesParent(inClass, parentClass)
       args.list.forEach { args.addToVarEnv(it.type, it.ident) }
       block.typeCheck()
     }
   }
 
-  private fun FunDefNode.verifyReturnTypeMatchesOverride(inClass: String?, parent: String?) {
+  private fun FunDefNode.verifyOverrideReturnTypeMatchesParent(inClass: String?, parent: String?) {
     if (inClass == null) return
     if (parent == null) return
-    val thisReturns = thisMethods[mangledName] ?: err("Not defined function $ident which should be available")
-    val parentReturns = hierarchy.classMethods(parent)[mangledName] ?: return
-    if (thisReturns isSubTypeOf parentReturns) return
+    val argsTypes = args.list.map { it.type }
+    val thisReturns = thisMethods?.get(ident, argsTypes)
+      ?: err("Not defined function $ident which should be available")
+    val parentReturns = hierarchy.classMethods(parent)[ident, argsTypes] ?: return
+    if (thisReturns.ret isSubTypeOf parentReturns.ret) return
     err("Return type of $ident doesn't match overridden function return type")
   }
 
@@ -179,9 +175,8 @@ private class TypeChecker(
     is BoolExprNode -> BooleanType
     is FunCallExprNode -> {
       val argsTypes = args.map { it.type() }
-      val name = name mangled argsTypes
-      mangledName = name
-      funEnv[name] ?: err("Not defined function ${this@type.name}$argsTypes")
+      mangledName = name mangled argsTypes
+      hierarchy[name, argsTypes]?.ret ?: err("Not defined function $name$argsTypes")
     }
     is IdentExprNode -> getVarType(value) ?: err("Not defined variable with name $value")
     is IntExprNode -> IntType
@@ -207,10 +202,9 @@ private class TypeChecker(
       val selfType = self.type()
       if (selfType !is ClassType) err("Cannot call ${this.name} on $selfType")
       val argsTypes = args.map { it.type() }
-      val name = name mangled argsTypes
-      mangledName = name
-      hierarchy.classMethods(selfType.typeName)[name]
-        ?: err("Not defined method ${this.name}$argsTypes for $selfType")
+      hierarchy.classMethods(selfType.typeName)[name, argsTypes]
+        ?.also { mangledName = it.name }
+        ?.ret ?: err("Not defined method ${this.name}$argsTypes for $selfType")
     }
     is CastExprNode -> {
       val castTo = if (hierarchy.isTypeDefined(type)) type else err("Cannot cast to undefined type $type")

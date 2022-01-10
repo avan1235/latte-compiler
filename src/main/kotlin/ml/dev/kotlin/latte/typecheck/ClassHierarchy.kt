@@ -8,16 +8,20 @@ data class ClassHierarchy(
   private val classParents: MutableDefaultMap<String, LinkedHashSet<String>> = MutableDefaultMap({ LinkedHashSet() }),
   private val classChildren: MutableDefaultMap<String, HashSet<String>> = MutableDefaultMap({ HashSet() }),
   private val classFields: MutableDefaultMap<String, LinkedHashMap<String, Type>> = MutableDefaultMap({ LinkedHashMap() }),
-  private val classMethods: MutableDefaultMap<String, HashMap<String, Type>> = MutableDefaultMap({ HashMap() }),
 ) {
-  fun classMethods(className: String): Map<String, Type> = classMethods[className]
+  private val argsCombinationsCache: DefaultMap<List<Type>, Set<List<Type>>> = MutableDefaultMap({ args ->
+    args.map {
+      if (it is ClassType) orderedClassParents(it.typeName).mapTo(ArrayList(), ::ClassType)
+      else arrayListOf(it)
+    }.combinations()
+  })
+  private val classMethods: MutableDefaultMap<String, FunEnv> = MutableDefaultMap({ FunEnv(argsCombinationsCache) })
+  private val functions: FunEnv = FunEnv(argsCombinationsCache, createStdLibFunEnv())
+
+  fun classMethods(className: String): FunEnv = classMethods[className]
   fun classFields(className: String): Map<String, Type> = classFields[className]
   fun orderedClassFields(className: String): List<ClassField> =
     classFields[className].entries.map { ClassField(it.key, it.value) }
-  fun orderedClassParents(className: String): List<String> = buildList {
-    add(className)
-    addAll(classParents[className])
-  }
 
   fun addClass(classNode: ClassDefNode): Unit = with(classNode) {
     if (ident in RESERVED_IDENTIFIERS) err("Cannot define class with name $ident")
@@ -27,9 +31,8 @@ data class ClassHierarchy(
     parentClass?.let { classChildren[it] += ident }
   }
 
-  fun addFun(ident: String, args: List<Type>, ret: Type) {
-
-  }
+  fun addFun(funDef: FunDefNode): Unit = functions.addFun(funDef)
+  operator fun get(name: String, args: List<Type>): FunDeclaration? = functions[name, args]
 
   fun buildClassStructure(): Unit = when (val nodes = ClassHierarchyGraph().topologicalSort()) {
     is WithCycle -> {
@@ -57,14 +60,9 @@ data class ClassHierarchy(
   }
 
   private fun ClassDefNode.addMethods() {
-    val parentClassMethods = parentClass?.let { classMethods[it] } ?: HashMap()
+    val parentClassMethods = parentClass?.let { classMethods[it] } ?: FunEnv(argsCombinationsCache)
     val thisClassMethods = classMethods[ident].also { it += parentClassMethods }
-    for (method in methods) {
-      val methodName = method.ident mangled method.args.list.map { it.type }
-      if (methodName in thisClassMethods && methodName !in parentClassMethods) err("Redefined method ${method.ident}")
-      thisClassMethods[methodName] = method.type // TODO check if this type matches type from parent class
-      method.mangledName = methodName
-    }
+    for (method in methods) thisClassMethods.addFun(method, ident)
   }
 
   infix fun Type.isSubTypeOf(of: Type?): Boolean = when {
@@ -77,6 +75,11 @@ data class ClassHierarchy(
     is PrimitiveType -> true
     NullType -> true
     is ClassType -> type.typeName in classes
+  }
+
+  private fun orderedClassParents(className: String): Sequence<String> = sequence {
+    yield(className)
+    yieldAll(classParents[className])
   }
 
   private inner class ClassHierarchyGraph : DirectedGraph<String> {

@@ -12,7 +12,7 @@ fun TypeCheckedProgram.toIR(): IR = IRGenerator().run { this@toIR.generate() }
 data class IR(val graph: ControlFlowGraph, val strings: Map<String, Label>, val labelGenerator: () -> Label)
 
 private data class IRGenerator(
-  private val funEnv: MutableMap<String, Type> = STD_LIB_FUNCTIONS.toMutableMap(),
+  private val funEnv: MutableMap<String, Type> = STD_LIB_FUNCTIONS.mapValuesTo(HashMap()) { it.value.ret },
   private val quadruples: MutableList<Quadruple> = mutableListOf(),
   private val varEnv: StackTable<String, VirtualReg> = StackTable(),
   private val strings: MutableMap<String, Label> = hashMapOf("" to EMPTY_STRING_LABEL),
@@ -190,21 +190,22 @@ private data class IRGenerator(
         }
       }
     }
-    is FieldExprNode -> TODO("Not implemented fields accessing")
-    is ConstructorCallExprNode -> TODO("Not implemented constructor calls")
-    is MethodCallExprNode -> TODO("Not implemented class method calls")
+    is FieldExprNode -> TODO()
+    is ConstructorCallExprNode -> TODO()
+    is MethodCallExprNode -> TODO()
     is CastExprNode -> TODO()
     is NullExprNode -> TODO()
     is ThisExprNode -> TODO()
   }
 
-  private fun generateCondElse(left: ExprNode, op: BooleanOp, right: ExprNode): LocalValue = freshTemp(BooleanType) { to ->
-    CondElseStmtNode(
-      BinOpExprNode(left, op, right),
-      AssStmtNode(to.id, BoolExprNode(true)),
-      AssStmtNode(to.id, BoolExprNode(false)),
-    ).generate()
-  }
+  private fun generateCondElse(left: ExprNode, op: BooleanOp, right: ExprNode): LocalValue =
+    freshTemp(BooleanType) { to ->
+      CondElseStmtNode(
+        BinOpExprNode(left, op, right),
+        AssStmtNode(to.id, BoolExprNode(true)),
+        AssStmtNode(to.id, BoolExprNode(false)),
+      ).generate()
+    }
 
   private inline fun emit(emit: () -> Quadruple) {
     if (emitting) quadruples += emit()

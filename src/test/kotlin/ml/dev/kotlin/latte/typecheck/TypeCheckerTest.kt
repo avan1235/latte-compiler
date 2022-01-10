@@ -45,6 +45,5 @@ internal class TypeCheckerTest {
 
     private fun File.testLatteFilesStream(): Stream<File> =
       StreamSupport.stream(walkTopDown().toList().spliterator(), false).filter { it.isFile && it.extension == "lat" }
-//        .filter { it.name.contains("linked") }
   }
 }
