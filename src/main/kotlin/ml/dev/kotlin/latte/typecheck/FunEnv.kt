@@ -23,7 +23,7 @@ class FunEnv(
   operator fun get(name: String, args: List<Type>): FunDeclaration? =
     argsCombinations[args].mapNotNull { funEnv[name][it] }.singleOrNull()
 
-  operator fun plusAssign(other: FunEnv): Unit = funEnv.putAll(other.funEnv)
+  operator fun plusAssign(other: FunEnv): Unit = funEnv.putAll(other.funEnv.deepCopy { HashMap(it) })
 }
 
 private fun AstNode.err(message: String): Nothing = throw FunEnvException(LocalizedMessage(message, span?.from))
