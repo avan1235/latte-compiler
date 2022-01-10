@@ -46,6 +46,22 @@ internal class CollectionsTest {
       val transposed = given.combinations().toSet()
       assertEquals(expected, transposed)
     }
+
+    @Test
+    fun `should return set with empty list on empty list given`() {
+      val given = listOf<List<Int>>()
+      val expected = setOf(emptyList<Int>())
+      val transposed = given.combinations().toSet()
+      assertEquals(expected, transposed)
+    }
+
+    @Test
+    fun `should return empty set with empty list on list with empty lists given`() {
+      val given = listOf<List<Int>>(emptyList(), emptyList(), emptyList())
+      val expected = setOf<List<Int>>()
+      val transposed = given.combinations().toSet()
+      assertEquals(expected, transposed)
+    }
   }
 
   @Nested

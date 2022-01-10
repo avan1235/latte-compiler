@@ -11,7 +11,7 @@ fun ProgramNode.typeCheck(): TypeCheckedProgram = TypeChecker().run { this@typeC
 data class TypeCheckedProgram(val program: ProgramNode)
 
 private class TypeChecker(
-  private val hierarchy: ClassHierarchy = ClassHierarchy(),
+  private val env: ClassHierarchy = ClassHierarchy(),
   private val varEnv: StackTable<String, Type> = StackTable(),
   private var thisMethods: FunEnv? = null,
   private var thisFields: Map<String, Type>? = null,
@@ -24,17 +24,17 @@ private class TypeChecker(
     val classes = topDefs.filterIsInstance<ClassDefNode>()
 
     functions.forEach { it.addToFunEnv() }
-    classes.forEach { hierarchy.addClass(it) }
+    classes.forEach { env.addClass(it) }
 
-    hierarchy.buildClassStructure()
+    env.buildClassStructure()
     functions.forEach { it.typeCheck() }
     classes.forEach { classDef -> with(classDef) { methods.forEach { it.typeCheck(ident, parentClass) } } }
 
-    if (hierarchy[ENTRY_LABEL, NO_ARGS] == null) err("No main function defined")
+    if (env[ENTRY_LABEL, NO_ARGS] == null) err("No main function defined")
     return TypeCheckedProgram(this)
   }
 
-  private fun FunDefNode.addToFunEnv(): Unit = hierarchy.addFun(this)
+  private fun FunDefNode.addToFunEnv(): Unit = env.addFun(this)
 
   private fun FunDefNode.typeCheck(inClass: String? = null, parentClass: String? = null): Unit = varEnv.onLevel {
     expectReturn {
@@ -42,8 +42,8 @@ private class TypeChecker(
       thisFields = null
       thisMethods = null
       inClass?.let {
-        thisFields = hierarchy.classFields(it)
-        thisMethods = hierarchy.classMethods(it)
+        thisFields = env.classFields(it)
+        thisMethods = env.classMethods(it)
       }
       verifyOverrideReturnTypeMatchesParent(inClass, parentClass)
       args.list.forEach { args.addToVarEnv(it.type, it.ident) }
@@ -57,7 +57,7 @@ private class TypeChecker(
     val argsTypes = args.list.map { it.type }
     val thisReturns = thisMethods?.get(ident, argsTypes)
       ?: err("Not defined function $ident which should be available")
-    val parentReturns = hierarchy.classMethods(parent)[ident, argsTypes] ?: return
+    val parentReturns = env.classMethods(parent)[ident, argsTypes] ?: return
     if (thisReturns.ret isSubTypeOf parentReturns.ret) return
     err("Return type of $ident doesn't match overridden function return type")
   }
@@ -98,7 +98,7 @@ private class TypeChecker(
   private fun typeCheckRefAss(assStmt: RefAssStmtNode): Unit = with(assStmt) {
     val exprType = expr.type()
     val fieldName = fieldName
-    val fieldType = hierarchy.classFields(to.type().typeName)[fieldName]
+    val fieldType = env.classFields(to.type().typeName)[fieldName]
       ?: err("Cannot assign value to not existing field $fieldName")
     if (!(exprType isSubTypeOf fieldType))
       err("Cannot assign value of type $exprType to field of type $fieldType")
@@ -126,7 +126,7 @@ private class TypeChecker(
   private fun AstNode.typeCheckUnOp(ident: String): LastReturnType =
     if (getVarType(ident) == IntType) null else err("Expected $IntType for operation")
 
-  private fun AstNode.typeCheckReturn(type: Type): LastReturnType = with(hierarchy) {
+  private fun AstNode.typeCheckReturn(type: Type): LastReturnType = with(env) {
     if (type isSubTypeOf expectedReturnType) type else err("Expected to return $expectedReturnType but got $type")
   }
 
@@ -150,7 +150,7 @@ private class TypeChecker(
     varEnv[name] = type
   }
 
-  private fun getVarType(ident: String): Type? = varEnv[ident] ?: thisClass?.let { hierarchy.classFields(it)[ident] }
+  private fun getVarType(ident: String): Type? = varEnv[ident] ?: thisClass?.let { env.classFields(it)[ident] }
 
   private fun ExprNode.type(): Type = when (this) {
     is BinOpExprNode -> {
@@ -176,7 +176,7 @@ private class TypeChecker(
     is FunCallExprNode -> {
       val argsTypes = args.map { it.type() }
       mangledName = name mangled argsTypes
-      hierarchy[name, argsTypes]?.ret ?: err("Not defined function $name$argsTypes")
+      env[name, argsTypes]?.ret ?: err("Not defined function ${name}$argsTypes")
     }
     is IdentExprNode -> getVarType(value) ?: err("Not defined variable with name $value")
     is IntExprNode -> IntType
@@ -190,24 +190,24 @@ private class TypeChecker(
     }
     is FieldExprNode -> {
       val fieldOf = expr.type()
-      hierarchy.classFields(fieldOf.typeName)[fieldName] ?: err("Not defined field $fieldName for $fieldOf")
+      env.classFields(fieldOf.typeName)[fieldName] ?: err("Not defined field $fieldName for $fieldOf")
     }
     is ConstructorCallExprNode -> when (type) {
       NullType -> err("Cannot create new instance of null type")
       is PrimitiveType -> err("Cannot create new instance of primitive type")
-      is ClassType -> if (hierarchy.isTypeDefined(type)) type
+      is ClassType -> if (env.isTypeDefined(type)) type
       else err("Cannot create new instance of not defined type $type")
     }
     is MethodCallExprNode -> {
       val selfType = self.type()
       if (selfType !is ClassType) err("Cannot call ${this.name} on $selfType")
       val argsTypes = args.map { it.type() }
-      hierarchy.classMethods(selfType.typeName)[name, argsTypes]
+      env.classMethods(selfType.typeName)[name, argsTypes]
         ?.also { mangledName = it.name }
         ?.ret ?: err("Not defined method ${this.name}$argsTypes for $selfType")
     }
     is CastExprNode -> {
-      val castTo = if (hierarchy.isTypeDefined(type)) type else err("Cannot cast to undefined type $type")
+      val castTo = if (env.isTypeDefined(type)) type else err("Cannot cast to undefined type $type")
       when (val exprType = casted.type()) {
         is PrimitiveType -> if (castTo == exprType) castTo else err("Cannot cast $exprType to $castTo")
         is ClassType -> if (exprType isSubTypeOf castTo) castTo else err("Cannot cast $exprType to $castTo")
@@ -218,7 +218,7 @@ private class TypeChecker(
     is ThisExprNode -> ClassType(thisClass ?: err("Used 'self' expression with no class scope"))
   }
 
-  private infix fun Type.isSubTypeOf(other: Type): Boolean = with(hierarchy) { this@isSubTypeOf isSubTypeOf other }
+  private infix fun Type.isSubTypeOf(other: Type): Boolean = with(env) { this@isSubTypeOf isSubTypeOf other }
 }
 
 private typealias LastReturnType = Type?

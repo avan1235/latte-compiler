@@ -3,6 +3,9 @@ package ml.dev.kotlin.latte.typecheck
 import ml.dev.kotlin.latte.syntax.parse
 import ml.dev.kotlin.latte.util.FrontendException
 import ml.dev.kotlin.latte.util.eprintln
+import ml.dev.kotlin.latte.util.unit
+import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
@@ -33,6 +36,47 @@ internal class TypeCheckerTest {
     eprintln(exception.userMessage)
   }
 
+  @Nested
+  inner class ExplicitTypeCheckerTest {
+    @Test
+    fun `test matching functions by signatures`() = testTypeCheckerOn(
+      program = """
+      int main () {
+        A a = new A;
+        B b = new B;
+        C c = new C;
+        checkMeAAA(a, b, c);
+        checkMeABC(a, b, c);
+        return 0;
+      }
+
+      class A {
+        int x;
+      }
+
+      class B extends A {
+        int y;
+      }
+
+      class C extends B {
+        int z;
+      }
+
+      void checkMeAAA(A x, A y, A z) {
+        printInt(x.x);
+        printInt(y.x);
+        printInt(z.x);
+      }
+
+      void checkMeABC(A x, B y, C z) {
+        printInt(x.x);
+        printInt(y.y);
+        printInt(z.z);
+      }
+      """
+    )
+  }
+
   companion object {
     @JvmStatic
     fun goodExamplesProvider(): Stream<File> = File("src/test/resources/good").testLatteFilesStream()
@@ -47,3 +91,5 @@ internal class TypeCheckerTest {
       StreamSupport.stream(walkTopDown().toList().spliterator(), false).filter { it.isFile && it.extension == "lat" }
   }
 }
+
+private fun testTypeCheckerOn(program: String): Unit = program.byteInputStream().parse().typeCheck().unit()
