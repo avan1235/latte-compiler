@@ -2,6 +2,7 @@ package ml.dev.kotlin.latte.typecheck
 
 import ml.dev.kotlin.latte.syntax.parse
 import ml.dev.kotlin.latte.util.FrontendException
+import ml.dev.kotlin.latte.util.LocalizedMessage
 import ml.dev.kotlin.latte.util.eprintln
 import ml.dev.kotlin.latte.util.unit
 import org.junit.jupiter.api.Nested
@@ -32,8 +33,7 @@ internal class TypeCheckerTest {
   fun `should throw on invalid input files`(input: File) {
     val program = input.readText()
     val exception = assertThrows<FrontendException> { program.byteInputStream().parse().typeCheck() }
-    println(program)
-    eprintln(exception.userMessage)
+    logReportedError(program, exception.userMessage)
   }
 
   @Nested
@@ -93,3 +93,8 @@ internal class TypeCheckerTest {
 }
 
 private fun testTypeCheckerOn(program: String): Unit = program.byteInputStream().parse().typeCheck().unit()
+
+private fun logReportedError(program: String, message: LocalizedMessage): Unit = synchronized(System.err) {
+  eprintln(program)
+  eprintln(message)
+}
