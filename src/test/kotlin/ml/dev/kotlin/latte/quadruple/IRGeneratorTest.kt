@@ -225,6 +225,34 @@ internal class IRGeneratorTest {
   }
 
   @Nested
+  inner class ClassesTest {
+    @Test
+    fun `accesses class fields with proper offsets`() = testIR(
+      program = """
+      int main() {
+        A a = new A;
+        a.x = 42;
+        a.y = true;
+        return 0;
+      }
+      class A {
+        int x;
+        boolean y;
+      }
+      """,
+      irRepresentation = """
+      main():
+        @T0#0 = call __alloc (8)
+        *(@T0#0 + 0) = A
+        a@1#0 = @T0#0
+        *(a@1#0 + 0) = 42
+        *(a@1#0 + 4) = true
+        ret 0
+      """
+    )
+  }
+
+  @Nested
   inner class NestVariablesTest {
     @Test
     fun `variables in main scope have same index`() = testIR(

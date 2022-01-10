@@ -31,9 +31,6 @@ data class ClassHierarchy(
   fun classFields(className: String): Map<String, Type> = classFields[className]
   fun orderedClassMethods(className: String): List<FunDeclaration> = classMethods[className].ordered()
 
-  fun orderedClassFields(className: String): List<ClassField> =
-    classFields[className].entries.map { ClassField(it.key, it.value) }
-
   fun addClass(classNode: ClassDefNode): Unit = with(classNode) {
     if (ident in RESERVED_IDENTIFIERS) err("Cannot define class with name $ident")
     if (ident in classes.keys) err("Redefined class with name $ident")
@@ -62,6 +59,9 @@ data class ClassHierarchy(
     }
     is Sorted -> nodes.sorted.forEach { classes[it]!!.buildStructure() }
   }
+
+  private fun orderedClassFields(className: String): List<ClassField> =
+    classFields[className].entries.map { ClassField(it.key, it.value) }
 
   private fun ClassDefNode.buildStructure() {
     if (parentClass != null) classParents[ident] += classParents[parentClass]

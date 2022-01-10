@@ -34,6 +34,9 @@ class FunctionCompiler(
       }
       assign(to, EAX, idx)
     }
+    is MethodCallQ -> {
+      TODO()
+    }
     is RelCondJumpQ -> {
       val left = left.get()
       val right = right.get()

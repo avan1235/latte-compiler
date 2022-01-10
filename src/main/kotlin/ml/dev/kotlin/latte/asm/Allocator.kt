@@ -45,10 +45,11 @@ class Allocator(
     when (value) {
       is ArgValue -> locations[value.id]
       is LocalValue -> locations[value.id]
-      is BooleanConstValue -> Imm(if (value.bool) "1" else "0", BooleanType)
-      is IntConstValue -> Imm("${value.int}", IntType)
-      is StringConstValue -> Imm(strings[value.str]?.name ?: err("Used not labeled string $this"), StringType)
-      is NullConstValue -> TODO()
+      is BooleanConstValue -> Imm(if (value.bool) "1" else "0", value.type)
+      is IntConstValue -> Imm("${value.int}", value.type)
+      is StringConstValue -> Imm(strings[value.str]?.name ?: err("Used not labeled string $this"), value.type)
+      is LabelConstValue -> Imm(value.label.name, value.type)
+      is NullConstValue -> Imm("0", value.type)
     } ?: err("Used not defined variable $value")
 }
 

@@ -10,7 +10,12 @@ import ml.dev.kotlin.latte.util.*
 
 fun TypeCheckedProgram.toIR(): IR = IRGenerator(env).run { this@toIR.generate() }
 
-data class IR(val graph: ControlFlowGraph, val strings: Map<String, Label>, val labelGenerator: () -> Label)
+data class IR(
+  val graph: ControlFlowGraph,
+  val strings: Map<String, Label>,
+  val vTables: Map<String, List<FunDeclaration>>,
+  val labelGenerator: () -> Label,
+)
 
 private data class IRGenerator(
   private val hierarchy: ClassHierarchy,
@@ -28,7 +33,7 @@ private data class IRGenerator(
     program.topDefs.forEach { it.generate() }
     val labelGenerator = { freshLabel(prefix = "G") }
     val cfg = quadruples.buildCFG(labelGenerator)
-    return IR(cfg, strings, labelGenerator)
+    return IR(cfg, strings, vTables, labelGenerator)
   }
 
   private fun TopDefNode.generate(): Unit = when (this) {
@@ -54,8 +59,17 @@ private data class IRGenerator(
     EmptyStmtNode -> Unit
     is BlockStmtNode -> varEnv.onLevel { block.generate() }
     is DeclStmtNode -> items.forEach { it.generate(type) }
-    is AssStmtNode -> emit { AssignQ(getVar(ident), expr.generate()) }
-    is RefAssStmtNode -> TODO()
+    is AssStmtNode -> emit {
+      val expr = expr.generate()
+      AssignQ(getVar(ident), expr)
+    }
+    is RefAssStmtNode -> emit {
+      val expr = expr.generate()
+      val to = to.generate()
+      val className = to.type.typeName
+      val offset = hierarchy.classFieldsOffsets[className][fieldName] ?: err("Not defined field $fieldName")
+      StoreQ(to, offset, expr)
+    }
     is DecrStmtNode -> emit { getVar(ident).let { UnOpModQ(it, UnOpMod.DEC, it) } }
     is IncrStmtNode -> emit { getVar(ident).let { UnOpModQ(it, UnOpMod.INC, it) } }
     is ExprStmtNode -> expr.generate().unit()
@@ -150,15 +164,13 @@ private data class IRGenerator(
   }
 
   private fun ExprNode.generate(): ValueHolder = when (this) {
-    is FunCallExprNode -> freshTemp(getFunType(mangledName)) { to ->
+    is FunCallExprNode -> freshTemp(getMangledFunType(mangledName)) { to ->
       emit { FunCallQ(to, mangledName.label, args.map { it.generate() }) }
     }
-    is MethodCallExprNode -> {
+    is MethodCallExprNode -> freshTemp(getMangledFunType(mangledName)) { to ->
       val thisArg = self.generate()
-      args.map { it.generate() }
-      thisArg.type.typeName
-      hierarchy.classFieldsOffsets
-      TODO()
+      val args = args.map { it.generate() }
+      emit { MethodCallQ(to, thisArg, name, args) }
     }
     is IdentExprNode -> getVar(value)
     is BoolExprNode -> value.bool
@@ -208,6 +220,7 @@ private data class IRGenerator(
     }
     is ConstructorCallExprNode -> freshTemp(type) { to ->
       emit { FunCallQ(to, "__alloc".label, listOf(IntConstValue(hierarchy.classSizeBytes[type.typeName]))) }
+      emit { StoreQ(to, 0, LabelConstValue(type.typeName.label)) }
     }
     is FieldExprNode -> {
       val expr = expr.generate()
@@ -251,7 +264,8 @@ private data class IRGenerator(
   private fun AstNode.getVar(name: String): VirtualReg =
     varEnv[name] ?: thisArg ?: err("Not defined variable with name $name")
 
-  private fun AstNode.getFunType(name: String): Type = funEnv[name] ?: err("Not defined function with name $name")
+  private fun AstNode.getMangledFunType(name: String): Type =
+    funEnv[name] ?: err("Not defined function with name $name")
 }
 
 private inline val Type.default: ConstValue

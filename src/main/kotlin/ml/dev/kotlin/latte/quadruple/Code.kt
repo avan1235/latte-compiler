@@ -20,6 +20,7 @@ sealed class ConstValue(override val type: Type) : ValueHolder
 data class IntConstValue(val int: Int) : ConstValue(IntType)
 data class BooleanConstValue(val bool: Boolean) : ConstValue(BooleanType)
 data class StringConstValue(val label: Label, val str: String) : ConstValue(StringType)
+data class LabelConstValue(val label: Label) : ConstValue(VoidRefType)
 object NullConstValue : ConstValue(VoidRefType)
 
 sealed class VirtualReg(open val id: String, open val original: VirtualReg?) : ValueHolder {
@@ -128,6 +129,17 @@ data class FunCallQ(val to: VirtualReg, val label: Label, val args: List<ValueHo
     val args = args.map { it.renameUsage(currIndex) }
     val to = to.renameDefinition(currIndex, updateIndex)
     return FunCallQ(to, label, args)
+  }
+}
+
+data class MethodCallQ(val to: VirtualReg, val self: ValueHolder, val ident: String, val args: List<ValueHolder>) :
+  Quadruple {
+  val argsSize: Int = args.sumOf { it.type.size } + self.type.size
+  override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): MethodCallQ {
+    val args = args.map { it.renameUsage(currIndex) }
+    val self = self.renameUsage(currIndex)
+    val to = to.renameDefinition(currIndex, updateIndex)
+    return MethodCallQ(to, self, ident, args)
   }
 }
 
