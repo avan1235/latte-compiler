@@ -7,7 +7,9 @@ fun Quadruple.definedVars(): Sequence<VirtualReg> = when (this) {
   is UnOpModQ -> sequenceOf(to)
   is FunCallQ -> sequenceOf(to)
   is PhonyQ -> sequenceOf(to)
+  is LoadQ -> sequenceOf(to)
   is FunCodeLabelQ -> args.asSequence()
+  is StoreQ -> emptySequence()
   is RelCondJumpQ -> emptySequence()
   is CondJumpQ -> emptySequence()
   is RetQ -> emptySequence()
@@ -25,6 +27,8 @@ fun Quadruple.usedVars(): Sequence<VirtualReg> = when (this) {
   is RelCondJumpQ -> sequenceOf(left as? VirtualReg, right as? VirtualReg)
   is CondJumpQ -> sequenceOf(cond as? VirtualReg)
   is RetQ -> sequenceOf(value as? VirtualReg)
+  is LoadQ -> sequenceOf(from as? VirtualReg)
+  is StoreQ -> sequenceOf(to as? VirtualReg, from as? VirtualReg)
   is FunCodeLabelQ -> emptySequence()
   is CodeLabelQ -> emptySequence()
   is JumpQ -> emptySequence()
@@ -36,7 +40,7 @@ internal fun ValueHolder.repr(): String = when (this) {
   is StringConstValue -> label.name
   is ArgValue -> id
   is LocalValue -> id
-  is NullConstValue -> TODO()
+  is NullConstValue -> "null"
 }
 
 internal fun Quadruple.repr(): String = when (this) {
@@ -52,6 +56,8 @@ internal fun Quadruple.repr(): String = when (this) {
   is RetQ -> "ret${value?.let { " ${it.repr()}" } ?: ""}"
   is UnOpModQ -> "${to.repr()} = ${op.name.lowercase()} ${from.repr()}"
   is PhonyQ -> "${to.repr()} = phi (${from.toList().joinToString(", ") { "${it.first.name}:${it.second.repr()}" }})"
+  is LoadQ -> "${to.repr()} = *(${from.repr()} + $offset)"
+  is StoreQ -> "*(${to.repr()} + $offset) = ${from.repr()}"
 }.let { if (this is Labeled) it else "  $it" }
 
 internal fun Iterable<Quadruple>.isSSA(): Boolean =

@@ -3,34 +3,43 @@ package ml.dev.kotlin.latte.quadruple
 import ml.dev.kotlin.latte.quadruple.ControlFlowGraph.Companion.buildCFG
 import ml.dev.kotlin.latte.syntax.*
 import ml.dev.kotlin.latte.syntax.PrimitiveType.*
-import ml.dev.kotlin.latte.typecheck.STD_LIB_FUNCTIONS
+import ml.dev.kotlin.latte.typecheck.ClassHierarchy
+import ml.dev.kotlin.latte.typecheck.FunDeclaration
 import ml.dev.kotlin.latte.typecheck.TypeCheckedProgram
 import ml.dev.kotlin.latte.util.*
 
-fun TypeCheckedProgram.toIR(): IR = IRGenerator().run { this@toIR.generate() }
+fun TypeCheckedProgram.toIR(): IR = IRGenerator(env).run { this@toIR.generate() }
 
 data class IR(val graph: ControlFlowGraph, val strings: Map<String, Label>, val labelGenerator: () -> Label)
 
 private data class IRGenerator(
-  private val funEnv: MutableMap<String, Type> = STD_LIB_FUNCTIONS.mapValuesTo(HashMap()) { it.value.ret },
+  private val hierarchy: ClassHierarchy,
   private val quadruples: MutableList<Quadruple> = mutableListOf(),
   private val varEnv: StackTable<String, VirtualReg> = StackTable(),
   private val strings: MutableMap<String, Label> = hashMapOf("" to EMPTY_STRING_LABEL),
+  private val vTables: MutableMap<String, List<FunDeclaration>> = HashMap(),
   private var labelIdx: Int = 0,
   private var emitting: Boolean = true,
+  private var thisArg: ArgValue? = null,
 ) {
+  private val funEnv = hierarchy.functionsByName()
+
   fun TypeCheckedProgram.generate(): IR {
-    program.topDefs.onEach { if (it is FunDefNode) it.addToFunEnv() }.forEach { if (it is FunDefNode) it.generate() }
+    program.topDefs.forEach { it.generate() }
     val labelGenerator = { freshLabel(prefix = "G") }
     val cfg = quadruples.buildCFG(labelGenerator)
     return IR(cfg, strings, labelGenerator)
   }
 
-  private fun FunDefNode.addToFunEnv() {
-    funEnv[mangledName] = type
+  private fun TopDefNode.generate(): Unit = when (this) {
+    is FunDefNode -> generate()
+    is ClassDefNode -> {
+      vTables[ident] = hierarchy.orderedClassMethods(ident)
+      methods.forEach { it.generate() }
+    }
   }
 
-  private fun FunDefNode.generate() = varEnv.onLevel {
+  private fun FunDefNode.generate(): Unit = varEnv.onLevel {
     var argOffset = 0
     val args = args.list.map { (type, name) ->
       addArg(name.label, type, argOffset).also { argOffset += type.size }
@@ -46,6 +55,7 @@ private data class IRGenerator(
     is BlockStmtNode -> varEnv.onLevel { block.generate() }
     is DeclStmtNode -> items.forEach { it.generate(type) }
     is AssStmtNode -> emit { AssignQ(getVar(ident), expr.generate()) }
+    is RefAssStmtNode -> TODO()
     is DecrStmtNode -> emit { getVar(ident).let { UnOpModQ(it, UnOpMod.DEC, it) } }
     is IncrStmtNode -> emit { getVar(ident).let { UnOpModQ(it, UnOpMod.INC, it) } }
     is ExprStmtNode -> expr.generate().unit()
@@ -85,7 +95,6 @@ private data class IRGenerator(
 
       emit { CodeLabelQ(endWhile) }
     }
-    is RefAssStmtNode -> TODO()
   }
 
   private fun generateCondElse(expr: ExprNode, onTrue: Label, onFalse: Label): Unit {
@@ -144,6 +153,13 @@ private data class IRGenerator(
     is FunCallExprNode -> freshTemp(getFunType(mangledName)) { to ->
       emit { FunCallQ(to, mangledName.label, args.map { it.generate() }) }
     }
+    is MethodCallExprNode -> {
+      val thisArg = self.generate()
+      args.map { it.generate() }
+      thisArg.type.typeName
+      hierarchy.classFieldsOffsets
+      TODO()
+    }
     is IdentExprNode -> getVar(value)
     is BoolExprNode -> value.bool
     is IntExprNode -> value.int
@@ -190,12 +206,18 @@ private data class IRGenerator(
         }
       }
     }
-    is FieldExprNode -> TODO()
-    is ConstructorCallExprNode -> TODO()
-    is MethodCallExprNode -> TODO()
-    is CastExprNode -> TODO()
-    is NullExprNode -> TODO()
-    is ThisExprNode -> TODO()
+    is ConstructorCallExprNode -> freshTemp(type) { to ->
+      emit { FunCallQ(to, "__alloc".label, listOf(IntConstValue(hierarchy.classSizeBytes[type.typeName]))) }
+    }
+    is FieldExprNode -> {
+      val expr = expr.generate()
+      val className = expr.type.typeName
+      val offset = hierarchy.classFieldsOffsets[className][fieldName] ?: err("Not defined field $fieldName")
+      freshTemp(expr.type) { to -> emit { LoadQ(to, expr, offset) } }
+    }
+    is CastExprNode -> casted.generate()
+    is ThisExprNode -> thisArg ?: err("Undefined ")
+    is NullExprNode -> NullConstValue
   }
 
   private fun generateCondElse(left: ExprNode, op: BooleanOp, right: ExprNode): LocalValue =
@@ -226,7 +248,9 @@ private data class IRGenerator(
   private fun addLocal(label: Label, type: Type): LocalValue =
     LocalValue("${label.name}@${freshIdx()}", type).also { varEnv[label.name] = it }
 
-  private fun AstNode.getVar(name: String): VirtualReg = varEnv[name] ?: err("Not defined variable with name $name")
+  private fun AstNode.getVar(name: String): VirtualReg =
+    varEnv[name] ?: thisArg ?: err("Not defined variable with name $name")
+
   private fun AstNode.getFunType(name: String): Type = funEnv[name] ?: err("Not defined function with name $name")
 }
 
@@ -235,9 +259,9 @@ private inline val Type.default: ConstValue
     BooleanType -> false.bool
     IntType -> IntConstValue(0)
     StringType -> StringConstValue(EMPTY_STRING_LABEL, "")
+    VoidRefType -> err("No default value for void* type as it cannot be assigned")
     VoidType -> err("No default value for void type as it cannot be assigned")
-    is ClassType -> TODO()
-    NullType -> TODO()
+    is RefType -> NullConstValue
   }
 
 val EMPTY_STRING_LABEL: Label = "S@EMPTY".label

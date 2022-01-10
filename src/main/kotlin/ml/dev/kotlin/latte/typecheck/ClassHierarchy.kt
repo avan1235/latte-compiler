@@ -11,15 +11,26 @@ data class ClassHierarchy(
 ) {
   private val argsCombinationsCache: DefaultMap<List<Type>, Set<List<Type>>> = MutableDefaultMap({ args ->
     args.map {
-      if (it is ClassType) orderedClassParents(it.typeName).mapTo(ArrayList(), ::ClassType)
+      if (it is RefType) orderedClassParents(it.typeName).mapTo(ArrayList(), ::RefType)
       else arrayListOf(it)
     }.combinations()
   })
   private val classMethods: MutableDefaultMap<String, FunEnv> = MutableDefaultMap({ FunEnv(argsCombinationsCache) })
   private val functions: FunEnv = FunEnv(argsCombinationsCache, createStdLibFunEnv())
 
+  val classFieldsOffsets: DefaultMap<String, Map<String, Bytes>> = MutableDefaultMap({ className ->
+    var offset = 0
+    orderedClassFields(className).associate { field -> field.name to offset.also { offset += field.type.size } }
+  })
+
+  val classSizeBytes: DefaultMap<String, Bytes> = MutableDefaultMap({ className ->
+    classFields[className].values.sumOf { it.size }
+  })
+
   fun classMethods(className: String): FunEnv = classMethods[className]
   fun classFields(className: String): Map<String, Type> = classFields[className]
+  fun orderedClassMethods(className: String): List<FunDeclaration> = classMethods[className].ordered()
+
   fun orderedClassFields(className: String): List<ClassField> =
     classFields[className].entries.map { ClassField(it.key, it.value) }
 
@@ -31,8 +42,17 @@ data class ClassHierarchy(
     parentClass?.let { classChildren[it] += ident }
   }
 
-  fun addFun(funDef: FunDefNode): Unit = functions.addFun(funDef)
+  operator fun plusAssign(funDef: FunDefNode) {
+    functions += funDef
+  }
+
   operator fun get(name: String, args: List<Type>): FunDeclaration? = functions[name, args]
+
+  fun functionsByName(): Map<String, Type> = buildMap {
+    val addAllFunctionsByName = { env: FunEnv -> env.ordered().forEach { put(it.name, it.ret) } }
+    addAllFunctionsByName(functions)
+    classMethods.values.forEach(addAllFunctionsByName)
+  }
 
   fun buildClassStructure(): Unit = when (val nodes = ClassHierarchyGraph().topologicalSort()) {
     is WithCycle -> {
@@ -62,19 +82,19 @@ data class ClassHierarchy(
   private fun ClassDefNode.addMethods() {
     val parentClassMethods = parentClass?.let { classMethods[it] } ?: FunEnv(argsCombinationsCache)
     val thisClassMethods = classMethods[ident].also { it += parentClassMethods }
-    for (method in methods) thisClassMethods.addFun(method, ident)
+    for (method in methods) thisClassMethods[ident] = method
   }
 
   infix fun Type.isSubTypeOf(of: Type?): Boolean = when {
+    this == PrimitiveType.VoidRefType && of is RefType -> true
     this is PrimitiveType && of is PrimitiveType -> this == of
-    this is ClassType && of is ClassType -> typeName == of.typeName || of.typeName in classParents[typeName]
+    this is RefType && of is RefType -> typeName == of.typeName || of.typeName in classParents[typeName]
     else -> false
   }
 
   fun isTypeDefined(type: Type): Boolean = when (type) {
     is PrimitiveType -> true
-    NullType -> true
-    is ClassType -> type.typeName in classes
+    is RefType -> type.typeName in classes
   }
 
   private fun orderedClassParents(className: String): Sequence<String> = sequence {
@@ -89,10 +109,7 @@ data class ClassHierarchy(
   }
 }
 
-private val RESERVED_IDENTIFIERS = buildSet {
-  PrimitiveType.values().forEach { add(it.typeName) }
-  add(NullType.typeName)
-}
+private val RESERVED_IDENTIFIERS: Set<String> = PrimitiveType.values().mapTo(HashSet()) { it.typeName }
 
 data class ClassField(val name: String, val type: Type)
 

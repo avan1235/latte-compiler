@@ -76,6 +76,8 @@ class FunctionCompiler(
       else -> err("Unexpected case for $this")
     }
     is PhonyQ -> err("Unexpected $this found in compilation phase")
+    is LoadQ -> TODO()
+    is StoreQ -> TODO()
   }
 
   private fun NumOp.on(to: VirtualReg, left: ValueHolder, right: ValueHolder, idx: StmtIdx): Unit = when (this) {

@@ -38,7 +38,7 @@ object AstVisitor : LatteBaseVisitor<AstNode>() {
     return MethodCallExprNode(expressions.first(), ctx.ID().visit(), expressions.drop(1), ctx.span())
   }
 
-  override fun visitClassType(ctx: LatteParser.ClassTypeContext) = ClassType(ctx.ID().visit(), ctx.span())
+  override fun visitClassType(ctx: LatteParser.ClassTypeContext) = RefType(ctx.ID().visit(), ctx.span())
   override fun visitClassField(ctx: LatteParser.ClassFieldContext) =
     ClassFieldNode(ctx.type().visit(), ctx.ID().visit(), ctx.span())
 

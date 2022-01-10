@@ -21,7 +21,7 @@ static void *checked_malloc(size_t size) {
     return result;
 }
 
-static void *checked_realloc(void * ptr, size_t size) {
+static void *checked_realloc(void *ptr, size_t size) {
     void *result = realloc(ptr, size);
     if (result == NULL) {
         error_exit("Error in memory reallocation.\n", RUNTIME_ERROR_CODE);
@@ -34,14 +34,16 @@ void __error() {
 }
 
 void __printInt(int32_t value) {
-    fprintf(stdout, "%" PRId32 "\n", value);
+    fprintf(stdout, "%"
+    PRId32
+    "\n", value);
 }
 
-void __printString(char* value) {
+void __printString(char *value) {
     fprintf(stdout, "%s\n", value);
 }
 
-char* __readString() {
+char *__readString() {
     size_t size = INIT_STRING_BUFFER_SIZE;
     char *data = checked_malloc(size + 1);
     size_t length = 0;
@@ -76,14 +78,22 @@ int32_t __readInt() {
     return (int32_t) v;
 }
 
-char* __concatString(char* l, char* r) {
+char *__concatString(char *l, char *r) {
     size_t length = 0;
-    for (char* c = l; *c != 0; c++) length++;
-    for (char* c = r; *c != 0; c++) length++;
+    for (char *c = l; *c != 0; c++) length++;
+    for (char *c = r; *c != 0; c++) length++;
     char *data = checked_malloc(length + 1);
     size_t idx = 0;
-    for (char* c = l; *c != 0; c++) data[idx++] = *c;
-    for (char* c = r; *c != 0; c++) data[idx++] = *c;
+    for (char *c = l; *c != 0; c++) data[idx++] = *c;
+    for (char *c = r; *c != 0; c++) data[idx++] = *c;
     data[length] = 0;
     return data;
+}
+
+void *__alloc(int32_t size) {
+    void *result = calloc(sizeof(void *) + size, 1);
+    if (result == NULL) {
+        error_exit("Error in memory allocation.\n", RUNTIME_ERROR_CODE);
+    }
+    return result;
 }

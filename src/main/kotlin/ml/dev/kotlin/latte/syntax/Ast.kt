@@ -1,6 +1,5 @@
 package ml.dev.kotlin.latte.syntax
 
-import ml.dev.kotlin.latte.typecheck.ClassField
 import ml.dev.kotlin.latte.util.Span
 import kotlin.properties.Delegates.notNull
 
@@ -30,6 +29,7 @@ data class FunDefNode(
   override val span: Span? = null
 ) : TopDefNode {
   var mangledName by notNull<String>()
+  var indexInEnv by notNull<Int>()
 }
 
 data class ArgsNode(val list: List<ArgNode>, override val span: Span? = null) : AstNode
@@ -47,13 +47,25 @@ sealed interface StmtNode : AstNode
 data class BlockStmtNode(val block: BlockNode, override val span: Span? = null) : StmtNode
 data class DeclStmtNode(val type: Type, val items: List<ItemNode>, override val span: Span? = null) : StmtNode
 data class AssStmtNode(val ident: String, val expr: ExprNode, override val span: Span? = null) : StmtNode
-data class RefAssStmtNode(val to: ExprNode, val fieldName: String, val expr: ExprNode, override val span: Span? = null) : StmtNode
+data class RefAssStmtNode(
+  val to: ExprNode,
+  val fieldName: String,
+  val expr: ExprNode,
+  override val span: Span? = null
+) : StmtNode
+
 data class IncrStmtNode(val ident: String, override val span: Span? = null) : StmtNode
 data class DecrStmtNode(val ident: String, override val span: Span? = null) : StmtNode
 data class RetStmtNode(val expr: ExprNode, override val span: Span? = null) : StmtNode
 data class VRetStmtNode(override val span: Span? = null) : StmtNode
 data class CondStmtNode(val expr: ExprNode, val onTrue: StmtNode, override val span: Span? = null) : StmtNode
-data class CondElseStmtNode(val expr: ExprNode, val onTrue: StmtNode, val onFalse: StmtNode, override val span: Span? = null) : StmtNode
+data class CondElseStmtNode(
+  val expr: ExprNode,
+  val onTrue: StmtNode,
+  val onFalse: StmtNode,
+  override val span: Span? = null
+) : StmtNode
+
 data class WhileStmtNode(val expr: ExprNode, val onTrue: StmtNode, override val span: Span? = null) : StmtNode
 data class ExprStmtNode(val expr: ExprNode, override val span: Span? = null) : StmtNode
 object EmptyStmtNode : StmtNode {
@@ -64,7 +76,9 @@ sealed interface ExprNode : AstNode
 data class NullExprNode(override val span: Span? = null) : ExprNode
 data class ThisExprNode(override val span: Span? = null) : ExprNode
 data class UnOpExprNode(val op: UnOp, val expr: ExprNode, override val span: Span? = null) : ExprNode
-data class BinOpExprNode(val left: ExprNode, val op: BinOp, val right: ExprNode, override val span: Span? = null) : ExprNode
+data class BinOpExprNode(val left: ExprNode, val op: BinOp, val right: ExprNode, override val span: Span? = null) :
+  ExprNode
+
 data class FieldExprNode(val expr: ExprNode, val fieldName: String, override val span: Span? = null) : ExprNode
 data class IdentExprNode(val value: String, override val span: Span? = null) : ExprNode
 data class IntExprNode(val value: String, override val span: Span? = null) : ExprNode
@@ -76,7 +90,12 @@ data class FunCallExprNode(val name: String, val args: List<ExprNode>, override 
   var mangledName by notNull<String>()
 }
 
-data class MethodCallExprNode(val self: ExprNode, val name: String, val args: List<ExprNode>, override val span: Span? = null) :
+data class MethodCallExprNode(
+  val self: ExprNode,
+  val name: String,
+  val args: List<ExprNode>,
+  override val span: Span? = null
+) :
   ExprNode {
   var mangledName by notNull<String>()
 }

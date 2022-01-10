@@ -20,7 +20,7 @@ sealed class ConstValue(override val type: Type) : ValueHolder
 data class IntConstValue(val int: Int) : ConstValue(IntType)
 data class BooleanConstValue(val bool: Boolean) : ConstValue(BooleanType)
 data class StringConstValue(val label: Label, val str: String) : ConstValue(StringType)
-data class NullConstValue(val label: Label, val str: String) : ConstValue(NullType)
+object NullConstValue : ConstValue(VoidRefType)
 
 sealed class VirtualReg(open val id: String, open val original: VirtualReg?) : ValueHolder {
   abstract override fun renameUsage(currIndex: CurrIndex): VirtualReg
@@ -103,6 +103,22 @@ data class AssignQ(val to: VirtualReg, val from: ValueHolder) : Quadruple {
     val from = from.renameUsage(currIndex)
     val to = to.renameDefinition(currIndex, updateIndex)
     return AssignQ(to, from)
+  }
+}
+
+data class StoreQ(val to: ValueHolder, val offset: Bytes, val from: ValueHolder) : Quadruple {
+  override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple {
+    val from = from.renameUsage(currIndex)
+    val to = to.renameUsage(currIndex)
+    return StoreQ(to, offset, from)
+  }
+}
+
+data class LoadQ(val to: VirtualReg, val from: ValueHolder, val offset: Bytes) : Quadruple {
+  override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple {
+    val from = from.renameUsage(currIndex)
+    val to = to.renameDefinition(currIndex, updateIndex)
+    return LoadQ(to, from, offset)
   }
 }
 

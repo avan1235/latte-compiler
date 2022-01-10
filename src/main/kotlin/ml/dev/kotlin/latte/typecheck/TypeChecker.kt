@@ -8,7 +8,7 @@ import ml.dev.kotlin.latte.util.TypeCheckException
 
 fun ProgramNode.typeCheck(): TypeCheckedProgram = TypeChecker().run { this@typeCheck.typeCheck() }
 
-data class TypeCheckedProgram(val program: ProgramNode)
+data class TypeCheckedProgram(val program: ProgramNode, val env: ClassHierarchy)
 
 private class TypeChecker(
   private val env: ClassHierarchy = ClassHierarchy(),
@@ -31,10 +31,12 @@ private class TypeChecker(
     classes.forEach { classDef -> with(classDef) { methods.forEach { it.typeCheck(ident, parentClass) } } }
 
     if (env[ENTRY_LABEL, NO_ARGS] == null) err("No main function defined")
-    return TypeCheckedProgram(this)
+    return TypeCheckedProgram(this, env)
   }
 
-  private fun FunDefNode.addToFunEnv(): Unit = env.addFun(this)
+  private fun FunDefNode.addToFunEnv() {
+    env += this
+  }
 
   private fun FunDefNode.typeCheck(inClass: String? = null, parentClass: String? = null): Unit = varEnv.onLevel {
     expectReturn {
@@ -168,7 +170,7 @@ private class TypeChecker(
         is BooleanOp -> bothOf(BooleanType).let { BooleanType }
         is NumOp -> bothOf(IntType).let { left }
         is RelOp ->
-          if (left is ClassType && right is ClassType) BooleanType
+          if (left is RefType && right is RefType) BooleanType
           else bothOf(IntType, BooleanType).let { BooleanType }
       }
     }
@@ -193,14 +195,14 @@ private class TypeChecker(
       env.classFields(fieldOf.typeName)[fieldName] ?: err("Not defined field $fieldName for $fieldOf")
     }
     is ConstructorCallExprNode -> when (type) {
-      NullType -> err("Cannot create new instance of null type")
+      is RefType ->
+        if (env.isTypeDefined(type)) type
+        else err("Cannot create new instance of not defined type $type")
       is PrimitiveType -> err("Cannot create new instance of primitive type")
-      is ClassType -> if (env.isTypeDefined(type)) type
-      else err("Cannot create new instance of not defined type $type")
     }
     is MethodCallExprNode -> {
       val selfType = self.type()
-      if (selfType !is ClassType) err("Cannot call ${this.name} on $selfType")
+      if (selfType !is RefType) err("Cannot call ${this.name} on $selfType")
       val argsTypes = args.map { it.type() }
       env.classMethods(selfType.typeName)[name, argsTypes]
         ?.also { mangledName = it.name }
@@ -208,14 +210,11 @@ private class TypeChecker(
     }
     is CastExprNode -> {
       val castTo = if (env.isTypeDefined(type)) type else err("Cannot cast to undefined type $type")
-      when (val exprType = casted.type()) {
-        is PrimitiveType -> if (castTo == exprType) castTo else err("Cannot cast $exprType to $castTo")
-        is ClassType -> if (exprType isSubTypeOf castTo) castTo else err("Cannot cast $exprType to $castTo")
-        NullType -> castTo
-      }
+      val exprType = casted.type()
+      if (exprType isSubTypeOf castTo) castTo else err("Cannot cast $exprType to $castTo")
     }
-    is NullExprNode -> NullType
-    is ThisExprNode -> ClassType(thisClass ?: err("Used 'self' expression with no class scope"))
+    is NullExprNode -> VoidRefType
+    is ThisExprNode -> RefType(thisClass ?: err("Used 'self' expression with no class scope"))
   }
 
   private infix fun Type.isSubTypeOf(other: Type): Boolean = with(env) { this@isSubTypeOf isSubTypeOf other }
