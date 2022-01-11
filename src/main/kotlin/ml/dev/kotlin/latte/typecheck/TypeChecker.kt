@@ -5,6 +5,7 @@ import ml.dev.kotlin.latte.syntax.PrimitiveType.*
 import ml.dev.kotlin.latte.util.LocalizedMessage
 import ml.dev.kotlin.latte.util.StackTable
 import ml.dev.kotlin.latte.util.TypeCheckException
+import ml.dev.kotlin.latte.util.unless
 
 fun ProgramNode.typeCheck(): TypeCheckedProgram = TypeChecker().run { this@typeCheck.typeCheck() }
 
@@ -102,15 +103,17 @@ private class TypeChecker(
     val fieldName = fieldName
     val fieldType = env.classFields(to.type().typeName)[fieldName]
       ?: err("Cannot assign value to not existing field $fieldName")
-    if (!(exprType isSubTypeOf fieldType))
+    unless(exprType isSubTypeOf fieldType) {
       err("Cannot assign value of type $exprType to field of type $fieldType")
+    }
   }
 
   private fun AssStmtNode.typeCheckAss() {
     val varType = getVarType(ident) ?: err("Cannot assign value to not declared variable")
     val exprType = expr.type()
-    if (!(exprType isSubTypeOf varType))
+    unless(exprType isSubTypeOf varType) {
       err("Cannot assign value of type $exprType to variable of type $varType")
+    }
   }
 
   private fun ItemNode.typeCheckDecl(type: Type) {
@@ -118,8 +121,9 @@ private class TypeChecker(
     when (this) {
       is InitItemNode -> {
         val exprType = expr.type()
-        if (!(exprType isSubTypeOf type))
+        unless(exprType isSubTypeOf type) {
           err("Cannot assign value of type $exprType to variable of type $type")
+        }
       }
       is NotInitItemNode -> Unit
     }
