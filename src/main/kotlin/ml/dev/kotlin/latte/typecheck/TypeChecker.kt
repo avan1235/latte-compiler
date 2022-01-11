@@ -85,19 +85,19 @@ private class TypeChecker(
     EmptyStmtNode -> noReturn()
     is ExprStmtNode -> noReturn { expr.type() }
     is BlockStmtNode -> varEnv.onLevel { block.typeCheck() }
-    is AssStmtNode -> noReturn { typeCheckAss(this) }
-    is DeclStmtNode -> noReturn { items.forEach { typeCheckDecl(it, type) } }
-    is DecrStmtNode -> noReturn { typeCheckUnOp(ident) }
-    is IncrStmtNode -> noReturn { typeCheckUnOp(ident) }
+    is DeclStmtNode -> noReturn { items.forEach { it.typeCheckDecl(type) } }
+    is AssStmtNode -> noReturn { typeCheckAss() }
+    is RefAssStmtNode -> noReturn { typeCheckRefAss() }
+    is UnOpModStmtNode -> noReturn { typeCheckUnOpMod() }
+    is RefUnOpModStmtNode -> noReturn { typeCheckRefUnOpMod() }
     is WhileStmtNode -> noReturn { typeCheckCond(expr, onTrue) }
     is CondStmtNode -> noReturn { typeCheckCond(expr, onTrue) }
-    is RefAssStmtNode -> noReturn { typeCheckRefAss(this) }
     is CondElseStmtNode -> typeCheckCondElse(expr, onTrue, onFalse)
     is VRetStmtNode -> typeCheckReturn(VoidType)
     is RetStmtNode -> typeCheckReturn(expr.type())
   }
 
-  private fun typeCheckRefAss(assStmt: RefAssStmtNode): Unit = with(assStmt) {
+  private fun RefAssStmtNode.typeCheckRefAss() {
     val exprType = expr.type()
     val fieldName = fieldName
     val fieldType = env.classFields(to.type().typeName)[fieldName]
@@ -106,15 +106,15 @@ private class TypeChecker(
       err("Cannot assign value of type $exprType to field of type $fieldType")
   }
 
-  private fun typeCheckAss(assStmt: AssStmtNode): Unit = with(assStmt) {
+  private fun AssStmtNode.typeCheckAss() {
     val varType = getVarType(ident) ?: err("Cannot assign value to not declared variable")
     val exprType = expr.type()
     if (!(exprType isSubTypeOf varType))
       err("Cannot assign value of type $exprType to variable of type $varType")
   }
 
-  private fun typeCheckDecl(item: ItemNode, type: Type): Unit = with(item) {
-    addToVarEnv(type, item.ident)
+  private fun ItemNode.typeCheckDecl(type: Type) {
+    addToVarEnv(type, ident)
     when (this) {
       is InitItemNode -> {
         val exprType = expr.type()
@@ -125,8 +125,16 @@ private class TypeChecker(
     }
   }
 
-  private fun AstNode.typeCheckUnOp(ident: String): LastReturnType =
+  private fun UnOpModStmtNode.typeCheckUnOpMod(): LastReturnType =
     if (getVarType(ident) == IntType) null else err("Expected $IntType for operation")
+
+  private fun RefUnOpModStmtNode.typeCheckRefUnOpMod(): LastReturnType {
+    val checkType = expr.type()
+    if (checkType !is RefType) err("Cannot modify field of not class type")
+    val fieldType = env.classFields(checkType.typeName)[fieldName]
+      ?: err("Modified not existing field $fieldName of ${checkType.typeName}")
+    return if (fieldType == IntType) null else err("Expected $IntType for operation")
+  }
 
   private fun AstNode.typeCheckReturn(type: Type): LastReturnType = with(env) {
     if (type isSubTypeOf expectedReturnType) type else err("Expected to return $expectedReturnType but got $type")

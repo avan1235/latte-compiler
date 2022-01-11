@@ -56,8 +56,8 @@ object AstVisitor : LatteBaseVisitor<AstNode>() {
   override fun visitEmpty(ctx: LatteParser.EmptyContext) = EmptyStmtNode
   override fun visitBlockStmt(ctx: LatteParser.BlockStmtContext) = BlockStmtNode(visitBlock(ctx.block()), ctx.span())
   override fun visitAss(ctx: LatteParser.AssContext) = AssStmtNode(ctx.ID().visit(), ctx.expr().visit(), ctx.span())
-  override fun visitIncr(ctx: LatteParser.IncrContext) = IncrStmtNode(ctx.ID().visit(), ctx.span())
-  override fun visitDecr(ctx: LatteParser.DecrContext) = DecrStmtNode(ctx.ID().visit(), ctx.span())
+  override fun visitIncr(ctx: LatteParser.IncrContext) = UnOpModStmtNode(ctx.ID().visit(), UnOpMod.INC, ctx.span())
+  override fun visitDecr(ctx: LatteParser.DecrContext) = UnOpModStmtNode(ctx.ID().visit(), UnOpMod.DEC, ctx.span())
   override fun visitRet(ctx: LatteParser.RetContext) = RetStmtNode(ctx.expr().visit(), ctx.span())
   override fun visitVRet(ctx: LatteParser.VRetContext) = VRetStmtNode(ctx.span())
   override fun visitSExp(ctx: LatteParser.SExpContext) = ExprStmtNode(ctx.expr().visit(), ctx.span())
@@ -143,6 +143,11 @@ object AstVisitor : LatteBaseVisitor<AstNode>() {
   override fun visitGE(ctx: LatteParser.GEContext) = RelOp.GE
   override fun visitEQ(ctx: LatteParser.EQContext) = RelOp.EQ
   override fun visitNE(ctx: LatteParser.NEContext) = RelOp.NE
+  override fun visitRefIncr(ctx: LatteParser.RefIncrContext) =
+    RefUnOpModStmtNode(ctx.expr().visit(), ctx.ID().visit(), UnOpMod.INC, ctx.span())
+
+  override fun visitRefDecr(ctx: LatteParser.RefDecrContext) =
+    RefUnOpModStmtNode(ctx.expr().visit(), ctx.ID().visit(), UnOpMod.DEC, ctx.span())
 
   private fun LatteParser.StmtContext.visit() = visitReturning<StmtNode>()
   private fun LatteParser.ExprContext.visit() = visitReturning<ExprNode>()

@@ -33,7 +33,8 @@ private data class IRGenerator(
     program.topDefs.forEach { it.generate() }
     val labelGenerator = { freshLabel(prefix = "G") }
     val cfg = quadruples.buildCFG(labelGenerator)
-    return IR(cfg, strings, vTables, labelGenerator)
+    val filteredVTables = vTables.filterValues { it.isNotEmpty() }
+    return IR(cfg, strings, filteredVTables, labelGenerator)
   }
 
   private fun TopDefNode.generate(): Unit = when (this) {
@@ -66,12 +67,17 @@ private data class IRGenerator(
     is RefAssStmtNode -> emit {
       val expr = expr.generate()
       val to = to.generate()
-      val className = to.type.typeName
-      val offset = hierarchy.classFieldsOffsets[className][fieldName] ?: err("Not defined field $fieldName")
+      val offset = hierarchy.classFieldsOffsets[to.type.typeName][fieldName] ?: err("Not defined field $fieldName")
       StoreQ(to, offset, expr)
     }
-    is DecrStmtNode -> emit { getVar(ident).let { UnOpModQ(it, UnOpMod.DEC, it) } }
-    is IncrStmtNode -> emit { getVar(ident).let { UnOpModQ(it, UnOpMod.INC, it) } }
+    is UnOpModStmtNode -> emit { getVar(ident).let { UnOpModQ(it, op, it) } } // TODO properly handle self changes
+    is RefUnOpModStmtNode -> {
+      val expr = expr.generate()
+      val offset = hierarchy.classFieldsOffsets[expr.type.typeName][fieldName] ?: err("Not defined field $fieldName")
+      val value = freshTemp(expr.type) { to -> emit { LoadQ(to, expr, offset) } }
+      UnOpModStmtNode(value.id, op).generate()
+      emit { StoreQ(expr, offset, value) }
+    }
     is ExprStmtNode -> expr.generate().unit()
     is RetStmtNode -> emit { RetQ(expr.generate()) }
     is VRetStmtNode -> emit { RetQ() }
@@ -224,8 +230,7 @@ private data class IRGenerator(
     }
     is FieldExprNode -> {
       val expr = expr.generate()
-      val className = expr.type.typeName
-      val offset = hierarchy.classFieldsOffsets[className][fieldName] ?: err("Not defined field $fieldName")
+      val offset = hierarchy.classFieldsOffsets[expr.type.typeName][fieldName] ?: err("Not defined field $fieldName")
       freshTemp(expr.type) { to -> emit { LoadQ(to, expr, offset) } }
     }
     is CastExprNode -> casted.generate()

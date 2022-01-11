@@ -189,7 +189,7 @@ internal class IRGeneratorTest {
         @T2#0 = call __printInt (42)
         ret 0
       """,
-      "str" to "S1"
+      mapOf("str" to "S1")
     )
 
     @Test
@@ -249,6 +249,142 @@ internal class IRGeneratorTest {
         *(a@1#0 + 4) = true
         ret 0
       """
+    )
+
+    @Test
+    fun `accesses class methods with proper names on override`() = testIR(
+      program = """
+      int main() {
+        A a = new A;
+        B b = new B;
+        a.f(42);
+        b.f(42);
+        a = b;
+        a.f(42);
+        return 0;
+      }
+      class A {
+        int f(int x) {
+          return x;
+        }
+      }
+      class B extends A {
+        int f(int x) {
+          return 2 * x;
+        }
+      }
+      """,
+      irRepresentation = """
+      main():
+        @T0#0 = call __alloc (0)
+        *(@T0#0 + 0) = A
+        a@1#0 = @T0#0
+        @T2#0 = call __alloc (0)
+        *(@T2#0 + 0) = B
+        b@3#0 = @T2#0
+        @T4#0 = call a@1#0.f (42)
+        @T5#0 = call b@3#0.f (42)
+        a@1#1 = b@3#0
+        @T6#0 = call a@1#1.f (42)
+        ret 0
+      A::f@int(x#0):
+        ret x#0
+      B::f@int(x#0):
+        @T7#0 = 2 times x#0
+        ret @T7#0
+      """,
+      virtualTable = mapOf(
+        "A" to listOf("A::f@int"),
+        "B" to listOf("B::f@int"),
+      )
+    )
+    @Test
+    fun `orders class methods in the same order in all virtual tables`() = testIR(
+      program = """
+      int main() {
+        A a = new A;
+        A b = new B;
+        A c = new C;
+        a.f(42);
+        b.f(42);
+        c.f(42);
+        return 0;
+      }
+      class A {
+        void f(int x) { }
+        void g(int x) { }
+        void h(int x) { }
+      }
+      class B extends A {
+        void g(int x) { }
+        void f(int x) { }
+      }
+      class C extends B {
+        void h(int x) { }
+        void f(int x) { }
+      }
+      """,
+      irRepresentation = """
+      main():
+        @T0#0 = call __alloc (0)
+        *(@T0#0 + 0) = A
+        a@1#0 = @T0#0
+        @T2#0 = call __alloc (0)
+        *(@T2#0 + 0) = B
+        b@3#0 = @T2#0
+        @T4#0 = call __alloc (0)
+        *(@T4#0 + 0) = C
+        c@5#0 = @T4#0
+        @T6#0 = call a@1#0.f (42)
+        @T7#0 = call b@3#0.f (42)
+        @T8#0 = call c@5#0.f (42)
+        ret 0
+      A::f@int(x#0):
+        ret
+      A::g@int(x#0):
+        ret
+      A::h@int(x#0):
+        ret
+      B::g@int(x#0):
+        ret
+      B::f@int(x#0):
+        ret
+      C::h@int(x#0):
+        ret
+      C::f@int(x#0):
+        ret
+      """,
+      virtualTable = mapOf(
+        "A" to listOf("A::f@int", "A::g@int", "A::h@int"),
+        "B" to listOf("B::f@int", "B::g@int", "A::h@int"),
+        "C" to listOf("C::f@int", "B::g@int", "C::h@int"),
+      )
+    )
+
+    @Test
+    fun `works with unary operations properly on reference types`() = testIR(
+      program = """
+      int main() {
+        A a = new A;
+        a.x = 0;
+        a.x++;
+        return 0;
+      }
+      class A {
+        int x;
+      }
+      """,
+      irRepresentation = """
+      main():
+        @T0#0 = call __alloc (4)
+        *(@T0#0 + 0) = A
+        a@1#0 = @T0#0
+        *(a@1#0 + 0) = 0
+        @T2#0 = *(a@1#0 + 0)
+        @T2#1 = inc @T2#0
+        *(a@1#0 + 0) = @T2#1
+        ret 0
+      """,
     )
   }
 
@@ -592,8 +728,10 @@ internal class IRGeneratorTest {
         x@6#0 = @T5#0
         ret 0
       """,
-      "42" to "S0",
-      "24" to "S2",
+      mapOf(
+        "42" to "S0",
+        "24" to "S2",
+      )
     )
   }
 
@@ -1010,11 +1148,13 @@ internal class IRGeneratorTest {
         s@5#0 = S4
         ret 0
       """,
-      "left" to "S0",
-      "<>" to "S1",
-      "left<>" to "S2",
-      "right" to "S3",
-      "left<>right" to "S4"
+      mapOf(
+        "left" to "S0",
+        "<>" to "S1",
+        "left<>" to "S2",
+        "right" to "S3",
+        "left<>right" to "S4"
+      )
     )
   }
 }
@@ -1022,9 +1162,10 @@ internal class IRGeneratorTest {
 private fun testIR(
   program: String,
   irRepresentation: String,
-  vararg strings: Pair<String, String>,
+  strings: Map<String, String>? = null,
+  virtualTable: Map<String, List<String>>? = null,
 ) {
-  val (graph, str) = program.byteInputStream().parse().typeCheck().toIR()
+  val (graph, str, vTable) = program.byteInputStream().parse().typeCheck().toIR()
   with(graph) {
     removeNotReachableBlocks()
     transformToSSA()
@@ -1032,6 +1173,9 @@ private fun testIR(
   val instructions = graph.instructions().peepHoleOptimize(extract = { it }).asIterable()
   val repr = instructions.nlString { it.repr() }
   assertEquals("\n${irRepresentation.trimIndent()}\n", repr)
-  assertEquals(strings.toMap() + ("" to EMPTY_STRING_LABEL.name), str.mapValues { it.value.name })
+  assertEquals((strings ?: emptyMap()) + ("" to EMPTY_STRING_LABEL.name), str.mapValues { it.value.name })
+  assertEquals(
+    virtualTable ?: hashMapOf<String, List<String>>(),
+    vTable.mapValues { classFunctions -> classFunctions.value.map { it.name } })
   assert(instructions.splitAt { it is FunCodeLabelQ }.all { it.isSSA() })
 }

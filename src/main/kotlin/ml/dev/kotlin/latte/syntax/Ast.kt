@@ -54,8 +54,14 @@ data class RefAssStmtNode(
   override val span: Span? = null
 ) : StmtNode
 
-data class IncrStmtNode(val ident: String, override val span: Span? = null) : StmtNode
-data class DecrStmtNode(val ident: String, override val span: Span? = null) : StmtNode
+data class UnOpModStmtNode(val ident: String, val op: UnOpMod, override val span: Span? = null) : StmtNode
+data class RefUnOpModStmtNode(
+  val expr: ExprNode,
+  val fieldName: String,
+  val op: UnOpMod,
+  override val span: Span? = null
+) : StmtNode
+
 data class RetStmtNode(val expr: ExprNode, override val span: Span? = null) : StmtNode
 data class VRetStmtNode(override val span: Span? = null) : StmtNode
 data class CondStmtNode(val expr: ExprNode, val onTrue: StmtNode, override val span: Span? = null) : StmtNode

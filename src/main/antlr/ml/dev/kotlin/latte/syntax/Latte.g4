@@ -33,7 +33,9 @@ stmt
     | type item ( ',' item )* ';'        # Decl
     | expr '.' ID '=' expr ';'           # RefAss
     | ID '=' expr ';'                    # Ass
+    | expr '.' ID '++' ';'               # RefIncr
     | ID '++' ';'                        # Incr
+    | expr '.' ID '--' ';'               # RefDecr
     | ID '--' ';'                        # Decr
     | 'return' expr ';'                  # Ret
     | 'return' ';'                       # VRet
