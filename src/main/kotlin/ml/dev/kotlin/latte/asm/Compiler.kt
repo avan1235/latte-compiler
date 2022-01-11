@@ -4,6 +4,7 @@ import ml.dev.kotlin.latte.quadruple.GlobalFlowAnalyzer
 import ml.dev.kotlin.latte.quadruple.IR
 import ml.dev.kotlin.latte.quadruple.Label
 import ml.dev.kotlin.latte.quadruple.peepHoleOptimize
+import ml.dev.kotlin.latte.syntax.Bytes
 import ml.dev.kotlin.latte.typecheck.STD_LIB_FUNCTIONS
 
 fun IR.compile(strategy: AllocatorStrategyProducer): String = Compiler(strategy).run { this@compile.compile() }
@@ -40,3 +41,5 @@ private class Compiler(
     }
   }
 }
+
+const val CLASS_FIRST_FIELD_OFFSET: Bytes = 4

@@ -33,14 +33,13 @@ private data class IRGenerator(
     program.topDefs.forEach { it.generate() }
     val labelGenerator = { freshLabel(prefix = "G") }
     val cfg = quadruples.buildCFG(labelGenerator)
-    val filteredVTables = vTables.filterValues { it.isNotEmpty() }
-    return IR(cfg, strings, filteredVTables, labelGenerator)
+    return IR(cfg, strings, vTables, labelGenerator)
   }
 
   private fun TopDefNode.generate(): Unit = when (this) {
     is FunDefNode -> generate()
     is ClassDefNode -> {
-      vTables[ident] = hierarchy.orderedClassMethods(ident)
+      hierarchy.orderedClassMethods(ident).takeUnless { it.isEmpty() }?.let { vTables[ident] = it }
       methods.forEach { it.generate() }
     }
   }
@@ -67,7 +66,8 @@ private data class IRGenerator(
     is FieldAssStmtNode -> emit {
       val expr = expr.generate()
       val to = to.generate()
-      val offset = hierarchy.classFieldsOffsets[to.type.typeName][fieldName] ?: err("Not defined field $fieldName")
+      val offset = hierarchy.classFieldsOffsets[to.type.typeName][fieldName]
+        ?: err("Not defined field $fieldName")
       StoreQ(to, offset, expr)
     }
     is UnOpModStmtNode -> emit { getVar(ident).let { UnOpModQ(it, op, it) } } // TODO properly handle self changes
@@ -230,8 +230,10 @@ private data class IRGenerator(
     }
     is FieldExprNode -> {
       val expr = expr.generate()
-      val offset = hierarchy.classFieldsOffsets[expr.type.typeName][fieldName] ?: err("Not defined field $fieldName")
-      freshTemp(expr.type) { to -> emit { LoadQ(to, expr, offset) } }
+      val className = expr.type.typeName
+      val offset = hierarchy.classFieldsOffsets[className][fieldName] ?: err("Not defined field $fieldName")
+      val fieldType = hierarchy.classFieldsTypes[className][fieldName]?: err("Not defined field $fieldName")
+      freshTemp(fieldType) { to -> emit { LoadQ(to, expr, offset) } }
     }
     is CastExprNode -> casted.generate()
     is ThisExprNode -> thisArg ?: err("Undefined ")

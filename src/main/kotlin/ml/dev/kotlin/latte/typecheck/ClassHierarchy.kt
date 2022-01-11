@@ -1,5 +1,6 @@
 package ml.dev.kotlin.latte.typecheck
 
+import ml.dev.kotlin.latte.asm.CLASS_FIRST_FIELD_OFFSET
 import ml.dev.kotlin.latte.syntax.*
 import ml.dev.kotlin.latte.util.*
 
@@ -19,8 +20,12 @@ data class ClassHierarchy(
   private val functions: FunEnv = FunEnv(argsCombinationsCache, createStdLibFunEnv())
 
   val classFieldsOffsets: DefaultMap<String, Map<String, Bytes>> = MutableDefaultMap({ className ->
-    var offset = 0
+    var offset = CLASS_FIRST_FIELD_OFFSET
     orderedClassFields(className).associate { field -> field.name to offset.also { offset += field.type.size } }
+  })
+
+  val classFieldsTypes: DefaultMap<String, Map<String, Type>> = MutableDefaultMap({ className ->
+    orderedClassFields(className).associate { field -> field.name to field.type }
   })
 
   val classSizeBytes: DefaultMap<String, Bytes> = MutableDefaultMap({ className ->

@@ -386,6 +386,45 @@ internal class IRGeneratorTest {
         ret 0
       """,
     )
+
+    @Test
+    fun `works correctly on nested classes fields`() = testIR(
+      program = """
+      int main() {
+        C c = new C;
+        c.b = new B;
+        c.b.a = new A;
+        c.b.a.x = 42;
+        return 0;
+      }
+      class A {
+        int x;
+      }
+      class B {
+        A a;
+      }
+      class C {
+        B b;
+      }
+      """,
+      irRepresentation = """
+      main():
+        @T0#0 = call __alloc (4)
+        *(@T0#0 + 0) = C
+        c@1#0 = @T0#0
+        @T2#0 = call __alloc (4)
+        *(@T2#0 + 0) = B
+        *(c@1#0 + 4) = @T2#0
+        @T3#0 = call __alloc (4)
+        *(@T3#0 + 0) = A
+        @T4#0 = *(c@1#0 + 4)
+        *(@T4#0 + 4) = @T3#0
+        @T5#0 = *(c@1#0 + 4)
+        @T6#0 = *(@T5#0 + 4)
+        *(@T6#0 + 4) = 42
+        ret 0
+      """
+    )
   }
 
   @Nested
