@@ -64,14 +64,14 @@ private data class IRGenerator(
       val expr = expr.generate()
       AssignQ(getVar(ident), expr)
     }
-    is RefAssStmtNode -> emit {
+    is FieldAssStmtNode -> emit {
       val expr = expr.generate()
       val to = to.generate()
       val offset = hierarchy.classFieldsOffsets[to.type.typeName][fieldName] ?: err("Not defined field $fieldName")
       StoreQ(to, offset, expr)
     }
     is UnOpModStmtNode -> emit { getVar(ident).let { UnOpModQ(it, op, it) } } // TODO properly handle self changes
-    is RefUnOpModStmtNode -> {
+    is FieldUnOpModStmtNode -> {
       val expr = expr.generate()
       val offset = hierarchy.classFieldsOffsets[expr.type.typeName][fieldName] ?: err("Not defined field $fieldName")
       val value = freshTemp(expr.type) { to -> emit { LoadQ(to, expr, offset) } }
@@ -173,7 +173,7 @@ private data class IRGenerator(
     is FunCallExprNode -> freshTemp(getMangledFunType(mangledName)) { to ->
       emit { FunCallQ(to, mangledName.label, args.map { it.generate() }) }
     }
-    is MethodCallExprNode -> freshTemp(getMangledFunType(mangledName)) { to ->
+    is ClassFunCallExprNode -> freshTemp(getMangledFunType(mangledName)) { to ->
       val thisArg = self.generate()
       val args = args.map { it.generate() }
       emit { MethodCallQ(to, thisArg, name, args) }

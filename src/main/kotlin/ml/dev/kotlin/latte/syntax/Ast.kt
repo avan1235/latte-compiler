@@ -47,7 +47,7 @@ sealed interface StmtNode : AstNode
 data class BlockStmtNode(val block: BlockNode, override val span: Span? = null) : StmtNode
 data class DeclStmtNode(val type: Type, val items: List<ItemNode>, override val span: Span? = null) : StmtNode
 data class AssStmtNode(val ident: String, val expr: ExprNode, override val span: Span? = null) : StmtNode
-data class RefAssStmtNode(
+data class FieldAssStmtNode(
   val to: ExprNode,
   val fieldName: String,
   val expr: ExprNode,
@@ -55,7 +55,7 @@ data class RefAssStmtNode(
 ) : StmtNode
 
 data class UnOpModStmtNode(val ident: String, val op: UnOpMod, override val span: Span? = null) : StmtNode
-data class RefUnOpModStmtNode(
+data class FieldUnOpModStmtNode(
   val expr: ExprNode,
   val fieldName: String,
   val op: UnOpMod,
@@ -96,7 +96,7 @@ data class FunCallExprNode(val name: String, val args: List<ExprNode>, override 
   var mangledName by notNull<String>()
 }
 
-data class MethodCallExprNode(
+data class ClassFunCallExprNode(
   val self: ExprNode,
   val name: String,
   val args: List<ExprNode>,

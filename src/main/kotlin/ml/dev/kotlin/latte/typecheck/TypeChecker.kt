@@ -87,9 +87,9 @@ private class TypeChecker(
     is BlockStmtNode -> varEnv.onLevel { block.typeCheck() }
     is DeclStmtNode -> noReturn { items.forEach { it.typeCheckDecl(type) } }
     is AssStmtNode -> noReturn { typeCheckAss() }
-    is RefAssStmtNode -> noReturn { typeCheckRefAss() }
+    is FieldAssStmtNode -> noReturn { typeCheckRefAss() }
     is UnOpModStmtNode -> noReturn { typeCheckUnOpMod() }
-    is RefUnOpModStmtNode -> noReturn { typeCheckRefUnOpMod() }
+    is FieldUnOpModStmtNode -> noReturn { typeCheckRefUnOpMod() }
     is WhileStmtNode -> noReturn { typeCheckCond(expr, onTrue) }
     is CondStmtNode -> noReturn { typeCheckCond(expr, onTrue) }
     is CondElseStmtNode -> typeCheckCondElse(expr, onTrue, onFalse)
@@ -97,7 +97,7 @@ private class TypeChecker(
     is RetStmtNode -> typeCheckReturn(expr.type())
   }
 
-  private fun RefAssStmtNode.typeCheckRefAss() {
+  private fun FieldAssStmtNode.typeCheckRefAss() {
     val exprType = expr.type()
     val fieldName = fieldName
     val fieldType = env.classFields(to.type().typeName)[fieldName]
@@ -128,7 +128,7 @@ private class TypeChecker(
   private fun UnOpModStmtNode.typeCheckUnOpMod(): LastReturnType =
     if (getVarType(ident) == IntType) null else err("Expected $IntType for operation")
 
-  private fun RefUnOpModStmtNode.typeCheckRefUnOpMod(): LastReturnType {
+  private fun FieldUnOpModStmtNode.typeCheckRefUnOpMod(): LastReturnType {
     val checkType = expr.type()
     if (checkType !is RefType) err("Cannot modify field of not class type")
     val fieldType = env.classFields(checkType.typeName)[fieldName]
@@ -208,7 +208,7 @@ private class TypeChecker(
         else err("Cannot create new instance of not defined type $type")
       is PrimitiveType -> err("Cannot create new instance of primitive type")
     }
-    is MethodCallExprNode -> {
+    is ClassFunCallExprNode -> {
       val selfType = self.type()
       if (selfType !is RefType) err("Cannot call ${this.name} on $selfType")
       val argsTypes = args.map { it.type() }

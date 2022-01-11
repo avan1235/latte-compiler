@@ -5,18 +5,13 @@ program
     ;
 
 topDef
-    : type ID '(' arg? ')' block                    # Fun
-    | classDef                                      # Class
-    ;
-
-classDef
-    : 'class' ID '{' classBodyDef+ '}'              # ClassNotExtendingDef
-    | 'class' ID 'extends' ID '{' classBodyDef+ '}' # ClassExtendingDef
+    : type ID '(' arg? ')' block                        # Fun
+    | 'class' ID ('extends' ID)? '{' classBodyDef+ '}'  # Class
     ;
 
 classBodyDef
     : type ID ';'                   # ClassField
-    | type ID '(' arg? ')' block    # ClassMethod
+    | type ID '(' arg? ')' block    # ClassFun
     ;
 
 arg
@@ -59,7 +54,7 @@ item
     ;
 
 expr
-    : expr '.' ID '(' ( expr ( ',' expr )* )? ')'  # EClassMethodCall
+    : expr '.' ID '(' ( expr ( ',' expr )* )? ')'  # EClassFunCall
     | expr '.' ID                                  # EClassField
     | unOp expr                                    # EUnOp
     | expr mulOp expr                              # EMulOp
