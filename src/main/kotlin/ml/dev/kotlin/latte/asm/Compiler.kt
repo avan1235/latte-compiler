@@ -1,9 +1,6 @@
 package ml.dev.kotlin.latte.asm
 
-import ml.dev.kotlin.latte.quadruple.GlobalFlowAnalyzer
-import ml.dev.kotlin.latte.quadruple.IR
-import ml.dev.kotlin.latte.quadruple.Label
-import ml.dev.kotlin.latte.quadruple.peepHoleOptimize
+import ml.dev.kotlin.latte.quadruple.*
 import ml.dev.kotlin.latte.syntax.Bytes
 import ml.dev.kotlin.latte.typecheck.STD_LIB_FUNCTIONS
 
@@ -43,3 +40,8 @@ private class Compiler(
 }
 
 const val CLASS_FIRST_FIELD_OFFSET: Bytes = 4
+const val CLASS_SELF_ARG_SIZE: Bytes = 4
+
+val ALLOC_FUN_LABEL: Label = "__alloc".label
+val EMPTY_STRING_LABEL: Label = "S@EMPTY".label
+

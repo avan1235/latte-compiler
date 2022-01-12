@@ -1,11 +1,12 @@
 package ml.dev.kotlin.latte.quadruple
 
+import ml.dev.kotlin.latte.asm.ALLOC_FUN_LABEL
+import ml.dev.kotlin.latte.asm.CLASS_SELF_ARG_SIZE
+import ml.dev.kotlin.latte.asm.EMPTY_STRING_LABEL
 import ml.dev.kotlin.latte.quadruple.ControlFlowGraph.Companion.buildCFG
 import ml.dev.kotlin.latte.syntax.*
 import ml.dev.kotlin.latte.syntax.PrimitiveType.*
-import ml.dev.kotlin.latte.typecheck.ClassHierarchy
-import ml.dev.kotlin.latte.typecheck.FunDeclaration
-import ml.dev.kotlin.latte.typecheck.TypeCheckedProgram
+import ml.dev.kotlin.latte.typecheck.*
 import ml.dev.kotlin.latte.util.*
 
 fun TypeCheckedProgram.toIR(): IR = IRGenerator(env).run { this@toIR.generate() }
@@ -25,9 +26,11 @@ private data class IRGenerator(
   private val vTables: MutableMap<String, List<FunDeclaration>> = HashMap(),
   private var labelIdx: Int = 0,
   private var emitting: Boolean = true,
-  private var thisArg: ArgValue? = null,
+  private var thisMethods: FunEnv? = null,
+  private var thisFields: Map<String, ClassField>? = null,
+  private var thisClass: ArgValue? = null,
 ) {
-  private val funEnv = hierarchy.functionsByName()
+  private val functionsTypesByMangledName = hierarchy.functionsTypesByMangledName()
 
   fun TypeCheckedProgram.generate(): IR {
     program.topDefs.forEach { it.generate() }
@@ -39,18 +42,28 @@ private data class IRGenerator(
   private fun TopDefNode.generate(): Unit = when (this) {
     is FunDefNode -> generate()
     is ClassDefNode -> {
-      hierarchy.orderedClassMethods(ident).takeUnless { it.isEmpty() }?.let { vTables[ident] = it }
-      methods.forEach { it.generate() }
+      hierarchy.classMethods[ident].ordered().takeIf { it.isNotEmpty() }?.let { vTables[ident] = it }
+      methods.forEach { it.generate(inClass = ident) }
     }
   }
 
-  private fun FunDefNode.generate(): Unit = varEnv.onLevel {
-    var argOffset = 0
-    val args = args.list.map { (type, name) ->
+  private fun FunDefNode.generate(inClass: String? = null): Unit = varEnv.onLevel {
+    val funArgs = ArrayList<ArgValue>()
+    inClass?.let { className ->
+      thisClass = ArgValue("self", 0, RefType(className)).also { funArgs += it }
+      thisFields = hierarchy.classFields[className]
+      thisMethods = hierarchy.classMethods[className]
+    }
+
+    var argOffset = if (inClass == null) 0 else CLASS_SELF_ARG_SIZE
+    args.list.mapTo(funArgs) { (type, name) ->
       addArg(name.label, type, argOffset).also { argOffset += type.size }
     }
-    emit { FunCodeLabelQ(mangledName.label, args) }
+    emit { FunCodeLabelQ(mangledName.label, funArgs) }
     block.generate()
+    thisMethods = null
+    thisFields = null
+    thisClass = null
   }
 
   private fun BlockNode.generate(): Unit = stmts.forEach { it.generate() }
@@ -59,24 +72,31 @@ private data class IRGenerator(
     EmptyStmtNode -> Unit
     is BlockStmtNode -> varEnv.onLevel { block.generate() }
     is DeclStmtNode -> items.forEach { it.generate(type) }
-    is AssStmtNode -> emit {
+    is AssStmtNode -> {
       val expr = expr.generate()
-      AssignQ(getVar(ident), expr)
+      if (to == null) {
+        varEnv[fieldName]?.let {
+          emit { AssignQ(it, expr) }
+        } ?: thisFields?.get(fieldName)?.let { field ->
+          emit { StoreQ(thisClass!!, field.offset, expr) }
+        } ?: err("Not defined variable $fieldName")
+      } else {
+        val to = to.generate()
+        val offset = hierarchy.classFields[to.type.typeName][fieldName]?.offset ?: err("Not defined field $fieldName")
+        emit { StoreQ(to, offset, expr) }
+      }
     }
-    is FieldAssStmtNode -> emit {
-      val expr = expr.generate()
-      val to = to.generate()
-      val offset = hierarchy.classFieldsOffsets[to.type.typeName][fieldName]
-        ?: err("Not defined field $fieldName")
-      StoreQ(to, offset, expr)
-    }
-    is UnOpModStmtNode -> emit { getVar(ident).let { UnOpModQ(it, op, it) } } // TODO properly handle self changes
-    is FieldUnOpModStmtNode -> {
-      val expr = expr.generate()
-      val offset = hierarchy.classFieldsOffsets[expr.type.typeName][fieldName] ?: err("Not defined field $fieldName")
-      val value = freshTemp(expr.type) { to -> emit { LoadQ(to, expr, offset) } }
-      UnOpModStmtNode(value.id, op).generate()
-      emit { StoreQ(expr, offset, value) }
+    is UnOpModStmtNode -> {
+      val loaded = if (to == null) getVar(fieldName)
+      else {
+        val to = to.generate()
+        val offset = hierarchy.classFields[to.type.typeName][fieldName]?.offset
+          ?: err("Not defined field $fieldName")
+        val temp = freshTemp(to.type) { emit { LoadQ(it, to, offset) } }
+        ThisVar(temp, to, offset)
+      }
+      emit { UnOpModQ(loaded.value, op, loaded.value) }
+      if (loaded is ThisVar) emit { StoreQ(loaded.self, loaded.offset, loaded.value) } else Unit
     }
     is ExprStmtNode -> expr.generate().unit()
     is RetStmtNode -> emit { RetQ(expr.generate()) }
@@ -171,14 +191,16 @@ private data class IRGenerator(
 
   private fun ExprNode.generate(): ValueHolder = when (this) {
     is FunCallExprNode -> freshTemp(getMangledFunType(mangledName)) { to ->
-      emit { FunCallQ(to, mangledName.label, args.map { it.generate() }) }
-    }
-    is ClassFunCallExprNode -> freshTemp(getMangledFunType(mangledName)) { to ->
-      val thisArg = self.generate()
       val args = args.map { it.generate() }
-      emit { MethodCallQ(to, thisArg, name, args) }
+      if (self == null) {
+          // TODO handle implicit self calls
+          emit { FunCallQ(to, mangledName.label, args) }
+      } else {
+          val thisArg = self.generate()
+          emit { MethodCallQ(to, thisArg, funName, args) }
+      }
     }
-    is IdentExprNode -> getVar(value)
+    is IdentExprNode -> getVar(value).value
     is BoolExprNode -> value.bool
     is IntExprNode -> value.int
     is StringExprNode -> addStringConst(value)
@@ -225,18 +247,17 @@ private data class IRGenerator(
       }
     }
     is ConstructorCallExprNode -> freshTemp(type) { to ->
-      emit { FunCallQ(to, "__alloc".label, listOf(IntConstValue(hierarchy.classSizeBytes[type.typeName]))) }
+      emit { FunCallQ(to, ALLOC_FUN_LABEL, listOf(IntConstValue(hierarchy.classSizeBytes[type.typeName]))) }
       emit { StoreQ(to, 0, LabelConstValue(type.typeName.label)) }
     }
     is FieldExprNode -> {
       val expr = expr.generate()
       val className = expr.type.typeName
-      val offset = hierarchy.classFieldsOffsets[className][fieldName] ?: err("Not defined field $fieldName")
-      val fieldType = hierarchy.classFieldsTypes[className][fieldName]?: err("Not defined field $fieldName")
-      freshTemp(fieldType) { to -> emit { LoadQ(to, expr, offset) } }
+      val fieldData = hierarchy.classFields[className][fieldName] ?: err("Not defined field $fieldName")
+      freshTemp(fieldData.type) { to -> emit { LoadQ(to, expr, fieldData.offset) } }
     }
     is CastExprNode -> casted.generate()
-    is ThisExprNode -> thisArg ?: err("Undefined ")
+    is ThisExprNode -> thisClass ?: err("Undefined ")
     is NullExprNode -> NullConstValue
   }
 
@@ -244,8 +265,8 @@ private data class IRGenerator(
     freshTemp(BooleanType) { to ->
       CondElseStmtNode(
         BinOpExprNode(left, op, right),
-        AssStmtNode(to.id, BoolExprNode(true)),
-        AssStmtNode(to.id, BoolExprNode(false)),
+        AssStmtNode(null, to.id, BoolExprNode(true)),
+        AssStmtNode(null, to.id, BoolExprNode(false)),
       ).generate()
     }
 
@@ -268,11 +289,13 @@ private data class IRGenerator(
   private fun addLocal(label: Label, type: Type): LocalValue =
     LocalValue("${label.name}@${freshIdx()}", type).also { varEnv[label.name] = it }
 
-  private fun AstNode.getVar(name: String): VirtualReg =
-    varEnv[name] ?: thisArg ?: err("Not defined variable with name $name")
+  private fun AstNode.getVar(name: String): FieldOrVar =
+    varEnv[name]?.let { LocalVar(it) } ?: thisFields?.let { it[name] }?.let { field ->
+      ThisVar(freshTemp(field.type) { to -> emit { LoadQ(to, thisClass!!, field.offset) } }, thisClass!!, field.offset)
+    } ?: err("Not defined variable with name $name")
 
   private fun AstNode.getMangledFunType(name: String): Type =
-    funEnv[name] ?: err("Not defined function with name $name")
+    functionsTypesByMangledName[name] ?: err("Not defined function with name $name")
 }
 
 private inline val Type.default: ConstValue
@@ -285,6 +308,8 @@ private inline val Type.default: ConstValue
     is RefType -> NullConstValue
   }
 
-val EMPTY_STRING_LABEL: Label = "S@EMPTY".label
-
 private fun AstNode.err(message: String): Nothing = throw IRException(LocalizedMessage(message, span?.from))
+
+private sealed class FieldOrVar(val value: VirtualReg)
+private class LocalVar(value: VirtualReg) : FieldOrVar(value)
+private class ThisVar(value: VirtualReg, val self: ValueHolder, val offset: Bytes) : FieldOrVar(value)

@@ -1,5 +1,6 @@
 package ml.dev.kotlin.latte.quadruple
 
+import ml.dev.kotlin.latte.asm.EMPTY_STRING_LABEL
 import ml.dev.kotlin.latte.syntax.parse
 import ml.dev.kotlin.latte.typecheck.typeCheck
 import ml.dev.kotlin.latte.util.nlString
@@ -245,8 +246,8 @@ internal class IRGeneratorTest {
         @T0#0 = call __alloc (8)
         *(@T0#0 + 0) = A
         a@1#0 = @T0#0
-        *(a@1#0 + 0) = 42
-        *(a@1#0 + 4) = true
+        *(a@1#0 + 4) = 42
+        *(a@1#0 + 8) = true
         ret 0
       """
     )
@@ -379,10 +380,10 @@ internal class IRGeneratorTest {
         @T0#0 = call __alloc (4)
         *(@T0#0 + 0) = A
         a@1#0 = @T0#0
-        *(a@1#0 + 0) = 0
-        @T2#0 = *(a@1#0 + 0)
+        *(a@1#0 + 4) = 0
+        @T2#0 = *(a@1#0 + 4)
         @T2#1 = inc @T2#0
-        *(a@1#0 + 0) = @T2#1
+        *(a@1#0 + 4) = @T2#1
         ret 0
       """,
     )
@@ -424,6 +425,40 @@ internal class IRGeneratorTest {
         *(@T6#0 + 4) = 42
         ret 0
       """
+    )
+
+    @Test
+    fun `accesses class fields with implicit this`() = testIR(
+      program = """
+      int main() {
+        return 0;
+      }
+      class A {
+        int x;
+        boolean y;
+        void z() {
+          x = 42;
+          boolean y = false;
+          y = true;
+          self.y = true;
+          self.x = 24;
+        }
+      }
+      """,
+      irRepresentation = """
+      main():
+        ret 0
+      A::z(self#0):
+        *(self#0 + 4) = 42
+        y@0#0 = false
+        y@0#1 = true
+        *(self#0 + 8) = true
+        *(self#0 + 4) = 24
+        ret
+      """,
+      virtualTable = mapOf(
+        "A" to listOf("A::z")
+      )
     )
   }
 

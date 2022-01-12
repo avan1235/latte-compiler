@@ -26,7 +26,8 @@ object NullConstValue : ConstValue(VoidRefType)
 sealed class VirtualReg(open val id: String, open val original: VirtualReg?) : ValueHolder {
   abstract override fun renameUsage(currIndex: CurrIndex): VirtualReg
   protected fun createRenamedId(currIndex: CurrIndex): String = if (original == null) {
-    "$id#${currIndex(this) ?: err<String>("Cannot rename with null index: $this")}"
+    "$id#${currIndex(this)
+      ?: err<String>("Cannot rename with null index: $this")}"
   } else err("Already renamed $this")
 
   fun renameDefinition(currIndex: CurrIndex, updateIndex: UpdateIndex): VirtualReg {
