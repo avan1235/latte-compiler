@@ -288,9 +288,9 @@ internal class IRGeneratorTest {
         a@1#1 = b@3#0
         @T6#0 = call a@1#1.f (42)
         ret 0
-      A::f@int(x#0):
+      A::f@int(self#0, x#0):
         ret x#0
-      B::f@int(x#0):
+      B::f@int(self#0, x#0):
         @T7#0 = 2 times x#0
         ret @T7#0
       """,
@@ -299,6 +299,7 @@ internal class IRGeneratorTest {
         "B" to listOf("B::f@int"),
       )
     )
+
     @Test
     fun `orders class methods in the same order in all virtual tables`() = testIR(
       program = """
@@ -340,19 +341,19 @@ internal class IRGeneratorTest {
         @T7#0 = call b@3#0.f (42)
         @T8#0 = call c@5#0.f (42)
         ret 0
-      A::f@int(x#0):
+      A::f@int(self#0, x#0):
         ret
-      A::g@int(x#0):
+      A::g@int(self#0, x#0):
         ret
-      A::h@int(x#0):
+      A::h@int(self#0, x#0):
         ret
-      B::g@int(x#0):
+      B::g@int(self#0, x#0):
         ret
-      B::f@int(x#0):
+      B::f@int(self#0, x#0):
         ret
-      C::h@int(x#0):
+      C::h@int(self#0, x#0):
         ret
-      C::f@int(x#0):
+      C::f@int(self#0, x#0):
         ret
       """,
       virtualTable = mapOf(
@@ -460,6 +461,52 @@ internal class IRGeneratorTest {
         "A" to listOf("A::z")
       )
     )
+
+    @Test
+    fun `accesses class methods with implicit this`() = testIR(
+      program = """
+      int main() {
+        return 0;
+      }
+      void f() {}
+      class A extends B {
+        void test() {
+          f();
+          self.f();
+          g();
+          h();
+        }
+        void f() {}
+        void g() {}
+      }
+      class B {
+        void h() {}
+      }
+      """,
+      irRepresentation = """
+      main():
+        ret 0
+      f():
+        ret
+      A::test(self#0):
+        @T0#0 = call f ()
+        @T1#0 = call self#0.f ()
+        @T2#0 = call self#0.g ()
+        @T3#0 = call self#0.h ()
+        ret
+      A::f(self#0):
+        ret
+      A::g(self#0):
+        ret
+      B::h(self#0):
+        ret
+      """,
+      virtualTable = mapOf(
+        "B" to listOf("B::h"),
+        "A" to listOf("B::h", "A::test", "A::f", "A::g")
+      )
+    )
+
   }
 
   @Nested

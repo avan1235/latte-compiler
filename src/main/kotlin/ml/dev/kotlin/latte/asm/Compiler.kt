@@ -41,7 +41,9 @@ private class Compiler(
 
 const val CLASS_FIRST_FIELD_OFFSET: Bytes = 4
 const val CLASS_SELF_ARG_SIZE: Bytes = 4
+const val THIS_ARG_ID: String = "self"
 
 val ALLOC_FUN_LABEL: Label = "__alloc".label
 val EMPTY_STRING_LABEL: Label = "S@EMPTY".label
+
 

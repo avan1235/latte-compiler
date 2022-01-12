@@ -3,6 +3,7 @@ package ml.dev.kotlin.latte.quadruple
 import ml.dev.kotlin.latte.asm.ALLOC_FUN_LABEL
 import ml.dev.kotlin.latte.asm.CLASS_SELF_ARG_SIZE
 import ml.dev.kotlin.latte.asm.EMPTY_STRING_LABEL
+import ml.dev.kotlin.latte.asm.THIS_ARG_ID
 import ml.dev.kotlin.latte.quadruple.ControlFlowGraph.Companion.buildCFG
 import ml.dev.kotlin.latte.syntax.*
 import ml.dev.kotlin.latte.syntax.PrimitiveType.*
@@ -50,12 +51,11 @@ private data class IRGenerator(
   private fun FunDefNode.generate(inClass: String? = null): Unit = varEnv.onLevel {
     val funArgs = ArrayList<ArgValue>()
     inClass?.let { className ->
-      thisClass = ArgValue("self", 0, RefType(className)).also { funArgs += it }
+      thisClass = ArgValue(THIS_ARG_ID, 0, RefType(className)).also { funArgs += it }
       thisFields = hierarchy.classFields[className]
       thisMethods = hierarchy.classMethods[className]
     }
-
-    var argOffset = if (inClass == null) 0 else CLASS_SELF_ARG_SIZE
+    var argOffset = if (inClass != null) CLASS_SELF_ARG_SIZE else 0
     args.list.mapTo(funArgs) { (type, name) ->
       addArg(name.label, type, argOffset).also { argOffset += type.size }
     }
@@ -193,11 +193,13 @@ private data class IRGenerator(
     is FunCallExprNode -> freshTemp(getMangledFunType(mangledName)) { to ->
       val args = args.map { it.generate() }
       if (self == null) {
-          // TODO handle implicit self calls
-          emit { FunCallQ(to, mangledName.label, args) }
+        val argsTypes = args.map { it.type }
+        hierarchy.functions[funName, argsTypes]
+          ?.then { emit { FunCallQ(to, mangledName.label, args) } }
+          ?: emit { MethodCallQ(to, thisClass!!, funName, args) }
       } else {
-          val thisArg = self.generate()
-          emit { MethodCallQ(to, thisArg, funName, args) }
+        val thisArg = self.generate()
+        emit { MethodCallQ(to, thisArg, funName, args) }
       }
     }
     is IdentExprNode -> getVar(value).value
