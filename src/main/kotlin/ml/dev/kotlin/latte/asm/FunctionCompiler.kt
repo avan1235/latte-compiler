@@ -37,10 +37,14 @@ class FunctionCompiler(
       assign(to, EAX, idx)
     }
     is MethodCallQ -> {
+      val offset = self.vTable()[ident, argsTypes]
       preserveReg(ECX, EDX, at = idx) {
         args.asReversed().forEach { cmd(PUSH, it.get()) }
-        cmd(PUSH, self.get())
-        cmd(CALL, self.vTable()[ident, argsTypes])
+        cmd(MOV, EAX, self.get())
+        cmd(PUSH, EAX)
+        cmd(MOV, EAX, Adr(EAX))
+        cmd(LEA, EAX, Adr(EAX, offset))
+        cmd(CALL, Adr(EAX))
         cmd(ADD, ESP, argsSize.imm)
       }
       assign(to, EAX, idx)
@@ -86,9 +90,39 @@ class FunctionCompiler(
       is Mem -> AssignQ(to, from).compile(idx).then { cmd(op.cmd, to.get()) }
       else -> err("Unexpected case for $this")
     }
+    is LoadQ -> {
+      val from = when (val from = from.get()) {
+        is Imm -> cmd(MOV, EAX, from).then { EAX }
+        is Mem -> cmd(MOV, EAX, from).then { EAX }
+        is Reg -> from
+      }
+      cmd(LEA, EAX, Adr(from, offset))
+      when(val to = to.get()) {
+        is Imm -> err("Cannot move to immediate value $to")
+        is Reg -> cmd(MOV, to, Adr(EAX))
+        is Mem -> preserveReg(ECX, at = idx) {
+          cmd(MOV, ECX, Adr(EAX))
+          cmd(MOV, to, ECX)
+        }
+      }
+    }
+    is StoreQ -> {
+      val to = when (val to = to.get()) {
+        is Imm -> cmd(MOV, EAX, to).then { EAX }
+        is Mem -> cmd(MOV, EAX, to).then { EAX }
+        is Reg -> to
+      }
+      cmd(LEA, EAX, Adr(to, offset))
+      when(val from = from.get()) {
+        is Imm -> cmd(MOV, Adr(EAX), from)
+        is Reg -> cmd(MOV, Adr(EAX), from)
+        is Mem -> preserveReg(ECX, at = idx) {
+          cmd(MOV, ECX, from)
+          cmd(MOV, Adr(EAX), ECX)
+        }
+      }
+    }
     is PhonyQ -> err("Unexpected $this found in compilation phase")
-    is LoadQ -> TODO()
-    is StoreQ -> TODO()
   }
 
   private fun NumOp.on(to: VirtualReg, left: ValueHolder, right: ValueHolder, idx: StmtIdx): Unit = when (this) {

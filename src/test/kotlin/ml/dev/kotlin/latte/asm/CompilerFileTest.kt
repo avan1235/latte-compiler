@@ -15,27 +15,35 @@ internal class CompilerFileTest {
 
   @ParameterizedTest
   @MethodSource("goodExamplesProvider")
-  fun `should accept valid input files and match their output with default allocator`(input: File) =
+  fun `should accept good examples and match their output with default allocator`(input: File) =
     testCompilerWithAllocatorStrategy(input, TestAllocator.DEFAULT)
 
   @ParameterizedTest
   @MethodSource("goodExamplesProvider")
-  fun `should accept valid input files and match their output with first allocator`(input: File) =
+  fun `should accept good examples and match their output with first allocator`(input: File) =
     testCompilerWithAllocatorStrategy(input, TestAllocator.FIRST)
 
   @ParameterizedTest
   @MethodSource("goodExamplesProvider")
-  fun `should accept valid input files and match their output with last allocator`(input: File) =
+  fun `should accept good examples and match their output with last allocator`(input: File) =
     testCompilerWithAllocatorStrategy(input, TestAllocator.LAST)
 
   @ParameterizedTest
   @MethodSource("goodExamplesProvider")
-  fun `should accept valid input files and match their output with random allocator`(input: File) =
+  fun `should accept good examples and match their output with random allocator`(input: File) =
     testCompilerWithAllocatorStrategy(input, TestAllocator.RANDOM)
+
+  @ParameterizedTest
+  @MethodSource("extensionsExamplesProvider")
+  fun `should accept extensions examples and match their output with default allocator`(input: File) =
+    testCompilerWithAllocatorStrategy(input, TestAllocator.DEFAULT)
 
   companion object {
     @JvmStatic
     fun goodExamplesProvider(): Stream<File> = File("src/test/resources/good").testLatteFilesStream()
+
+    @JvmStatic
+    fun extensionsExamplesProvider(): Stream<File> = File("src/test/resources/extensions").testLatteFilesStream()
 
     private fun File.testLatteFilesStream(): Stream<File> =
       StreamSupport.stream(walkTopDown().toList().spliterator(), false).filter { it.isFile && it.extension == "lat" }

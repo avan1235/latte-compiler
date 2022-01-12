@@ -24,13 +24,15 @@ data class FunEnv(
 
   private fun addFun(funDef: FunDefNode, inClass: String? = null): Unit = with(funDef) {
     val args = args.list.map { it.type }
-    val mangled = (inClass?.let { "$it::$ident" } ?: ident) mangled args
+    val mangled = (inClass?.let { "$it$CLASS_DIVIDER$ident" } ?: ident) mangled args
     val sign = FunSignature(ident, args)
     if (sign in funEnv && inClass == null) err("Redefined function $ident")
     funEnv[sign] = FunDeclaration(mangled, args, type)
     mangledName = mangled
   }
 }
+
+const val CLASS_DIVIDER: Char = '$'
 
 private fun AstNode.err(message: String): Nothing = throw FunEnvException(LocalizedMessage(message, span?.from))
 

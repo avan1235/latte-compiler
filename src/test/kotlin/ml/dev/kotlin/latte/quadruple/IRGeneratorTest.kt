@@ -2,6 +2,7 @@ package ml.dev.kotlin.latte.quadruple
 
 import ml.dev.kotlin.latte.asm.EMPTY_STRING_LABEL
 import ml.dev.kotlin.latte.syntax.parse
+import ml.dev.kotlin.latte.typecheck.CLASS_DIVIDER
 import ml.dev.kotlin.latte.typecheck.typeCheck
 import ml.dev.kotlin.latte.util.nlString
 import ml.dev.kotlin.latte.util.splitAt
@@ -288,15 +289,15 @@ internal class IRGeneratorTest {
         a@1#1 = b@3#0
         @T6#0 = call a@1#1.f (42)
         ret 0
-      A::f@int(self#0, x#0):
+      A${CLASS_DIVIDER}f@int(self#0, x#0):
         ret x#0
-      B::f@int(self#0, x#0):
+      B${CLASS_DIVIDER}f@int(self#0, x#0):
         @T7#0 = 2 times x#0
         ret @T7#0
       """,
       virtualTable = mapOf(
-        "A" to listOf("A::f@int"),
-        "B" to listOf("B::f@int"),
+        "A" to listOf("A${CLASS_DIVIDER}f@int"),
+        "B" to listOf("B${CLASS_DIVIDER}f@int"),
       )
     )
 
@@ -341,25 +342,25 @@ internal class IRGeneratorTest {
         @T7#0 = call b@3#0.f (42)
         @T8#0 = call c@5#0.f (42)
         ret 0
-      A::f@int(self#0, x#0):
+      A${CLASS_DIVIDER}f@int(self#0, x#0):
         ret
-      A::g@int(self#0, x#0):
+      A${CLASS_DIVIDER}g@int(self#0, x#0):
         ret
-      A::h@int(self#0, x#0):
+      A${CLASS_DIVIDER}h@int(self#0, x#0):
         ret
-      B::g@int(self#0, x#0):
+      B${CLASS_DIVIDER}g@int(self#0, x#0):
         ret
-      B::f@int(self#0, x#0):
+      B${CLASS_DIVIDER}f@int(self#0, x#0):
         ret
-      C::h@int(self#0, x#0):
+      C${CLASS_DIVIDER}h@int(self#0, x#0):
         ret
-      C::f@int(self#0, x#0):
+      C${CLASS_DIVIDER}f@int(self#0, x#0):
         ret
       """,
       virtualTable = mapOf(
-        "A" to listOf("A::f@int", "A::g@int", "A::h@int"),
-        "B" to listOf("B::f@int", "B::g@int", "A::h@int"),
-        "C" to listOf("C::f@int", "B::g@int", "C::h@int"),
+        "A" to listOf("A${CLASS_DIVIDER}f@int", "A${CLASS_DIVIDER}g@int", "A${CLASS_DIVIDER}h@int"),
+        "B" to listOf("B${CLASS_DIVIDER}f@int", "B${CLASS_DIVIDER}g@int", "A${CLASS_DIVIDER}h@int"),
+        "C" to listOf("C${CLASS_DIVIDER}f@int", "B${CLASS_DIVIDER}g@int", "C${CLASS_DIVIDER}h@int"),
       )
     )
 
@@ -449,7 +450,7 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         ret 0
-      A::z(self#0):
+      A${CLASS_DIVIDER}z(self#0):
         *(self#0 + 4) = 42
         y@0#0 = false
         y@0#1 = true
@@ -458,7 +459,7 @@ internal class IRGeneratorTest {
         ret
       """,
       virtualTable = mapOf(
-        "A" to listOf("A::z")
+        "A" to listOf("A${CLASS_DIVIDER}z")
       )
     )
 
@@ -488,22 +489,22 @@ internal class IRGeneratorTest {
         ret 0
       f():
         ret
-      A::test(self#0):
+      A${CLASS_DIVIDER}test(self#0):
         @T0#0 = call f ()
         @T1#0 = call self#0.f ()
         @T2#0 = call self#0.g ()
         @T3#0 = call self#0.h ()
         ret
-      A::f(self#0):
+      A${CLASS_DIVIDER}f(self#0):
         ret
-      A::g(self#0):
+      A${CLASS_DIVIDER}g(self#0):
         ret
-      B::h(self#0):
+      B${CLASS_DIVIDER}h(self#0):
         ret
       """,
       virtualTable = mapOf(
-        "B" to listOf("B::h"),
-        "A" to listOf("B::h", "A::test", "A::f", "A::g")
+        "B" to listOf("B${CLASS_DIVIDER}h"),
+        "A" to listOf("B${CLASS_DIVIDER}h", "A${CLASS_DIVIDER}test", "A${CLASS_DIVIDER}f", "A${CLASS_DIVIDER}g")
       )
     )
 
