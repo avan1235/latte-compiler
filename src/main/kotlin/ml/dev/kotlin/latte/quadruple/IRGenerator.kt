@@ -133,7 +133,7 @@ private data class IRGenerator(
     }
   }
 
-  private fun generateCondElse(expr: ExprNode, onTrue: Label, onFalse: Label): Unit {
+  private fun generateCondElse(expr: ExprNode, onTrue: Label, onFalse: Label) {
     when {
       expr is UnOpExprNode && expr.op == UnOp.NOT -> generateCondElse(expr.expr, onFalse, onTrue)
       expr is BinOpExprNode && expr.op is RelOp -> {

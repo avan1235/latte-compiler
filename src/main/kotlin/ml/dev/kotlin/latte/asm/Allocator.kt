@@ -1,9 +1,6 @@
 package ml.dev.kotlin.latte.asm
 
 import ml.dev.kotlin.latte.quadruple.*
-import ml.dev.kotlin.latte.syntax.PrimitiveType.BooleanType
-import ml.dev.kotlin.latte.syntax.PrimitiveType.IntType
-import ml.dev.kotlin.latte.syntax.PrimitiveType.StringType
 import ml.dev.kotlin.latte.syntax.Type
 import ml.dev.kotlin.latte.util.GraphColoring
 import ml.dev.kotlin.latte.util.MemoryAllocationException

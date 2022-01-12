@@ -8,7 +8,6 @@ import ml.dev.kotlin.latte.quadruple.toIR
 import ml.dev.kotlin.latte.syntax.parse
 import ml.dev.kotlin.latte.typecheck.typeCheck
 import ml.dev.kotlin.latte.util.LatteException
-import ml.dev.kotlin.latte.util.dir
 import ml.dev.kotlin.latte.util.exit
 import ml.dev.kotlin.latte.util.withExtension
 import java.io.File

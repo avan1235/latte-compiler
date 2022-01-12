@@ -1,6 +1,5 @@
 package ml.dev.kotlin.latte.asm
 
-import ml.dev.kotlin.latte.quadruple.Named
 import ml.dev.kotlin.latte.syntax.Bytes
 import ml.dev.kotlin.latte.syntax.PrimitiveType.VoidRefType
 import ml.dev.kotlin.latte.syntax.Type
