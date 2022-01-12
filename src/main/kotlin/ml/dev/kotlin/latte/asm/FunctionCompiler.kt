@@ -43,7 +43,7 @@ class FunctionCompiler(
         cmd(MOV, EAX, self.get())
         cmd(PUSH, EAX)
         cmd(MOV, EAX, Adr(EAX))
-        cmd(LEA, EAX, Adr(EAX, offset))
+        load(to = EAX, Adr(EAX, offset))
         cmd(CALL, Adr(EAX))
         cmd(ADD, ESP, argsSize.imm)
       }
@@ -96,7 +96,7 @@ class FunctionCompiler(
         is Mem -> cmd(MOV, EAX, from).then { EAX }
         is Reg -> from
       }
-      cmd(LEA, EAX, Adr(from, offset))
+      load(to = EAX, Adr(from, offset))
       when(val to = to.get()) {
         is Imm -> err("Cannot move to immediate value $to")
         is Reg -> cmd(MOV, to, Adr(EAX))
@@ -112,7 +112,7 @@ class FunctionCompiler(
         is Mem -> cmd(MOV, EAX, to).then { EAX }
         is Reg -> to
       }
-      cmd(LEA, EAX, Adr(to, offset))
+      load(to = EAX, Adr(to, offset))
       when(val from = from.get()) {
         is Imm -> cmd(MOV, Adr(EAX), from)
         is Reg -> cmd(MOV, Adr(EAX), from)
@@ -214,6 +214,11 @@ class FunctionCompiler(
         cmd(MOV, toLoc, value, value != toLoc)
       }
     }
+  }
+
+  private fun load(to: Reg, from: Adr) {
+    if (from.loc == to && from.offset == 0) return
+    cmd(LEA, to, from)
   }
 
   private fun cmd(op: Named, cond: Boolean = true): Unit =

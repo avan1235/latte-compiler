@@ -22,8 +22,8 @@ data class Loc(private val offset: Bytes, private val type: Type) : Mem {
   override val name = "${type.wordSize} [$EBP - ${LOCAL_OFFSET + offset}]"
 }
 
-data class Adr(private val loc: VarLoc, private val offset: Bytes? = null) : Named {
-  override val name: String = if (offset == null) "[${loc.name}]" else "[${loc.name} + $offset]"
+data class Adr(val loc: Reg, val offset: Bytes = 0) : Named {
+  override val name: String = "[${loc.name} + $offset]"
 }
 
 private const val ARG_OFFSET: Bytes = 8
