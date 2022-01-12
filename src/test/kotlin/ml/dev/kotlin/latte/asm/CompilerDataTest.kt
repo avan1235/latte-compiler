@@ -261,6 +261,103 @@ internal class CompilerDataTest {
       """
     )
 
+  @ParameterizedTest
+  @MethodSource("allocatorsProvider")
+  fun `should work with different references to class fields and methods`(alloc: TestAllocator) =
+    testCompilerWithAllocatorStrategy(
+      alloc,
+      program = """
+      int main() {
+        BTree b = new BTree;
+        b.value = 42;
+        b.insert(24);
+        b.insert(66);
+        b.insert(12);
+        b.insert(-24);
+        b.insert(99);
+        b.insert(67);
+        b.print();
+
+        BTree c = new RevBTree;
+        c.value = 42;
+        c.insert(24);
+        c.insert(66);
+        c.insert(12);
+        c.insert(-24);
+        c.insert(99);
+        c.insert(67);
+        c.print();
+
+        return 0;
+      }
+      class BTree {
+        BTree left;
+        BTree right;
+        int value;
+
+        void insert(int value) {
+          if (value <= self.value) {
+            if (left == (BTree) null) {
+              left = create(value);
+            } else {
+              left.insert(value);
+            }
+          } else {
+            if (self.right == (BTree) null) {
+              self.right = self.create(value);
+            } else {
+              self.right.insert(value);
+            }
+          }
+        }
+
+        BTree create(int value) {
+          BTree b = new BTree;
+          b.value = value;
+          return b;
+        }
+
+        void print() {
+          if (self.left != (BTree) null) self.left.print();
+          printInt(value);
+          if (right != (BTree) null) right.print();
+        }
+      }
+
+      class RevBTree extends BTree {
+
+        RevBTree create(int value) {
+          RevBTree b = new RevBTree;
+          b.value = value;
+          return b;
+        }
+
+        void print() {
+          if (right != (BTree) null) right.print();
+          printInt(value);
+          if (self.left != (BTree) null) self.left.print();
+        }
+      }
+      """,
+      output = """
+      -24
+      12
+      24
+      42
+      66
+      67
+      99
+      99
+      67
+      66
+      42
+      24
+      12
+      -24
+
+      """
+    )
+
 
   companion object {
     @JvmStatic

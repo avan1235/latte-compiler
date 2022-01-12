@@ -6,7 +6,7 @@ program
 
 topDef
     : type ID '(' arg? ')' block                        # Fun
-    | 'class' ID ('extends' ID)? '{' classBodyDef+ '}'  # Class
+    | 'class' ID ('extends' ID)? '{' classBodyDef* '}'  # Class
     ;
 
 classBodyDef
