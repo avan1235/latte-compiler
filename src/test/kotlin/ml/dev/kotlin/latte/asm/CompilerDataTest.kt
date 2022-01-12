@@ -358,6 +358,84 @@ internal class CompilerDataTest {
       """
     )
 
+  @ParameterizedTest
+  @MethodSource("allocatorsProvider")
+  fun `should resolve functions at first and methods later`(alloc: TestAllocator) =
+    testCompilerWithAllocatorStrategy(
+      alloc,
+      program = """
+      int main() {
+        A a = new A;
+        a.test();
+
+        return 0;
+      }
+      class A {
+        void test() {
+          printInt(f());
+          printInt(g());
+          printInt(self.f());
+          printInt(self.g());
+        }
+        int f() {
+          return 42;
+        }
+        int g() {
+          return 24;
+        }
+      }
+      int f() {
+        return 11;
+      }
+      """,
+      output = """
+      11
+      24
+      42
+      24
+
+      """
+    )
+
+  @ParameterizedTest
+  @MethodSource("allocatorsProvider")
+  fun `should resolve variables at first and fields later`(alloc: TestAllocator) =
+    testCompilerWithAllocatorStrategy(
+      alloc,
+      program = """
+      int main() {
+        A a = new A;
+        a.x = 42;
+        a.test();
+
+        return 0;
+      }
+      class A {
+        int x;
+        void test() {
+          int y = 11;
+          printInt(x);
+          printInt(y);
+          {
+            int x = 24;
+            printInt(x);
+            printInt(y);
+          }
+          printInt(x);
+          printInt(y);
+        }
+      }
+      """,
+      output = """
+      42
+      11
+      24
+      11
+      42
+      11
+
+      """
+    )
 
   companion object {
     @JvmStatic
