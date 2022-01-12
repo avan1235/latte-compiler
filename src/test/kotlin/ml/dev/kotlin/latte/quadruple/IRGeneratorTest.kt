@@ -1293,10 +1293,12 @@ private fun testIR(
   }
   val instructions = graph.instructions().peepHoleOptimize(extract = { it }).asIterable()
   val repr = instructions.nlString { it.repr() }
+  val notEmptyVTables = vTable.filter { it.value.declarations.isNotEmpty() }
+  val orderedVTablesRepr = notEmptyVTables.entries.associate { classVTable ->
+    classVTable.key.typeName to classVTable.value.declarations.map { it.name }
+  }
   assertEquals("\n${irRepresentation.trimIndent()}\n", repr)
   assertEquals((strings ?: emptyMap()) + ("" to EMPTY_STRING_LABEL.name), str.mapValues { it.value.name })
-  assertEquals(
-    virtualTable ?: hashMapOf<String, List<String>>(),
-    vTable.mapValues { classFunctions -> classFunctions.value.map { it.name } })
+  virtualTable?.let { assertEquals(it, orderedVTablesRepr) }
   assert(instructions.splitAt { it is FunCodeLabelQ }.all { it.isSSA() })
 }

@@ -3,10 +3,13 @@ package ml.dev.kotlin.latte.quadruple
 import ml.dev.kotlin.latte.asm.ALLOC_FUN_LABEL
 import ml.dev.kotlin.latte.asm.EMPTY_STRING_LABEL
 import ml.dev.kotlin.latte.asm.THIS_ARG_ID
+import ml.dev.kotlin.latte.asm.VirtualTable
 import ml.dev.kotlin.latte.quadruple.ControlFlowGraph.Companion.buildCFG
 import ml.dev.kotlin.latte.syntax.*
 import ml.dev.kotlin.latte.syntax.PrimitiveType.*
-import ml.dev.kotlin.latte.typecheck.*
+import ml.dev.kotlin.latte.typecheck.ClassField
+import ml.dev.kotlin.latte.typecheck.ClassHierarchy
+import ml.dev.kotlin.latte.typecheck.TypeCheckedProgram
 import ml.dev.kotlin.latte.util.*
 
 fun TypeCheckedProgram.toIR(): IR = IRGenerator(env).run { this@toIR.generate() }
@@ -14,7 +17,7 @@ fun TypeCheckedProgram.toIR(): IR = IRGenerator(env).run { this@toIR.generate() 
 data class IR(
   val graph: ControlFlowGraph,
   val strings: Map<String, Label>,
-  val vTables: Map<String, List<FunDeclaration>>,
+  val vTables: Map<Type, VirtualTable>,
   val labelGenerator: () -> Label,
 )
 
@@ -23,14 +26,13 @@ private data class IRGenerator(
   private val quadruples: MutableList<Quadruple> = mutableListOf(),
   private val varEnv: StackTable<String, VirtualReg> = StackTable(),
   private val strings: MutableMap<String, Label> = hashMapOf("" to EMPTY_STRING_LABEL),
-  private val vTables: MutableMap<String, List<FunDeclaration>> = HashMap(),
+  private val vTables: MutableMap<Type, VirtualTable> = HashMap(),
   private var labelIdx: Int = 0,
   private var emitting: Boolean = true,
-  private var thisMethods: FunEnv? = null,
-  private var thisFields: Map<String, ClassField>? = null,
   private var thisClass: ArgValue? = null,
 ) {
-  private val functionsTypesByMangledName = hierarchy.functionsTypesByMangledName()
+  private val functionsTypesByMangledName: Map<String, Type> by lazy { hierarchy.functionsTypesByMangledName() }
+  private val thisFields: Map<String, ClassField>? get() = thisClass?.type?.typeName?.let { hierarchy.classFields[it] }
 
   fun TypeCheckedProgram.generate(): IR {
     program.topDefs.forEach { it.generate() }
@@ -42,26 +44,21 @@ private data class IRGenerator(
   private fun TopDefNode.generate(): Unit = when (this) {
     is FunDefNode -> generate()
     is ClassDefNode -> {
-      hierarchy.classMethods[ident].ordered().takeIf { it.isNotEmpty() }?.let { vTables[ident] = it }
+      val classMethods = hierarchy.classMethods[ident]
+      vTables[RefType(ident)] = VirtualTable(classMethods.ordered(), ident, classMethods)
       methods.forEach { it.generate(inClass = ident) }
     }
   }
 
   private fun FunDefNode.generate(inClass: String? = null): Unit = varEnv.onLevel {
-    val funArgs = ArrayList<ArgValue>()
-    inClass?.let { className ->
-      thisClass = ArgValue(THIS_ARG_ID, 0, RefType(className)).also { funArgs += it }
-      thisFields = hierarchy.classFields[className]
-      thisMethods = hierarchy.classMethods[className]
-    }
     var argOffset = if (inClass != null) VoidRefType.size else 0
+    thisClass = inClass?.let { ArgValue(THIS_ARG_ID, 0, RefType(it)) }
+    val funArgs = thisClass?.let { arrayListOf(it) } ?: ArrayList()
     args.list.mapTo(funArgs) { (type, name) ->
       addArg(name.label, type, argOffset).also { argOffset += type.size }
     }
     emit { FunCodeLabelQ(mangledName.label, funArgs) }
     block.generate()
-    thisMethods = null
-    thisFields = null
     thisClass = null
   }
 
@@ -191,14 +188,14 @@ private data class IRGenerator(
   private fun ExprNode.generate(): ValueHolder = when (this) {
     is FunCallExprNode -> freshTemp(getMangledFunType(mangledName)) { to ->
       val args = args.map { it.generate() }
+      val argsTypes = args.map { it.type }
       if (self == null) {
-        val argsTypes = args.map { it.type }
         val funDeclaration = hierarchy.functions[funName, argsTypes]
         if (funDeclaration != null) emit { FunCallQ(to, mangledName.label, args) }
-        else emit { MethodCallQ(to, self(), funName, args) }
+        else emit { MethodCallQ(to, self(), funName, args, argsTypes) }
       } else {
         val thisArg = self.generate()
-        emit { MethodCallQ(to, thisArg, funName, args) }
+        emit { MethodCallQ(to, thisArg, funName, args, argsTypes) }
       }
     }
     is IdentExprNode -> getVar(value).value

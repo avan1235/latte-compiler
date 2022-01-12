@@ -26,8 +26,10 @@ object NullConstValue : ConstValue(VoidRefType)
 sealed class VirtualReg(open val id: String, open val original: VirtualReg?) : ValueHolder {
   abstract override fun renameUsage(currIndex: CurrIndex): VirtualReg
   protected fun createRenamedId(currIndex: CurrIndex): String = if (original == null) {
-    "$id#${currIndex(this)
-      ?: err<String>("Cannot rename with null index: $this")}"
+    "$id#${
+      currIndex(this)
+        ?: err<String>("Cannot rename with null index: $this")
+    }"
   } else err("Already renamed $this")
 
   fun renameDefinition(currIndex: CurrIndex, updateIndex: UpdateIndex): VirtualReg {
@@ -133,14 +135,20 @@ data class FunCallQ(val to: VirtualReg, val label: Label, val args: List<ValueHo
   }
 }
 
-data class MethodCallQ(val to: VirtualReg, val self: ValueHolder, val ident: String, val args: List<ValueHolder>) :
+data class MethodCallQ(
+  val to: VirtualReg,
+  val self: ValueHolder,
+  val ident: String,
+  val args: List<ValueHolder>,
+  val argsTypes: List<Type>
+) :
   Quadruple {
   val argsSize: Int = args.sumOf { it.type.size } + self.type.size
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): MethodCallQ {
     val args = args.map { it.renameUsage(currIndex) }
     val self = self.renameUsage(currIndex)
     val to = to.renameDefinition(currIndex, updateIndex)
-    return MethodCallQ(to, self, ident, args)
+    return MethodCallQ(to, self, ident, args, argsTypes)
   }
 }
 

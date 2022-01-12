@@ -7,7 +7,7 @@ import ml.dev.kotlin.latte.util.DefaultMap
 import ml.dev.kotlin.latte.util.FunEnvException
 import ml.dev.kotlin.latte.util.LocalizedMessage
 
-class FunEnv(
+data class FunEnv(
   private val argsCombinations: DefaultMap<List<Type>, Set<List<Type>>>,
   private val funEnv: LinkedHashMap<FunSignature, FunDeclaration> = LinkedHashMap()
 ) {

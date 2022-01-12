@@ -14,11 +14,11 @@ data class TypeCheckedProgram(val program: ProgramNode, val env: ClassHierarchy)
 private class TypeChecker(
   private val hierarchy: ClassHierarchy = ClassHierarchy(),
   private val varEnv: StackTable<String, Type> = StackTable(),
-  private var thisMethods: FunEnv? = null,
-  private var thisFields: Map<String, ClassField>? = null,
   private var thisClass: String? = null,
   private var expectedReturnType: Type? = null,
 ) {
+  private val thisMethods: FunEnv? get() = thisClass?.let { hierarchy.classMethods[it] }
+  private val thisFields: Map<String, ClassField>? get() = thisClass?.let { hierarchy.classFields[it] }
 
   fun ProgramNode.typeCheck(): TypeCheckedProgram {
     val functions = topDefs.filterIsInstance<FunDefNode>()
@@ -42,12 +42,6 @@ private class TypeChecker(
   private fun FunDefNode.typeCheck(inClass: String? = null, parentClass: String? = null): Unit = varEnv.onLevel {
     expectReturn {
       thisClass = inClass
-      thisFields = null
-      thisMethods = null
-      inClass?.let {
-        thisFields = hierarchy.classFields[it]
-        thisMethods = hierarchy.classMethods[it]
-      }
       verifyOverrideReturnTypeMatchesParent(inClass, parentClass)
       args.list.forEach { args.addToVarEnv(it.type, it.ident) }
       block.typeCheck()

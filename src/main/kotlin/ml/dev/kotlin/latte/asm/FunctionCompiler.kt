@@ -3,8 +3,9 @@ package ml.dev.kotlin.latte.asm
 import ml.dev.kotlin.latte.asm.Cmd.*
 import ml.dev.kotlin.latte.asm.Reg.*
 import ml.dev.kotlin.latte.quadruple.*
-import ml.dev.kotlin.latte.syntax.PrimitiveType.IntType
 import ml.dev.kotlin.latte.syntax.NumOp
+import ml.dev.kotlin.latte.syntax.PrimitiveType.IntType
+import ml.dev.kotlin.latte.syntax.Type
 import ml.dev.kotlin.latte.syntax.UnOp
 import ml.dev.kotlin.latte.util.AsmBuildException
 import ml.dev.kotlin.latte.util.msg
@@ -14,6 +15,7 @@ import ml.dev.kotlin.latte.util.unit
 class FunctionCompiler(
   private val analysis: FlowAnalysis,
   private val strings: Map<String, Label>,
+  private val vTables: Map<Type, VirtualTable>,
   private val result: StringBuilder,
   private val labelGenerator: () -> Label,
   strategy: AllocatorStrategyProducer
@@ -35,7 +37,13 @@ class FunctionCompiler(
       assign(to, EAX, idx)
     }
     is MethodCallQ -> {
-      TODO()
+      preserveReg(ECX, EDX, at = idx) {
+        args.asReversed().forEach { cmd(PUSH, it.get()) }
+        cmd(PUSH, self.get())
+        cmd(CALL, self.vTable()[ident, argsTypes])
+        cmd(ADD, ESP, argsSize.imm)
+      }
+      assign(to, EAX, idx)
     }
     is RelCondJumpQ -> {
       val left = left.get()
@@ -188,6 +196,8 @@ class FunctionCompiler(
   private fun Label.insert(): Unit = result.append(name).appendLine(':').unit()
 
   private fun ValueHolder.get(): VarLoc = allocator.get(this, strings)
+
+  private fun ValueHolder.vTable(): VirtualTable = vTables[type] ?: err("Not defined virtual table for $$type}")
 
   private data class LR(val l: VarLoc, val r: VarLoc, val rev: Boolean = false) {
     fun <V> match(
