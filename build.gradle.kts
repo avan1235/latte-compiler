@@ -98,4 +98,14 @@ tasks.nativeImage {
   }
 }
 
+tasks.clean {
+  doLast {
+    with(projectDir) {
+      resolve("lib/runtime.o").delete()
+      resolve("testData").delete()
+      resolve("latc_x86").delete()
+    }
+  }
+}
+
 fun <T, U> closure(c: (T, U) -> Unit): KotlinClosure2<T, U, Unit> = KotlinClosure2(c)

@@ -9,5 +9,5 @@ test :
 	chmod u+x ./gradlew && ./gradlew clean test
 
 clean:
-	rm -f latc_x86 && rm -f ./lib/runtime.o && rm -rf ./build && rm -rf ./testData
+	chmod u+x ./gradlew && ./gradlew clean
 
