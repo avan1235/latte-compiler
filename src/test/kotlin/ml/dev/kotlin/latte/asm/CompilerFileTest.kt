@@ -38,6 +38,21 @@ internal class CompilerFileTest {
   fun `should accept extensions examples and match their output with default allocator`(input: File) =
     testCompilerWithAllocatorStrategy(input, TestAllocator.DEFAULT)
 
+  @ParameterizedTest
+  @MethodSource("extensionsExamplesProvider")
+  fun `should accept extensions examples and match their output with first allocator`(input: File) =
+    testCompilerWithAllocatorStrategy(input, TestAllocator.FIRST)
+
+  @ParameterizedTest
+  @MethodSource("extensionsExamplesProvider")
+  fun `should accept extensions examples and match their output with last allocator`(input: File) =
+    testCompilerWithAllocatorStrategy(input, TestAllocator.LAST)
+
+  @ParameterizedTest
+  @MethodSource("extensionsExamplesProvider")
+  fun `should accept extensions examples and match their output with random allocator`(input: File) =
+    testCompilerWithAllocatorStrategy(input, TestAllocator.RANDOM)
+
   companion object {
     @JvmStatic
     fun goodExamplesProvider(): Stream<File> = File("src/test/resources/good").testLatteFilesStream()
