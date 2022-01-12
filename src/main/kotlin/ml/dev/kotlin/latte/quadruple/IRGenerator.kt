@@ -1,7 +1,6 @@
 package ml.dev.kotlin.latte.quadruple
 
 import ml.dev.kotlin.latte.asm.ALLOC_FUN_LABEL
-import ml.dev.kotlin.latte.asm.CLASS_SELF_ARG_SIZE
 import ml.dev.kotlin.latte.asm.EMPTY_STRING_LABEL
 import ml.dev.kotlin.latte.asm.THIS_ARG_ID
 import ml.dev.kotlin.latte.quadruple.ControlFlowGraph.Companion.buildCFG
@@ -55,7 +54,7 @@ private data class IRGenerator(
       thisFields = hierarchy.classFields[className]
       thisMethods = hierarchy.classMethods[className]
     }
-    var argOffset = if (inClass != null) CLASS_SELF_ARG_SIZE else 0
+    var argOffset = if (inClass != null) VoidRefType.size else 0
     args.list.mapTo(funArgs) { (type, name) ->
       addArg(name.label, type, argOffset).also { argOffset += type.size }
     }
