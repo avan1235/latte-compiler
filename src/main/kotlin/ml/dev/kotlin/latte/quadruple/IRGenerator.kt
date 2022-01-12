@@ -77,7 +77,7 @@ private data class IRGenerator(
         varEnv[fieldName]?.let {
           emit { AssignQ(it, expr) }
         } ?: thisFields?.get(fieldName)?.let { field ->
-          emit { StoreQ(thisClass!!, field.offset, expr) }
+          emit { StoreQ(self(), field.offset, expr) }
         } ?: err("Not defined variable $fieldName")
       } else {
         val to = to.generate()
@@ -193,9 +193,9 @@ private data class IRGenerator(
       val args = args.map { it.generate() }
       if (self == null) {
         val argsTypes = args.map { it.type }
-        hierarchy.functions[funName, argsTypes]
-          ?.then { emit { FunCallQ(to, mangledName.label, args) } }
-          ?: emit { MethodCallQ(to, thisClass!!, funName, args) }
+        val funDeclaration = hierarchy.functions[funName, argsTypes]
+        if (funDeclaration != null) emit { FunCallQ(to, mangledName.label, args) }
+        else emit { MethodCallQ(to, self(), funName, args) }
       } else {
         val thisArg = self.generate()
         emit { MethodCallQ(to, thisArg, funName, args) }
@@ -292,8 +292,10 @@ private data class IRGenerator(
 
   private fun AstNode.getVar(name: String): FieldOrVar =
     varEnv[name]?.let { LocalVar(it) } ?: thisFields?.let { it[name] }?.let { field ->
-      ThisVar(freshTemp(field.type) { to -> emit { LoadQ(to, thisClass!!, field.offset) } }, thisClass!!, field.offset)
+      ThisVar(freshTemp(field.type) { to -> emit { LoadQ(to, self(), field.offset) } }, self(), field.offset)
     } ?: err("Not defined variable with name $name")
+
+  private fun AstNode.self(): ArgValue = thisClass ?: err("Not defined self")
 
   private fun AstNode.getMangledFunType(name: String): Type =
     functionsTypesByMangledName[name] ?: err("Not defined function with name $name")
