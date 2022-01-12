@@ -1,4 +1,4 @@
-.PHONY : all clean test latte install-java
+.PHONY : all clean test latte
 
 all : latte
 
