@@ -26,10 +26,7 @@ object NullConstValue : ConstValue(VoidRefType)
 sealed class VirtualReg(open val id: String, open val original: VirtualReg?) : ValueHolder {
   abstract override fun renameUsage(currIndex: CurrIndex): VirtualReg
   protected fun createRenamedId(currIndex: CurrIndex): String = if (original == null) {
-    "$id#${
-      currIndex(this)
-        ?: err<String>("Cannot rename with null index: $this")
-    }"
+    "$id#${currIndex(this) ?: err<String>("Cannot rename with null index: $this")}"
   } else err("Already renamed $this")
 
   fun renameDefinition(currIndex: CurrIndex, updateIndex: UpdateIndex): VirtualReg {
@@ -73,11 +70,17 @@ sealed interface Labeled {
   val label: Label
 }
 
+sealed interface DefiningVar {
+  val to: VirtualReg
+  fun redefine(asVar: VirtualReg): Quadruple
+}
+
 typealias CurrIndex = (VirtualReg) -> Int?
 typealias UpdateIndex = (VirtualReg) -> Unit
 
-data class BinOpQ(val to: VirtualReg, val left: ValueHolder, val op: NumOp, val right: ValueHolder) :
-  Quadruple {
+data class BinOpQ(override val to: VirtualReg, val left: ValueHolder, val op: NumOp, val right: ValueHolder) :
+  Quadruple, DefiningVar {
+  override fun redefine(asVar: VirtualReg): Quadruple = copy(to = asVar)
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): BinOpQ {
     val right = right.renameUsage(currIndex)
     val left = left.renameUsage(currIndex)
@@ -86,7 +89,8 @@ data class BinOpQ(val to: VirtualReg, val left: ValueHolder, val op: NumOp, val 
   }
 }
 
-data class UnOpQ(val to: VirtualReg, val op: UnOp, val from: ValueHolder) : Quadruple {
+data class UnOpQ(override val to: VirtualReg, val op: UnOp, val from: ValueHolder) : Quadruple, DefiningVar {
+  override fun redefine(asVar: VirtualReg): Quadruple = copy(to = asVar)
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): UnOpQ {
     val from = from.renameUsage(currIndex)
     val to = to.renameDefinition(currIndex, updateIndex)
@@ -94,7 +98,8 @@ data class UnOpQ(val to: VirtualReg, val op: UnOp, val from: ValueHolder) : Quad
   }
 }
 
-data class UnOpModQ(val to: VirtualReg, val op: UnOpMod, val from: VirtualReg) : Quadruple {
+data class UnOpModQ(override val to: VirtualReg, val op: UnOpMod, val from: VirtualReg) : Quadruple, DefiningVar {
+  override fun redefine(asVar: VirtualReg): Quadruple = copy(to = asVar)
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): UnOpModQ {
     val from = from.renameUsage(currIndex)
     val to = to.renameDefinition(currIndex, updateIndex)
@@ -102,7 +107,8 @@ data class UnOpModQ(val to: VirtualReg, val op: UnOpMod, val from: VirtualReg) :
   }
 }
 
-data class AssignQ(val to: VirtualReg, val from: ValueHolder) : Quadruple {
+data class AssignQ(override val to: VirtualReg, val from: ValueHolder) : Quadruple, DefiningVar {
+  override fun redefine(asVar: VirtualReg): Quadruple = copy(to = asVar)
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): AssignQ {
     val from = from.renameUsage(currIndex)
     val to = to.renameDefinition(currIndex, updateIndex)
@@ -110,15 +116,16 @@ data class AssignQ(val to: VirtualReg, val from: ValueHolder) : Quadruple {
   }
 }
 
-data class StoreQ(val to: ValueHolder, val offset: Bytes, val from: ValueHolder) : Quadruple {
+data class StoreQ(val at: ValueHolder, val offset: Bytes, val from: ValueHolder) : Quadruple {
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple {
     val from = from.renameUsage(currIndex)
-    val to = to.renameUsage(currIndex)
+    val to = at.renameUsage(currIndex)
     return StoreQ(to, offset, from)
   }
 }
 
-data class LoadQ(val to: VirtualReg, val from: ValueHolder, val offset: Bytes) : Quadruple {
+data class LoadQ(override val to: VirtualReg, val from: ValueHolder, val offset: Bytes) : Quadruple, DefiningVar {
+  override fun redefine(asVar: VirtualReg): Quadruple = copy(to = asVar)
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple {
     val from = from.renameUsage(currIndex)
     val to = to.renameDefinition(currIndex, updateIndex)
@@ -126,8 +133,13 @@ data class LoadQ(val to: VirtualReg, val from: ValueHolder, val offset: Bytes) :
   }
 }
 
-data class FunCallQ(val to: VirtualReg, val label: Label, val args: List<ValueHolder>) : Quadruple {
+data class FunCallQ(
+  override val to: VirtualReg,
+  val label: Label,
+  val args: List<ValueHolder>
+) : Quadruple, DefiningVar {
   val argsSize: Int = args.sumOf { it.type.size }
+  override fun redefine(asVar: VirtualReg): Quadruple = copy(to = asVar)
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): FunCallQ {
     val args = args.map { it.renameUsage(currIndex) }
     val to = to.renameDefinition(currIndex, updateIndex)
@@ -136,14 +148,14 @@ data class FunCallQ(val to: VirtualReg, val label: Label, val args: List<ValueHo
 }
 
 data class MethodCallQ(
-  val to: VirtualReg,
+  override val to: VirtualReg,
   val self: ValueHolder,
   val ident: String,
   val args: List<ValueHolder>,
   val argsTypes: List<Type>
-) :
-  Quadruple {
+) : Quadruple, DefiningVar {
   val argsSize: Int = args.sumOf { it.type.size } + self.type.size
+  override fun redefine(asVar: VirtualReg): Quadruple = copy(to = asVar)
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): MethodCallQ {
     val args = args.map { it.renameUsage(currIndex) }
     val self = self.renameUsage(currIndex)

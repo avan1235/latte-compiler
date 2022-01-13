@@ -1,14 +1,8 @@
 package ml.dev.kotlin.latte.quadruple
 
 fun Quadruple.definedVars(): Sequence<VirtualReg> = when (this) {
-  is AssignQ -> sequenceOf(to)
-  is BinOpQ -> sequenceOf(to)
-  is UnOpQ -> sequenceOf(to)
-  is UnOpModQ -> sequenceOf(to)
-  is FunCallQ -> sequenceOf(to)
-  is MethodCallQ -> sequenceOf(to)
+  is DefiningVar -> sequenceOf(to)
   is PhonyQ -> sequenceOf(to)
-  is LoadQ -> sequenceOf(to)
   is FunCodeLabelQ -> args.asSequence()
   is StoreQ -> emptySequence()
   is RelCondJumpQ -> emptySequence()
@@ -30,7 +24,7 @@ fun Quadruple.usedVars(): Sequence<VirtualReg> = when (this) {
   is CondJumpQ -> sequenceOf(cond as? VirtualReg)
   is RetQ -> sequenceOf(value as? VirtualReg)
   is LoadQ -> sequenceOf(from as? VirtualReg)
-  is StoreQ -> sequenceOf(to as? VirtualReg, from as? VirtualReg)
+  is StoreQ -> sequenceOf(at as? VirtualReg, from as? VirtualReg)
   is FunCodeLabelQ -> emptySequence()
   is CodeLabelQ -> emptySequence()
   is JumpQ -> emptySequence()
@@ -61,12 +55,12 @@ internal fun Quadruple.repr(): String = when (this) {
   is UnOpModQ -> "${to.repr()} = ${op.name.lowercase()} ${from.repr()}"
   is PhonyQ -> "${to.repr()} = phi (${from.toList().joinToString(", ") { "${it.first.name}:${it.second.repr()}" }})"
   is LoadQ -> "${to.repr()} = *(${from.repr()} + $offset)"
-  is StoreQ -> "*(${to.repr()} + $offset) = ${from.repr()}"
+  is StoreQ -> "*(${at.repr()} + $offset) = ${from.repr()}"
 }.let { if (this is Labeled) it else "  $it" }
 
 internal fun Iterable<Quadruple>.isSSA(): Boolean =
   flatMap { it.definedVars() }.map { it.repr() }.let { it.size == it.toHashSet().size }
 
-internal fun ControlFlowGraph.instructions(): Sequence<Quadruple> =
-  orderedBlocks().asSequence().flatMap { it.statements }
+internal fun CFG.instructions(): Sequence<Quadruple> =
+  orderedBlocks().asSequence().flatMap { it.statementsWithPhony }
 

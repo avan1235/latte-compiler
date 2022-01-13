@@ -4,7 +4,7 @@ import ml.dev.kotlin.latte.asm.ALLOC_FUN_LABEL
 import ml.dev.kotlin.latte.asm.EMPTY_STRING_LABEL
 import ml.dev.kotlin.latte.asm.THIS_ARG_ID
 import ml.dev.kotlin.latte.asm.VirtualTable
-import ml.dev.kotlin.latte.quadruple.ControlFlowGraph.Companion.buildCFG
+import ml.dev.kotlin.latte.quadruple.CFG.Companion.buildCFG
 import ml.dev.kotlin.latte.syntax.*
 import ml.dev.kotlin.latte.syntax.PrimitiveType.*
 import ml.dev.kotlin.latte.typecheck.ClassField
@@ -15,10 +15,10 @@ import ml.dev.kotlin.latte.util.*
 fun TypeCheckedProgram.toIR(): IR = IRGenerator(env).run { this@toIR.generate() }
 
 data class IR(
-  val graph: ControlFlowGraph,
-  val strings: Map<String, Label>,
-  val vTables: Map<Type, VirtualTable>,
-  val labelGenerator: () -> Label,
+    val graph: CFG,
+    val strings: Map<String, Label>,
+    val vTables: Map<Type, VirtualTable>,
+    val labelGenerator: () -> Label,
 )
 
 private data class IRGenerator(

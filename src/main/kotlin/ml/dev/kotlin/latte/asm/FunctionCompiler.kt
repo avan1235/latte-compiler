@@ -107,7 +107,7 @@ class FunctionCompiler(
       }
     }
     is StoreQ -> {
-      val to = when (val to = to.get()) {
+      val to = when (val to = at.get()) {
         is Imm -> cmd(MOV, EAX, to).then { EAX }
         is Mem -> cmd(MOV, EAX, to).then { EAX }
         is Reg -> to

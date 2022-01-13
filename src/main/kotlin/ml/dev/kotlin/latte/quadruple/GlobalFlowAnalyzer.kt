@@ -6,7 +6,7 @@ import ml.dev.kotlin.latte.util.withSet
 
 object GlobalFlowAnalyzer {
 
-  fun analyzeToLinear(cfg: FunctionControlFlowGraph): FlowAnalysis {
+  fun analyzeToLinear(cfg: FunctionCFG): FlowAnalysis {
     val analysis = analyze(cfg)
 
     fun byStmtIdx(default: DefaultMap<IndexedStatement, Set<VirtualReg>>) =
@@ -19,7 +19,7 @@ object GlobalFlowAnalyzer {
     return FlowAnalysis(aliveBefore, aliveAfter, definedAt, usedAt, analysis.indexedStmts.map { it.quadruple })
   }
 
-  fun analyzeToGraph(cfg: FunctionControlFlowGraph): GraphFlowAnalysis {
+  fun analyzeToGraph(cfg: FunctionCFG): GraphFlowAnalysis {
     val analysis = analyze(cfg)
 
     fun byGraphLocation(default: DefaultMap<IndexedStatement, Set<VirtualReg>>) = { loc: GraphLocation ->
@@ -35,7 +35,7 @@ object GlobalFlowAnalyzer {
     return GraphFlowAnalysis(aliveBefore, aliveAfter, definedAt, usedAt, cfg)
   }
 
-  private fun analyze(cfg: FunctionControlFlowGraph): AnalysisResult {
+  private fun analyze(cfg: FunctionCFG): AnalysisResult {
     val aliveIn = MutableDefaultMap(withSet<IndexedStatement, VirtualReg>())
     val aliveOut = MutableDefaultMap(withSet<IndexedStatement, VirtualReg>())
     val use = MutableDefaultMap<IndexedStatement, HashSet<VirtualReg>>({ it.quadruple.usedVars().toHashSet() })
@@ -43,7 +43,7 @@ object GlobalFlowAnalyzer {
 
     val blockStmts = MutableDefaultMap<Label, List<IndexedStatement>>(default@{
       val block = cfg.block[it] ?: return@default emptyList()
-      val statements = block.statements.toList()
+      val statements = block.statementsWithPhony.toList()
       statements.mapIndexed { idx, stmt -> IndexedStatement(idx, stmt, block.label, idx == statements.size - 1) }
     })
     val indexedStmts = cfg.orderedBlocks().flatMap { blockStmts[it.label] }
@@ -79,10 +79,12 @@ private data class IndexedStatement(val idx: Int, val quadruple: Quadruple, val 
 
 data class GraphLocation(val label: Label, val stmtIdx: StmtIdx)
 
+infix fun StmtIdx.at(block: BasicBlock): GraphLocation = GraphLocation(block.label, this)
+
 data class GraphFlowAnalysis(
   val aliveBefore: DefaultMap<GraphLocation, Set<VirtualReg>>,
   val aliveAfter: DefaultMap<GraphLocation, Set<VirtualReg>>,
   val definedAt: DefaultMap<GraphLocation, Set<VirtualReg>>,
   val usedAt: DefaultMap<GraphLocation, Set<VirtualReg>>,
-  val graph: FunctionControlFlowGraph,
+  val graph: FunctionCFG,
 )

@@ -13,12 +13,12 @@ class BasicBlock private constructor(
   private var _statements: ArrayDeque<Quadruple>,
   private var _phony: TreeSet<PhonyQ> = TreeSet(PHONY_COMPARATOR),
 ) {
-  val statementsRaw: List<Quadruple> get() = _statements
-  val statements: Sequence<Quadruple>
-    get() = if (phony.isEmpty()) statementsRaw.asSequence() else sequence {
-      statementsRaw.firstOrNull()?.let { yield(it) }
+  val statements: List<Quadruple> get() = _statements
+  val statementsWithPhony: Sequence<Quadruple>
+    get() = if (phony.isEmpty()) statements.asSequence() else sequence {
+      statements.firstOrNull()?.let { yield(it) }
       yieldAll(phony)
-      statementsRaw.forEachIndexed { idx, stmt -> if (idx > 0) yield(stmt) }
+      statements.forEachIndexed { idx, stmt -> if (idx > 0) yield(stmt) }
     }
 
   val phony: Set<PhonyQ> get() = _phony

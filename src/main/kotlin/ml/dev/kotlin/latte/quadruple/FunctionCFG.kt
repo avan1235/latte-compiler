@@ -5,7 +5,7 @@ import java.util.*
 import kotlin.collections.ArrayDeque
 
 
-class FunctionControlFlowGraph private constructor(
+class FunctionCFG private constructor(
   private val start: Label,
   private val jumpPred: MutableDefaultMap<Label, LinkedHashSet<Label>> = MutableDefaultMap({ LinkedHashSet() }),
   private val byName: LinkedHashMap<Label, BasicBlock> = LinkedHashMap(),
@@ -64,7 +64,7 @@ class FunctionControlFlowGraph private constructor(
     val globals = HashSet<VirtualReg>()
     for (b in functionBlocks) {
       val varKill = HashSet<VirtualReg>()
-      byName[b]?.statements?.forEach { stmt ->
+      byName[b]?.statementsWithPhony?.forEach { stmt ->
         stmt.usedVars().filterNot { it in varKill }.forEach { globals += it }
         stmt.definedVars().onEach { varKill += it }.forEach { inBlocks[it] += b }
       }
@@ -125,7 +125,7 @@ class FunctionControlFlowGraph private constructor(
       successors(b).forEach { succ -> byName[succ]?.phony?.forEach { it.renamePathUsage(from = b, currIndex) } }
       dominanceTree.successors(b).forEach { succ -> rename(succ) }
       basicBlock.phony.forEach { phi -> phi.to.original?.let(decreaseIdx) }
-      basicBlock.statementsRaw.forEach { stmt -> stmt.definedVars().forEach { it.original?.let(decreaseIdx) } }
+      basicBlock.statements.forEach { stmt -> stmt.definedVars().forEach { it.original?.let(decreaseIdx) } }
     }
     rename(start)
   }
@@ -143,7 +143,7 @@ class FunctionControlFlowGraph private constructor(
   }
 
   companion object {
-    fun Iterable<BasicBlock>.buildFunctionCFG(label: Label): FunctionControlFlowGraph = FunctionControlFlowGraph(label).apply {
+    fun Iterable<BasicBlock>.buildFunctionCFG(label: Label): FunctionCFG = FunctionCFG(label).apply {
       onEach { addBlock(it) }.windowed(2).forEach { (from, to) -> addLinearJump(from, to) }
     }
   }

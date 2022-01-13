@@ -474,12 +474,12 @@ private fun intArg(reg: String, idx: Int): ArgValue =
     if (reg.contains("#")) ArgValue(reg.takeWhile { it != '#' }, idx, IntType, null) else null
   )
 
-internal fun FunctionControlFlowGraph.testAnalysis(
+internal fun FunctionCFG.testAnalysis(
   name: String,
   expected: Map<Label, Map<Int, Set<VirtualReg>>>,
   result: DefaultMap<GraphLocation, Set<VirtualReg>>
 ): Unit = block.values.forEach { block ->
-  val statements = block.statements.toList()
+  val statements = block.statementsWithPhony.toList()
   statements.indices.forEach { idx ->
     val e = expected[block.label]?.get(idx) ?: emptySet()
     val r = result[GraphLocation(block.label, idx)]
