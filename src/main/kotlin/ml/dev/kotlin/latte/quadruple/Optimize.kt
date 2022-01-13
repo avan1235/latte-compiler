@@ -189,5 +189,3 @@ private fun FunctionCFG.removeDeadAssignQ() {
     if (stmt is AssignQ && stmt.to !in aliveAfter[idx at block]) null else stmt
   }
 }
-
-
