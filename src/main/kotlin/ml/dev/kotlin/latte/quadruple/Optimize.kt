@@ -4,9 +4,8 @@ import ml.dev.kotlin.latte.syntax.*
 import ml.dev.kotlin.latte.util.forEachPairIndexed
 
 fun CFG.optimize(): Unit = with(functions.values) {
-  forEach { it.removeTempDefs() }
   while (true) {
-    val repeats = sumOf { it.propagateConstants() } + sumOf { it.simplifyExpr() }
+    val repeats = sumOf { it.removeTempDefs() } + sumOf { it.propagateConstants() } + sumOf { it.simplifyExpr() }
     if (repeats == 0) break
   }
   forEach { it.removeDeadAssignQ() }
@@ -107,8 +106,9 @@ private class BinOpSubExpr(binOpQ: BinOpQ) : SubExpr {
   }
 }
 
-private fun FunctionCFG.removeTempDefs() {
+private fun FunctionCFG.removeTempDefs(): Int {
   val aliveAfter = GlobalFlowAnalyzer.analyzeToGraph(this).aliveAfter
+  var removed = 0
   for (block in block.values) {
     val remove = HashSet<Int>()
     val redefined = HashMap<Int, Quadruple>()
@@ -127,7 +127,9 @@ private fun FunctionCFG.removeTempDefs() {
         else -> stmt
       }
     }
+    removed += remove.size
   }
+  return removed
 }
 
 private fun FunctionCFG.propagateConstants(): Int {
@@ -181,7 +183,7 @@ private fun Quadruple.simplify(): Quadruple = when {
   else -> this
 }
 
-private fun FunctionCFG.removeDeadAssignQ(): Unit {
+private fun FunctionCFG.removeDeadAssignQ() {
   val aliveAfter = GlobalFlowAnalyzer.analyzeToGraph(this).aliveAfter
   for (block in block.values) block.mapStatements { idx, stmt ->
     if (stmt is AssignQ && stmt.to !in aliveAfter[idx at block]) null else stmt
