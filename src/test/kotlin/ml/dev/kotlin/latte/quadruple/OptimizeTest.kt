@@ -9,11 +9,11 @@ import org.junit.jupiter.api.Test
 
 internal class OptimizeTest {
   @Test
-  fun `optimizes add common operations`() = testOptimize(
+  fun `optimizes common operations`() = testOptimize(
     program = """
     int main() {
-      int a = 42;
-      int b = 24;
+      int a = readInt();
+      int b = readInt();
       int c = a + b;
       int d = b + a;
       int e = b * a;
@@ -27,28 +27,38 @@ internal class OptimizeTest {
     """,
     irRepresentation = """
     main():
-      a@0#0 = 42
-      b@1#0 = 24
-      @T2#0 = a@0#0 plus b@1#0
-      c@3#0 = @T2#0
-      @T4#0 = b@1#0 plus a@0#0
-      d@5#0 = @T4#0
-      @T6#0 = b@1#0 times a@0#0
-      e@7#0 = @T6#0
-      @T8#0 = a@0#0 times b@1#0
-      f@9#0 = @T8#0
-      @T10#0 = c@3#0 minus d@5#0
-      g@11#0 = @T10#0
-      @T12#0 = e@7#0 divide f@9#0
-      h@13#0 = @T12#0
-      @T14#0 = call __printInt (g@11#0)
-      @T15#0 = call __printInt (h@13#0)
+      @T0#0 = call __readInt ()
+      a@1#0 = @T0#0
+      @T2#0 = call __readInt ()
+      b@3#0 = @T2#0
+      @T4#0 = a@1#0 plus b@3#0
+      c@5#0 = @T4#0
+      @T6#0 = b@3#0 plus a@1#0
+      d@7#0 = @T6#0
+      @T8#0 = b@3#0 times a@1#0
+      e@9#0 = @T8#0
+      @T10#0 = a@1#0 times b@3#0
+      f@11#0 = @T10#0
+      @T12#0 = c@5#0 minus d@7#0
+      g@13#0 = @T12#0
+      @T14#0 = e@9#0 divide f@11#0
+      h@15#0 = @T14#0
+      @T16#0 = call __printInt (g@13#0)
+      @T17#0 = call __printInt (h@15#0)
       ret 0
     """,
     optimizedIrRepresentation = """
     main():
-      @T14#0 = call __printInt (0)
-      @T15#0 = call __printInt (1)
+      a@1#0 = call __readInt ()
+      b@3#0 = call __readInt ()
+      c@5#0 = a@1#0 plus b@3#0
+      d@7#0 = c@5#0
+      e@9#0 = b@3#0 times a@1#0
+      f@11#0 = e@9#0
+      g@13#0 = c@5#0 minus d@7#0
+      h@15#0 = e@9#0 divide f@11#0
+      @T16#0 = call __printInt (g@13#0)
+      @T17#0 = call __printInt (h@15#0)
       ret 0
     """
   )
