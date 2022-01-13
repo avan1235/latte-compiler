@@ -5,6 +5,7 @@ import ml.dev.kotlin.latte.util.forEachPairIndexed
 
 fun CFG.optimize(): Unit = with(functions.values) {
   forEach { it.removeTempDefs() }
+  forEach { it.propagateConstants() }
   forEach { it.lcse() }
 }
 
@@ -125,17 +126,20 @@ private fun FunctionCFG.removeTempDefs() {
   }
 }
 
-private fun FunctionCFG.propagateConstants(): Int {
-  val constants = HashMap<VirtualReg, ConstValue>()
-  for (block in block.values) for (stmt in block.statements)
-    if (stmt is AssignQ && stmt.from is ConstValue) constants[stmt.to] = stmt.from
-  var propagated = 0
-  for (block in block.values) {
-    block.phony.forEach { it.propagateConstants(constants) }
-    block.mapStatements { _, stmt ->
-      stmt.propagateConstants(constants).also { if (it != stmt) propagated += 1 }
+private fun FunctionCFG.propagateConstants() {
+  var propagated: Int
+  do {
+    propagated = 0
+    val constants = HashMap<VirtualReg, ConstValue>()
+    for (block in block.values) for (stmt in block.statements)
+      if (stmt is AssignQ && stmt.from is ConstValue) constants[stmt.to] = stmt.from
+    for (block in block.values) {
+      block.mapPhony { _, phi ->
+        phi.propagateConstants(constants).also { if (it != phi) propagated += 1 }
+      }
+      block.mapStatements { _, stmt ->
+        stmt.propagateConstants(constants).also { if (it != stmt) propagated += 1 }
+      }
     }
-  }
-
-  return 0
+  } while (propagated > 0)
 }

@@ -1,8 +1,6 @@
 package ml.dev.kotlin.latte.quadruple
 
 import ml.dev.kotlin.latte.util.*
-import java.util.*
-import kotlin.collections.ArrayDeque
 
 
 class FunctionCFG private constructor(
@@ -87,7 +85,7 @@ class FunctionCFG private constructor(
         for (d in dominance.frontiers(n)) {
           if (d in phiInserted) continue
           phiInserted += d
-          byName[d]?.let { it += PhonyQ(v) }
+          byName[d]?.let { it += PhonyQ(v, v) }
           if (d in visited) continue
           workList += d
           visited += d
@@ -120,9 +118,9 @@ class FunctionCFG private constructor(
       renamed += b
 
       val basicBlock = byName[b] ?: return
-      basicBlock.phony.forEach { it.renameDefinition(currIndex, increaseIdx) }
+      basicBlock.mapPhony { _, phi -> phi.renameDefinition(currIndex, increaseIdx) }
       basicBlock.mapStatements { _, stmt -> stmt.rename(currIndex, increaseIdx) }
-      successors(b).forEach { succ -> byName[succ]?.phony?.forEach { it.renamePathUsage(from = b, currIndex) } }
+      successors(b).forEach { succ -> byName[succ]?.mapPhony { _, phi -> phi.renamePathUsage(label = b, currIndex) } }
       dominanceTree.successors(b).forEach { succ -> rename(succ) }
       basicBlock.phony.forEach { phi -> phi.to.original?.let(decreaseIdx) }
       basicBlock.statements.forEach { stmt -> stmt.definedVars().forEach { it.original?.let(decreaseIdx) } }

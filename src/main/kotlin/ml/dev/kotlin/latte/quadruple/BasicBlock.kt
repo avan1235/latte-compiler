@@ -37,6 +37,10 @@ class BasicBlock private constructor(
     _statements = _statements.mapIndexedNotNullTo(ArrayDeque(), f)
   }
 
+  fun mapPhony(f: (Int, PhonyQ) -> PhonyQ?) {
+    _phony = _phony.mapIndexedNotNullTo(TreeSet(PHONY_COMPARATOR), f)
+  }
+
   fun cleanPhony() {
     _phony = TreeSet(PHONY_COMPARATOR)
   }

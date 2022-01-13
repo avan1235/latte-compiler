@@ -49,9 +49,9 @@ internal class OptimizeTest {
     main():
       a@0#0 = 42
       b@1#0 = 24
-      c@3#0 = a@0#0 plus b@1#0
+      c@3#0 = 42 plus 24
       d@5#0 = c@3#0
-      e@7#0 = b@1#0 times a@0#0
+      e@7#0 = 24 times 42
       f@9#0 = e@7#0
       g@11#0 = c@3#0 minus d@5#0
       h@13#0 = e@7#0 divide f@9#0

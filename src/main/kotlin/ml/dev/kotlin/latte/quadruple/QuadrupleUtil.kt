@@ -53,7 +53,9 @@ internal fun Quadruple.repr(): String = when (this) {
   is MethodCallQ -> "${to.repr()} = call ${self.repr()}.$ident (${args.joinToString { it.repr() }})"
   is RetQ -> "ret${value?.let { " ${it.repr()}" } ?: ""}"
   is UnOpModQ -> "${to.repr()} = ${op.name.lowercase()} ${from.repr()}"
-  is PhonyQ -> "${to.repr()} = phi (${from.toList().joinToString(", ") { "${it.first.name}:${it.second.repr()}" }})"
+  is PhonyQ -> "${to.repr()} = phi (${
+    from.toList().sortedBy { it.first.name }.joinToString(", ") { "${it.first.name}:${it.second.repr()}" }
+  })"
   is LoadQ -> "${to.repr()} = *(${from.repr()} + $offset)"
   is StoreQ -> "*(${at.repr()} + $offset) = ${from.repr()}"
 }.let { if (this is Labeled) it else "  $it" }

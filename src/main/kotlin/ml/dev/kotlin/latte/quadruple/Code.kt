@@ -236,22 +236,25 @@ data class RetQ(val value: ValueHolder? = null) : Quadruple, Jumping {
   }
 }
 
-data class PhonyQ(private var _to: VirtualReg, private val _from: HashMap<Label, ValueHolder> = HashMap()) : Quadruple {
-  private val original: VirtualReg = _to
-  val to: VirtualReg get() = _to
-  val from: Map<Label, ValueHolder> get() = _from
-  fun renameDefinition(currIndex: CurrIndex, updateIndex: UpdateIndex): Unit =
-    if (_to == original) _to = _to.renameDefinition(currIndex, updateIndex)
-    else err("Cannot rename Phony multiple times")
+data class PhonyQ(
+  val to: VirtualReg,
+  private val original: VirtualReg,
+  val from: Map<Label, ValueHolder> = HashMap(),
+) : Quadruple {
+  fun renameDefinition(currIndex: CurrIndex, updateIndex: UpdateIndex): PhonyQ =
+    if (to == original) copy(
+      to = to.renameDefinition(currIndex, updateIndex),
+      original = original,
+      from = HashMap(from)
+    ) else err("Cannot rename Phony multiple times")
 
-  fun renamePathUsage(from: Label, currIndex: CurrIndex) {
-    _from[from] = original.renameUsage(currIndex)
-  }
+  fun renamePathUsage(label: Label, currIndex: CurrIndex): PhonyQ = copy(
+    to = to, original = original, from = from + (label to original.renameUsage(currIndex))
+  )
 
-  override fun propagateConstants(constants: Map<VirtualReg, ConstValue>): Quadruple {
-    _from.mapValues { constants[it.value] ?: it.value }
-    return this
-  }
+  override fun propagateConstants(constants: Map<VirtualReg, ConstValue>): PhonyQ = copy(
+    to = to, original = original, from = from.mapValues { constants[it.value] ?: it.value }
+  )
 
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple =
     err("Cannot rename PhonyQ in single step - rename usages and definitions separately")
