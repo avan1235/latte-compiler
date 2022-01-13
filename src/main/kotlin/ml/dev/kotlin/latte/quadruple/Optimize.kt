@@ -31,6 +31,8 @@ private data class IndexedSubExpr(val idx: StmtIdx, val subExpr: SubExpr)
 private fun Quadruple.subExpr(): SubExpr? = when (this) {
   is BinOpQ -> BinOpSubExpr(this)
   is UnOpQ -> UnOpSubExpr(this)
+  is UnOpModQ -> UnOpModSubExpr(this)
+  is LoadQ -> LoadQSubExpr(this)
   else -> null
 }
 
@@ -46,6 +48,26 @@ private class UnOpSubExpr(unOpQ: UnOpQ) : SubExpr {
   override fun hashCode(): Int = setOf(op, from).hashCode()
   override fun equals(other: Any?): Boolean =
     (other as? UnOpSubExpr)?.let { it.op == op && it.from == from } ?: false
+}
+
+private class UnOpModSubExpr(unOpModQ: UnOpModQ) : SubExpr {
+  override val definedBy: VirtualReg = unOpModQ.to
+  val op: UnOpMod = unOpModQ.op
+  val from: ValueHolder = unOpModQ.from
+
+  override fun hashCode(): Int = setOf(op, from).hashCode()
+  override fun equals(other: Any?): Boolean =
+    (other as? UnOpModSubExpr)?.let { it.op == op && it.from == from } ?: false
+}
+
+private class LoadQSubExpr(loadQ: LoadQ) : SubExpr {
+  override val definedBy: VirtualReg = loadQ.to
+  val from: ValueHolder = loadQ.from
+  val offset: Bytes = loadQ.offset
+
+  override fun hashCode(): Int = setOf(offset, from).hashCode()
+  override fun equals(other: Any?): Boolean =
+    (other as? LoadQSubExpr)?.let { it.offset == offset && it.from == from } ?: false
 }
 
 private class BinOpSubExpr(binOpQ: BinOpQ) : SubExpr {
@@ -101,4 +123,19 @@ private fun FunctionCFG.removeTempDefs() {
       }
     }
   }
+}
+
+private fun FunctionCFG.propagateConstants(): Int {
+  val constants = HashMap<VirtualReg, ConstValue>()
+  for (block in block.values) for (stmt in block.statements)
+    if (stmt is AssignQ && stmt.from is ConstValue) constants[stmt.to] = stmt.from
+  var propagated = 0
+  for (block in block.values) {
+    block.phony.forEach { it.propagateConstants(constants) }
+    block.mapStatements { _, stmt ->
+      stmt.propagateConstants(constants).also { if (it != stmt) propagated += 1 }
+    }
+  }
+
+  return 0
 }
