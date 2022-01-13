@@ -1,6 +1,5 @@
 package ml.dev.kotlin.latte.util
 
-
 inline fun <T> Iterable<T>.splitAt(
   crossinline first: (T) -> Boolean = { false },
   crossinline last: (T) -> Boolean = { false },
@@ -41,6 +40,9 @@ fun <T> List<List<T>>.combinations(): Set<List<T>> {
   return combinations
 }
 
+inline fun <T> List<T>.forEachPairIndexed(f: (currIdx: Int, prev: T, curr: T) -> Unit) {
+  for (idx in 1 until size) f(idx, this[idx - 1], this[idx])
+}
 
 fun <T> Iterable<T>.nlString(transform: ((T) -> CharSequence)? = null) =
   joinToString("\n", "\n", "\n", transform = transform)

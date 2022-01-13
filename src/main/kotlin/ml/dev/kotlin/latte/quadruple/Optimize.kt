@@ -1,6 +1,7 @@
 package ml.dev.kotlin.latte.quadruple
 
 import ml.dev.kotlin.latte.syntax.*
+import ml.dev.kotlin.latte.util.forEachPairIndexed
 
 fun CFG.optimize(): Unit = with(functions.values) {
   forEach { it.removeTempDefs() }
@@ -80,25 +81,21 @@ private class BinOpSubExpr(binOpQ: BinOpQ) : SubExpr {
 }
 
 private fun FunctionCFG.removeTempDefs() {
-  val analysis = GlobalFlowAnalyzer.analyzeToGraph(this)
+  val aliveAfter = GlobalFlowAnalyzer.analyzeToGraph(this).aliveAfter
   for (block in block.values) {
-    val statements = block.statements
-    val remove = HashSet<Quadruple>()
-    val redefined = HashMap<Quadruple, Quadruple>()
-    for (idx in statements.indices) {
-      if (idx == 0) continue
-      val prevStmt = statements[idx - 1]
-      val stmt = statements[idx]
-      if (prevStmt !is DefiningVar) continue
-      if (stmt !is AssignQ) continue
-      if (prevStmt.to != stmt.from) continue
-      if (prevStmt.to in analysis.aliveAfter[idx at block]) continue
-      redefined[prevStmt] = prevStmt.redefine(stmt.to)
-      remove += stmt
+    val remove = HashSet<Int>()
+    val redefined = HashMap<Int, Quadruple>()
+    block.statements.forEachPairIndexed collect@{ idx, prevStmt, stmt ->
+      if (prevStmt !is DefiningVar) return@collect
+      if (stmt !is AssignQ) return@collect
+      if (prevStmt.to != stmt.from) return@collect
+      if (prevStmt.to in aliveAfter[idx at block]) return@collect
+      redefined[idx - 1] = prevStmt.redefine(stmt.to)
+      remove += idx
     }
-    block.mapStatements { _, stmt ->
-      when (stmt) {
-        in redefined -> redefined[stmt]
+    block.mapStatements { idx, stmt ->
+      when (idx) {
+        in redefined -> redefined[idx]
         in remove -> null
         else -> stmt
       }

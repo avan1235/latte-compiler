@@ -9,18 +9,19 @@ import org.junit.jupiter.api.Test
 
 internal class OptimizeTest {
   @Test
-  fun `optimizes add common operations`() = testLCSE(
+  fun `optimizes add common operations`() = testOptimize(
     program = """
     int main() {
       int a = 42;
       int b = 24;
       int c = a + b;
-      int d = a + b;
-      int e = b + a;
-      int f = a * c;
-      int g = a * (a + b);
-      printInt(f);
+      int d = b + a;
+      int e = b * a;
+      int f = a * b;
+      int g = c - d;
+      int h = e / f;
       printInt(g);
+      printInt(h);
       return 0;
     }
     """,
@@ -30,42 +31,38 @@ internal class OptimizeTest {
       b@1#0 = 24
       @T2#0 = a@0#0 plus b@1#0
       c@3#0 = @T2#0
-      @T4#0 = a@0#0 plus b@1#0
+      @T4#0 = b@1#0 plus a@0#0
       d@5#0 = @T4#0
-      @T6#0 = b@1#0 plus a@0#0
+      @T6#0 = b@1#0 times a@0#0
       e@7#0 = @T6#0
-      @T8#0 = a@0#0 times c@3#0
+      @T8#0 = a@0#0 times b@1#0
       f@9#0 = @T8#0
-      @T10#0 = a@0#0 plus b@1#0
-      @T11#0 = a@0#0 times @T10#0
-      g@12#0 = @T11#0
-      @T13#0 = call __printInt (f@9#0)
-      @T14#0 = call __printInt (g@12#0)
+      @T10#0 = c@3#0 minus d@5#0
+      g@11#0 = @T10#0
+      @T12#0 = e@7#0 divide f@9#0
+      h@13#0 = @T12#0
+      @T14#0 = call __printInt (g@11#0)
+      @T15#0 = call __printInt (h@13#0)
       ret 0
     """,
     optimizedIrRepresentation = """
     main():
       a@0#0 = 42
       b@1#0 = 24
-      @T2#0 = a@0#0 plus b@1#0
-      c@3#0 = @T2#0
-      @T4#0 = @T2#0
-      d@5#0 = @T4#0
-      @T6#0 = @T2#0
-      e@7#0 = @T6#0
-      @T8#0 = a@0#0 times c@3#0
-      f@9#0 = @T8#0
-      @T10#0 = @T2#0
-      @T11#0 = a@0#0 times @T10#0
-      g@12#0 = @T11#0
-      @T13#0 = call __printInt (f@9#0)
-      @T14#0 = call __printInt (g@12#0)
+      c@3#0 = a@0#0 plus b@1#0
+      d@5#0 = c@3#0
+      e@7#0 = b@1#0 times a@0#0
+      f@9#0 = e@7#0
+      g@11#0 = c@3#0 minus d@5#0
+      h@13#0 = e@7#0 divide f@9#0
+      @T14#0 = call __printInt (g@11#0)
+      @T15#0 = call __printInt (h@13#0)
       ret 0
     """
   )
 }
 
-private fun testLCSE(
+private fun testOptimize(
   program: String,
   irRepresentation: String,
   optimizedIrRepresentation: String,
