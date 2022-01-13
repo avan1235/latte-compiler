@@ -49,14 +49,14 @@ internal class OptimizeTest {
     main():
       a@0#0 = 42
       b@1#0 = 24
-      c@3#0 = 42 plus 24
-      d@5#0 = c@3#0
-      e@7#0 = 24 times 42
-      f@9#0 = e@7#0
-      g@11#0 = c@3#0 minus d@5#0
-      h@13#0 = e@7#0 divide f@9#0
-      @T14#0 = call __printInt (g@11#0)
-      @T15#0 = call __printInt (h@13#0)
+      c@3#0 = 66
+      d@5#0 = 66
+      e@7#0 = 1008
+      f@9#0 = 1008
+      g@11#0 = 0
+      h@13#0 = 1
+      @T14#0 = call __printInt (0)
+      @T15#0 = call __printInt (1)
       ret 0
     """
   )

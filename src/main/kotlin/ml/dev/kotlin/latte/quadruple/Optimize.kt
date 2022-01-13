@@ -5,7 +5,10 @@ import ml.dev.kotlin.latte.util.forEachPairIndexed
 
 fun CFG.optimize(): Unit = with(functions.values) {
   forEach { it.removeTempDefs() }
-  forEach { it.propagateConstants() }
+  while (true) {
+    val repeats = sumOf { it.propagateConstants() } + sumOf { it.simplifyExpr() }
+    if (repeats == 0) break
+  }
   forEach { it.lcse() }
 }
 
@@ -126,10 +129,12 @@ private fun FunctionCFG.removeTempDefs() {
   }
 }
 
-private fun FunctionCFG.propagateConstants() {
+private fun FunctionCFG.propagateConstants(): Int {
   var propagated: Int
+  var repeats = -1
   do {
     propagated = 0
+    repeats += 1
     val constants = HashMap<VirtualReg, ConstValue>()
     for (block in block.values) for (stmt in block.statements)
       if (stmt is AssignQ && stmt.from is ConstValue) constants[stmt.to] = stmt.from
@@ -142,4 +147,30 @@ private fun FunctionCFG.propagateConstants() {
       }
     }
   } while (propagated > 0)
+  return repeats
 }
+
+private fun FunctionCFG.simplifyExpr(): Int {
+  var simplified: Int
+  var repeats = -1
+  do {
+    simplified = 0
+    repeats += 1
+    for (block in block.values) block.mapStatements { _, stmt ->
+      stmt.simplify().also { if (it != stmt) simplified += 1 }
+    }
+  } while (simplified > 0)
+  return repeats
+}
+
+private fun Quadruple.simplify(): Quadruple = when {
+  this is BinOpQ && left is IntConstValue && right is IntConstValue -> AssignQ(to, op.num(left, right))
+  this is UnOpQ && from is IntConstValue && op == UnOp.NEG -> AssignQ(to, -from)
+  this is UnOpQ && from is BooleanConstValue && op == UnOp.NOT -> AssignQ(to, !from)
+  this is RelCondJumpQ && left is IntConstValue && right is IntConstValue -> CondJumpQ(op.rel(left, right), toLabel)
+  this is RelCondJumpQ && left is BooleanConstValue && right is BooleanConstValue ->
+    CondJumpQ(op.rel(left, right), toLabel)
+  else -> this
+}
+
+
