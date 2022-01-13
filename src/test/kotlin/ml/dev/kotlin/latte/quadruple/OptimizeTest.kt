@@ -47,14 +47,6 @@ internal class OptimizeTest {
     """,
     optimizedIrRepresentation = """
     main():
-      a@0#0 = 42
-      b@1#0 = 24
-      c@3#0 = 66
-      d@5#0 = 66
-      e@7#0 = 1008
-      f@9#0 = 1008
-      g@11#0 = 0
-      h@13#0 = 1
       @T14#0 = call __printInt (0)
       @T15#0 = call __printInt (1)
       ret 0

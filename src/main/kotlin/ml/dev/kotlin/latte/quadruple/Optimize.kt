@@ -9,6 +9,7 @@ fun CFG.optimize(): Unit = with(functions.values) {
     val repeats = sumOf { it.propagateConstants() } + sumOf { it.simplifyExpr() }
     if (repeats == 0) break
   }
+  forEach { it.removeDeadAssignQ() }
   forEach { it.lcse() }
 }
 
@@ -171,6 +172,13 @@ private fun Quadruple.simplify(): Quadruple = when {
   this is RelCondJumpQ && left is BooleanConstValue && right is BooleanConstValue ->
     CondJumpQ(op.rel(left, right), toLabel)
   else -> this
+}
+
+private fun FunctionCFG.removeDeadAssignQ(): Unit {
+  val aliveAfter = GlobalFlowAnalyzer.analyzeToGraph(this).aliveAfter
+  for (block in block.values) block.mapStatements { idx, stmt ->
+    if (stmt is AssignQ && stmt.to !in aliveAfter[idx at block]) null else stmt
+  }
 }
 
 
