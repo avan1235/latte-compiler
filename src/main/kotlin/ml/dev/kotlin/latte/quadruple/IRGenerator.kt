@@ -1,9 +1,6 @@
 package ml.dev.kotlin.latte.quadruple
 
-import ml.dev.kotlin.latte.asm.ALLOC_FUN_LABEL
-import ml.dev.kotlin.latte.asm.EMPTY_STRING_LABEL
-import ml.dev.kotlin.latte.asm.THIS_ARG_ID
-import ml.dev.kotlin.latte.asm.VirtualTable
+import ml.dev.kotlin.latte.asm.*
 import ml.dev.kotlin.latte.quadruple.CFG.Companion.buildCFG
 import ml.dev.kotlin.latte.syntax.*
 import ml.dev.kotlin.latte.syntax.PrimitiveType.*
@@ -15,10 +12,10 @@ import ml.dev.kotlin.latte.util.*
 fun TypeCheckedProgram.toIR(): IR = IRGenerator(env).run { this@toIR.generate() }
 
 data class IR(
-    val graph: CFG,
-    val strings: Map<String, Label>,
-    val vTables: Map<Type, VirtualTable>,
-    val labelGenerator: () -> Label,
+  val graph: CFG,
+  val strings: Map<String, Label>,
+  val vTables: Map<Type, VirtualTable>,
+  val labelGenerator: () -> Label,
 )
 
 private data class IRGenerator(
@@ -204,14 +201,7 @@ private data class IRGenerator(
     is StringExprNode -> addStringConst(value)
     is UnOpExprNode -> {
       val from = expr.generate()
-      when (op) {
-        UnOp.NEG ->
-          if (from is IntConstValue) -from
-          else freshTemp(IntType) { to -> emit { UnOpQ(to, op, from) } }
-        UnOp.NOT ->
-          if (from is BooleanConstValue) !from
-          else freshTemp(BooleanType) { to -> emit { UnOpQ(to, op, from) } }
-      }
+      UnOpQ(unnamedTemp(IntType), op, from).constSimplify() ?: freshTemp(IntType) { to -> emit { UnOpQ(to, op, from) } }
     }
     is BinOpExprNode -> when (op) {
       BooleanOp.AND -> generateCondElse(left, BooleanOp.AND, right)
@@ -220,19 +210,16 @@ private data class IRGenerator(
         val lv = left.generate()
         val rv = right.generate()
         when {
-          lv is IntConstValue && rv is IntConstValue && op is RelOp -> op.rel(lv, rv)
-          lv is IntConstValue && rv is IntConstValue && op is NumOp -> op.num(lv, rv)
           lv is StringConstValue && rv is StringConstValue -> addStringConst(lv.str + rv.str)
-          lv is BooleanConstValue && rv is BooleanConstValue && op is RelOp -> op.rel(lv, rv)
-          rv is IntConstValue && rv.int == 0 && (op == NumOp.PLUS || op == NumOp.MINUS) -> lv
-          rv is IntConstValue && rv.int == 1 && (op == NumOp.TIMES || op == NumOp.DIVIDE) -> lv
-          lv is IntConstValue && lv.int == 0 && op == NumOp.PLUS -> rv
-          lv is IntConstValue && lv.int == 1 && op == NumOp.TIMES -> rv
           else -> when {
             op is NumOp && op == NumOp.PLUS && lv.type == StringType && rv.type == StringType ->
-              freshTemp(StringType) { to -> emit { FunCallQ(to, "__concatString".label, listOf(lv, rv)) } }
-            op is NumOp -> freshTemp(IntType) { to -> emit { BinOpQ(to, lv, op, rv) } }
-            op is RelOp -> freshTemp(BooleanType) { to ->
+              freshTemp(StringType) { to -> emit { FunCallQ(to, CONCAT_STRING_FUN_LABEL, listOf(lv, rv)) } }
+            op is NumOp -> when (val simplified = BinOpQ(unnamedTemp(IntType), lv, op, rv).constSimplify()) {
+              is ConstValue -> simplified
+              is ValueHolder -> freshTemp(IntType) { to -> AssignQ(to, simplified).also { emit { it } } }
+              else -> freshTemp(IntType) { to -> emit { BinOpQ(to, lv, op, rv) } }
+            }
+            op is RelOp -> RelCondJumpQ(lv, op, rv, "".label).constSimplify() ?: freshTemp(BooleanType) { to ->
               val falseLabel = freshLabel(prefix = "F")
               emit { AssignQ(to, false.bool) }
               emit { RelCondJumpQ(lv, op.rev, rv, falseLabel) }
@@ -274,6 +261,8 @@ private data class IRGenerator(
 
   private fun freshTemp(type: Type, action: (LocalValue) -> Unit = {}): LocalValue =
     LocalValue("@T${freshIdx()}", type).also { varEnv[it.id] = it }.also(action)
+
+  private fun unnamedTemp(type: Type): LocalValue = LocalValue("", type)
 
   private fun addStringConst(value: String): StringConstValue =
     StringConstValue(strings[value] ?: freshLabel(prefix = "S").also { strings[value] = it }, value)

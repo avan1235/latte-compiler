@@ -50,6 +50,7 @@ private class Compiler(
 
 const val THIS_ARG_ID: String = "self"
 val ALLOC_FUN_LABEL: Label = "__alloc".label
+val CONCAT_STRING_FUN_LABEL: Label = "__concatString".label
 val EMPTY_STRING_LABEL: Label = "S@EMPTY".label
 
 

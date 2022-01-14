@@ -167,19 +167,9 @@ private fun FunctionCFG.simplifyExpr(): Int {
 }
 
 private fun Quadruple.simplify(): Quadruple = when {
-  this is BinOpQ -> when {
-    left is IntConstValue && right is IntConstValue -> AssignQ(to, op.num(left, right))
-    right is IntConstValue && right.int == 0 && (op == NumOp.PLUS || op == NumOp.MINUS) -> AssignQ(to, left)
-    right is IntConstValue && right.int == 1 && (op == NumOp.TIMES || op == NumOp.DIVIDE) -> AssignQ(to, left)
-    left is IntConstValue && left.int == 0 && op == NumOp.PLUS -> AssignQ(to, right)
-    left is IntConstValue && left.int == 1 && op == NumOp.TIMES -> AssignQ(to, right)
-    else -> this
-  }
-  this is UnOpQ && from is IntConstValue && op == UnOp.NEG -> AssignQ(to, -from)
-  this is UnOpQ && from is BooleanConstValue && op == UnOp.NOT -> AssignQ(to, !from)
-  this is RelCondJumpQ && left is IntConstValue && right is IntConstValue -> CondJumpQ(op.rel(left, right), toLabel)
-  this is RelCondJumpQ && left is BooleanConstValue && right is BooleanConstValue ->
-    CondJumpQ(op.rel(left, right), toLabel)
+  this is BinOpQ -> constSimplify()?.let { AssignQ(to, it) } ?: this
+  this is UnOpQ -> constSimplify()?.let { AssignQ(to, it) } ?: this
+  this is RelCondJumpQ -> constSimplify()?.let { CondJumpQ(it, toLabel) } ?: this
   else -> this
 }
 
