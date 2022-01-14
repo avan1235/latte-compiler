@@ -9,7 +9,7 @@ object GlobalFlowAnalyzer {
   fun analyzeToLinear(cfg: FunctionCFG): FlowAnalysis {
     val analysis = analyze(cfg)
 
-    fun byStmtIdx(default: DefaultMap<IndexedStatement, Set<VirtualReg>>) =
+    fun byStmtIdx(default: DefaultMap<IdxStmt, Set<VirtualReg>>) =
       { idx: StmtIdx -> default[analysis.indexedStmts[idx]] }
 
     val aliveBefore = MutableDefaultMap(byStmtIdx(analysis.aliveBefore))
@@ -22,7 +22,7 @@ object GlobalFlowAnalyzer {
   fun analyzeToGraph(cfg: FunctionCFG): GraphFlowAnalysis {
     val analysis = analyze(cfg)
 
-    fun byGraphLocation(default: DefaultMap<IndexedStatement, Set<VirtualReg>>) = { loc: GraphLocation ->
+    fun byGraphLocation(default: DefaultMap<IdxStmt, Set<VirtualReg>>) = { loc: GraphLocation ->
       val block = analysis.blockStmts[loc.label]
       if (loc.stmtIdx !in block.indices) emptySet()
       else default[block[loc.stmtIdx]]
@@ -36,18 +36,18 @@ object GlobalFlowAnalyzer {
   }
 
   private fun analyze(cfg: FunctionCFG): AnalysisResult {
-    val aliveIn = MutableDefaultMap(withSet<IndexedStatement, VirtualReg>())
-    val aliveOut = MutableDefaultMap(withSet<IndexedStatement, VirtualReg>())
-    val use = MutableDefaultMap<IndexedStatement, HashSet<VirtualReg>>({ it.quadruple.usedVars().toHashSet() })
-    val kill = MutableDefaultMap<IndexedStatement, HashSet<VirtualReg>>({ it.quadruple.definedVars().toHashSet() })
+    val aliveIn = MutableDefaultMap(withSet<IdxStmt, VirtualReg>())
+    val aliveOut = MutableDefaultMap(withSet<IdxStmt, VirtualReg>())
+    val use = MutableDefaultMap<IdxStmt, HashSet<VirtualReg>>({ it.quadruple.usedVars().toHashSet() })
+    val kill = MutableDefaultMap<IdxStmt, HashSet<VirtualReg>>({ it.quadruple.definedVars().toHashSet() })
 
-    val blockStmts = MutableDefaultMap<Label, List<IndexedStatement>>(default@{
+    val blockStmts = MutableDefaultMap<Label, List<IdxStmt>>(default@{
       val block = cfg.block[it] ?: return@default emptyList()
       val statements = block.statementsWithPhony.toList()
-      statements.mapIndexed { idx, stmt -> IndexedStatement(idx, stmt, block.label, idx == statements.size - 1) }
+      statements.mapIndexed { idx, stmt -> IdxStmt(idx, stmt, block.label, idx == statements.size - 1) }
     })
     val indexedStmts = cfg.orderedBlocks().flatMap { blockStmts[it.label] }
-    val succ = MutableDefaultMap<IndexedStatement, HashSet<IndexedStatement>>({ stmt ->
+    val succ = MutableDefaultMap<IdxStmt, HashSet<IdxStmt>>({ stmt ->
       if (stmt.isLast) cfg.successors(stmt.blockLabel).mapTo(HashSet()) { blockStmts[it].first() }
       else hashSetOf(blockStmts[stmt.blockLabel][stmt.idx + 1])
     })
@@ -67,15 +67,15 @@ object GlobalFlowAnalyzer {
 }
 
 private data class AnalysisResult(
-  val aliveBefore: DefaultMap<IndexedStatement, Set<VirtualReg>>,
-  val aliveAfter: DefaultMap<IndexedStatement, Set<VirtualReg>>,
-  val definedAt: DefaultMap<IndexedStatement, Set<VirtualReg>>,
-  val usedAt: DefaultMap<IndexedStatement, Set<VirtualReg>>,
-  val indexedStmts: List<IndexedStatement>,
-  val blockStmts: DefaultMap<Label, List<IndexedStatement>>
+  val aliveBefore: DefaultMap<IdxStmt, Set<VirtualReg>>,
+  val aliveAfter: DefaultMap<IdxStmt, Set<VirtualReg>>,
+  val definedAt: DefaultMap<IdxStmt, Set<VirtualReg>>,
+  val usedAt: DefaultMap<IdxStmt, Set<VirtualReg>>,
+  val indexedStmts: List<IdxStmt>,
+  val blockStmts: DefaultMap<Label, List<IdxStmt>>
 )
 
-private data class IndexedStatement(val idx: Int, val quadruple: Quadruple, val blockLabel: Label, val isLast: Boolean)
+private data class IdxStmt(val idx: Int, val quadruple: Quadruple, val blockLabel: Label, val isLast: Boolean)
 
 data class GraphLocation(val label: Label, val stmtIdx: StmtIdx)
 

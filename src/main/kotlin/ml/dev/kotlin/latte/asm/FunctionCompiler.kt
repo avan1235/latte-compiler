@@ -162,7 +162,7 @@ class FunctionCompiler(
         cmd(MOV, l, EAX)
       },
     )
-    NumOp.DIVIDE -> cdqIDiv(to, left, right, EAX, idx)
+    NumOp.DIV -> cdqIDiv(to, left, right, EAX, idx)
     NumOp.MOD -> cdqIDiv(to, left, right, EDX, idx)
   }
 

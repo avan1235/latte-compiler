@@ -134,7 +134,7 @@ object AstVisitor : LatteBaseVisitor<AstNode>() {
   override fun visitPlus(ctx: LatteParser.PlusContext) = NumOp.PLUS
   override fun visitMinus(ctx: LatteParser.MinusContext) = NumOp.MINUS
   override fun visitTimes(ctx: LatteParser.TimesContext) = NumOp.TIMES
-  override fun visitDivide(ctx: LatteParser.DivideContext) = NumOp.DIVIDE
+  override fun visitDivide(ctx: LatteParser.DivideContext) = NumOp.DIV
   override fun visitMod(ctx: LatteParser.ModContext) = NumOp.MOD
   override fun visitLT(ctx: LatteParser.LTContext) = RelOp.LT
   override fun visitLE(ctx: LatteParser.LEContext) = RelOp.LE

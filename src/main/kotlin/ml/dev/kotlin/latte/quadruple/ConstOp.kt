@@ -13,7 +13,7 @@ inline val Boolean.bool get() = BooleanConstValue(this)
 fun BinOpQ.constSimplify(): ValueHolder? = when {
   left is IntConstValue && right is IntConstValue -> op.num(left, right)
   right is IntConstValue && right.int == 0 && (op == NumOp.PLUS || op == NumOp.MINUS) -> left
-  right is IntConstValue && right.int == 1 && (op == NumOp.TIMES || op == NumOp.DIVIDE) -> left
+  right is IntConstValue && right.int == 1 && (op == NumOp.TIMES || op == NumOp.DIV) -> left
   left is IntConstValue && left.int == 0 && op == NumOp.PLUS -> right
   left is IntConstValue && left.int == 1 && op == NumOp.TIMES -> right
   else -> null
@@ -53,7 +53,7 @@ fun NumOp.num(lv: IntConstValue, rv: IntConstValue): IntConstValue = when (this)
   NumOp.PLUS -> IntConstValue(lv.int + rv.int)
   NumOp.MINUS -> IntConstValue(lv.int - rv.int)
   NumOp.TIMES -> IntConstValue(lv.int * rv.int)
-  NumOp.DIVIDE -> IntConstValue(lv.int / rv.int)
+  NumOp.DIV -> IntConstValue(lv.int / rv.int)
   NumOp.MOD -> IntConstValue(lv.int % rv.int)
 }
 

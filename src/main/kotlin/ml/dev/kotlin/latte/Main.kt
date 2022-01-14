@@ -32,6 +32,12 @@ internal val DEFAULT_ALLOCATOR_STRATEGY: AllocatorStrategyProducer =
   { analysis, manager -> AllocatorStrategy(analysis, manager) }
 
 internal fun File.runCompiler(
+  removeTempDefs: Boolean = true,
+  propagateConstants: Boolean = true,
+  simplifyExpr: Boolean = true,
+  removeDeadAssignQ: Boolean = true,
+  lcse: Boolean = true,
+  gcse: Boolean = true,
   strategy: AllocatorStrategyProducer = DEFAULT_ALLOCATOR_STRATEGY
 ): String = inputStream()
   .parse()
@@ -39,7 +45,7 @@ internal fun File.runCompiler(
   .toIR().apply {
     graph.removeNotReachableBlocks()
     graph.transformToSSA()
-    graph.optimize()
+    graph.optimize(removeTempDefs, propagateConstants, simplifyExpr, removeDeadAssignQ, gcse, lcse)
     graph.transformFromSSA()
   }
   .compile(strategy)

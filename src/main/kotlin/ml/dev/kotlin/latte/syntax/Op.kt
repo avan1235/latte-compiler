@@ -19,7 +19,7 @@ sealed interface BinOp : AstNode {
 }
 
 enum class NumOp : BinOp {
-  PLUS, MINUS, TIMES, DIVIDE, MOD;
+  PLUS, MINUS, TIMES, DIV, MOD;
 
   override val span: Span? = null
 }

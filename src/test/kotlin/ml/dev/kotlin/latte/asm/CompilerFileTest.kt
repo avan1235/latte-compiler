@@ -73,7 +73,7 @@ private fun testCompilerWithAllocatorStrategy(
   val shortcut = allocator.name.lowercase()
   val expected = input.withExtension(".output").readText()
   val inputFile = input.withExtension(".input").takeIf { it.exists() }
-  val compiled = input.runCompiler(allocator.strategy)
+  val compiled = input.runCompiler(strategy = allocator.strategy)
   val asmFile = input.withExtension(".${shortcut}.asm").apply { writeText(compiled) }
   val (o, exe) = nasm(asmFile, libFile = File("lib/runtime.o"))
   val outFile = input.withExtension(".${shortcut}.outputTest").apply { createNewFile() }

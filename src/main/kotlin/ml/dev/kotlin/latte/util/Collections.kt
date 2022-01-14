@@ -44,8 +44,16 @@ inline fun <T> List<T>.forEachPairIndexed(f: (currIdx: Int, prev: T, curr: T) ->
   for (idx in 1 until size) f(idx, this[idx - 1], this[idx])
 }
 
+fun <T> List<Set<T>>.intersect(): HashSet<T> = when (size) {
+  0 -> HashSet()
+  1 -> HashSet(first())
+  else -> sortedBy { it.size }.fold(first().toHashSet()) { acc, set -> acc.apply { retainAll(set) } }
+}
+
 fun <T> Iterable<T>.nlString(transform: ((T) -> CharSequence)? = null) =
   joinToString("\n", "\n", "\n", transform = transform)
+
+fun <T : Any> hashSetOfNotNull(element: T?): HashSet<T> = if (element != null) hashSetOf(element) else hashSetOf()
 
 interface DirectedGraph<V> {
   val nodes: Set<V>

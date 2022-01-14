@@ -453,7 +453,7 @@ private fun testCompilerWithAllocatorStrategy(
   val dataDir = File("testData/").apply { mkdirs() }.dir.toPath()
   val programFile = Files.createTempFile(dataDir, shortcut, ".lat").toFile().apply { writeText(program) }
   val inputFile = input?.let { programFile.withExtension(".input", it.trimIndent()) }
-  val compiled = programFile.runCompiler(allocator.strategy)
+  val compiled = programFile.runCompiler(strategy = allocator.strategy)
   val asmFile = programFile.withExtension(".asm", compiled)
   val (o, exe) = nasm(asmFile, libFile = File("lib/runtime.o"))
   val outFile = programFile.withExtension(".outputTest")

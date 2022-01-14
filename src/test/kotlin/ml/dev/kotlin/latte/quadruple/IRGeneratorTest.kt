@@ -749,7 +749,7 @@ internal class IRGeneratorTest {
         b@1#0 = 24
         @T2#0 = 3 minus b@1#0
         @T3#0 = b@1#0 times @T2#0
-        @T4#0 = @T3#0 divide a@0#0
+        @T4#0 = @T3#0 div a@0#0
         @T5#0 = a@0#0 plus @T4#0
         @T6#0 = @T5#0 plus 1
         @T7#0 = @T6#0 mod 49
