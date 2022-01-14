@@ -36,8 +36,8 @@ internal fun File.runCompiler(
   propagateConstants: Boolean = true,
   simplifyExpr: Boolean = true,
   removeDeadAssignQ: Boolean = true,
-  lcse: Boolean = true,
   gcse: Boolean = true,
+  lcse: Boolean = true,
   strategy: AllocatorStrategyProducer = DEFAULT_ALLOCATOR_STRATEGY
 ): String = inputStream()
   .parse()
