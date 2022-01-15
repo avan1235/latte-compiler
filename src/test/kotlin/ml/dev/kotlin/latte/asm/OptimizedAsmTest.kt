@@ -226,6 +226,6 @@ private fun configuredRunCompiler(
   exe.absolutePath(inputFile, outFile, errFile).zeroCode()
   Assertions.assertEquals(output.trimIndent(), outFile.readText())
   Assertions.assertEquals("", errFile.readText())
-  listOfNotNull(programFile, inputFile, asmFile, o, exe, outFile).forEach { it.delete() }
+  listOfNotNull(programFile, inputFile, asmFile, o, exe, outFile, errFile).forEach { it.delete() }
   return code
 }
