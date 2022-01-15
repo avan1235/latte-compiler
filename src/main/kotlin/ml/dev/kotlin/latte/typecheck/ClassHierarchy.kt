@@ -1,5 +1,6 @@
 package ml.dev.kotlin.latte.typecheck
 
+import ml.dev.kotlin.latte.asm.CLASS_FIELDS_OFFSET
 import ml.dev.kotlin.latte.syntax.*
 import ml.dev.kotlin.latte.util.*
 
@@ -64,7 +65,7 @@ class ClassHierarchy {
   }
 
   private fun orderedClassFields(className: String): Map<String, ClassField> {
-    var offset = PrimitiveType.VoidRefType.size
+    var offset = CLASS_FIELDS_OFFSET
     return _classFields[className].entries
       .associate { it.key to ClassField(it.key, it.value, offset.apply { offset += it.value.size }) }
   }

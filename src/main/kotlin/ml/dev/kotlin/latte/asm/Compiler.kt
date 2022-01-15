@@ -1,6 +1,9 @@
 package ml.dev.kotlin.latte.asm
 
 import ml.dev.kotlin.latte.quadruple.*
+import ml.dev.kotlin.latte.syntax.Bytes
+import ml.dev.kotlin.latte.syntax.PrimitiveType.IntType
+import ml.dev.kotlin.latte.syntax.PrimitiveType.VoidRefType
 import ml.dev.kotlin.latte.syntax.Type
 import ml.dev.kotlin.latte.typecheck.STD_LIB_FUNCTIONS
 
@@ -47,6 +50,9 @@ private class Compiler(
     }
   }
 }
+
+val CLASS_FIELDS_OFFSET: Bytes = VoidRefType.size
+val CLASS_METHOD_ARGS_OFFSET: Bytes = VoidRefType.size
 
 const val THIS_ARG_ID: String = "self"
 val ALLOC_FUN_LABEL: Label = "__alloc".label

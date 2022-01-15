@@ -4,12 +4,15 @@ import ml.dev.kotlin.latte.asm.AllocatorStrategy
 import ml.dev.kotlin.latte.asm.AllocatorStrategyProducer
 import ml.dev.kotlin.latte.asm.compile
 import ml.dev.kotlin.latte.asm.nasm
+import ml.dev.kotlin.latte.quadruple.instructions
 import ml.dev.kotlin.latte.quadruple.optimize
+import ml.dev.kotlin.latte.quadruple.repr
 import ml.dev.kotlin.latte.quadruple.toIR
 import ml.dev.kotlin.latte.syntax.parse
 import ml.dev.kotlin.latte.typecheck.typeCheck
 import ml.dev.kotlin.latte.util.LatteException
 import ml.dev.kotlin.latte.util.exit
+import ml.dev.kotlin.latte.util.nlString
 import ml.dev.kotlin.latte.util.withExtension
 import java.io.File
 
@@ -37,7 +40,8 @@ internal fun File.runCompiler(
   simplifyExpr: Boolean = true,
   removeDeadAssignQ: Boolean = true,
   lcse: Boolean = true,
-  strategy: AllocatorStrategyProducer = DEFAULT_ALLOCATOR_STRATEGY
+  strategy: AllocatorStrategyProducer = DEFAULT_ALLOCATOR_STRATEGY,
+  printIR: Boolean = false
 ): String = inputStream()
   .parse()
   .typeCheck()
@@ -46,5 +50,6 @@ internal fun File.runCompiler(
     graph.transformToSSA()
     graph.optimize(removeTempDefs, propagateConstants, simplifyExpr, removeDeadAssignQ, lcse)
     graph.transformFromSSA()
+    if (printIR) graph.instructions().asIterable().nlString { it.repr() }.let { println(it) }
   }
   .compile(strategy)

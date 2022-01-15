@@ -70,26 +70,20 @@ internal class OptimizeFinalEffectTest {
     int main() {
       int a = readInt();
       int b = readInt();
+      f(a, b);
+      return 0;
+    }
+    void f(int a, int b) {
       int c = (a + b) * (a - b);
       int d = (a + b) / (a - b);
-      int e = (a + b) % (a - b);
-      int f = (a + b) + (a - b);
-      int g = (a + b) - (a - b);
       if (c < d) {
         printInt(c);
         printInt(d);
-        printInt(e);
-        printInt(f);
-        printInt(g);
       }
       else {
         printInt(d);
-        printInt(e);
         printInt(c);
-        printInt(g);
-        printInt(f);
       }
-      return 0;
     }
     """,
     input = """
@@ -99,13 +93,11 @@ internal class OptimizeFinalEffectTest {
     """,
     output = """
     4
-    0
     16
-    6
-    10
 
     """,
     lcse = true,
+    propagateConstants = true,
   )
 }
 
@@ -150,7 +142,8 @@ private fun configuredRunCompiler(
   val dataDir = File("testData/").apply { mkdirs() }.dir.toPath()
   val programFile = Files.createTempFile(dataDir, "opt", ".lat").toFile().apply { writeText(program) }
   val inputFile = input?.let { programFile.withExtension(".input", it.trimIndent()) }
-  val code = programFile.runCompiler(true, propagateConstants, simplifyExpr, true, lcse)
+  val code =
+    programFile.runCompiler(removeTempDefs = true, propagateConstants, simplifyExpr, removeDeadAssignQ = true, lcse)
   val asmFile = programFile.withExtension(".asm", code)
   val (o, exe) = nasm(asmFile, libFile = File("lib/runtime.o"))
   val outFile = programFile.withExtension(".outputTest")

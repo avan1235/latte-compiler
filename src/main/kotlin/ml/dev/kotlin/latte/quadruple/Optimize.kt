@@ -1,6 +1,8 @@
 package ml.dev.kotlin.latte.quadruple
 
-import ml.dev.kotlin.latte.util.*
+import ml.dev.kotlin.latte.util.forEachPairIndexed
+import kotlin.collections.contains
+import kotlin.collections.set
 
 fun CFG.optimize(
   removeTempDefs: Boolean,
@@ -17,6 +19,11 @@ fun CFG.optimize(
   }
   if (removeDeadAssignQ) forEach { it.removeDeadAssignQ() }
   if (lcse) forEach { it.lcse() }
+  while (true) {
+    val repeats = if (propagateConstants) sumOf { it.propagateConstants() } else 0
+    if (repeats == 0) break
+  }
+  if (removeDeadAssignQ) forEach { it.removeDeadAssignQ() }
 }
 
 private fun FunctionCFG.lcse(): Unit = block.values.forEach { while (it.lcse() > 0) Unit }
@@ -72,16 +79,12 @@ private fun FunctionCFG.propagateConstants(): Int {
   do {
     propagated = 0
     repeats += 1
-    val constants = HashMap<VirtualReg, ConstValue>()
+    val constants = HashMap<VirtualReg, ValueHolder>()
     for (block in block.values) for (stmt in block.statements)
-      if (stmt is AssignQ && stmt.from is ConstValue) constants[stmt.to] = stmt.from
+      if (stmt is AssignQ) constants[stmt.to] = stmt.from
     for (block in block.values) {
-      block.mapPhony { _, phi ->
-        phi.propagateConstants(constants).also { if (it != phi) propagated += 1 }
-      }
-      block.mapStatements { _, stmt ->
-        stmt.propagateConstants(constants).also { if (it != stmt) propagated += 1 }
-      }
+      block.mapPhony { _, phi -> phi.propagateConstants(constants).also { if (it != phi) propagated += 1 } }
+      block.mapStatements { _, stmt -> stmt.propagateConstants(constants).also { if (it != stmt) propagated += 1 } }
     }
   } while (propagated > 0)
   return repeats
@@ -109,9 +112,11 @@ private fun Quadruple.simplify(): Quadruple = when {
 
 private fun FunctionCFG.removeDeadAssignQ() {
   val aliveAfter = GlobalFlowAnalyzer.analyzeToGraph(this).aliveAfter
-  for (block in block.values) block.mapStatements { idx, stmt ->
+  for (block in block.values) {
     val phonyCount = block.phony.size
-    if (stmt is AssignQ && stmt.to !in aliveAfter[phonyCount + idx at block]) null else stmt
+    block.mapStatements { idx, stmt ->
+      if (stmt is AssignQ && stmt.to !in aliveAfter[phonyCount + idx at block]) null else stmt
+    }
   }
 }
 

@@ -58,7 +58,7 @@ data class ArgValue(
 
 sealed interface Quadruple {
   fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple
-  fun propagateConstants(constants: Map<VirtualReg, ConstValue>): Quadruple
+  fun propagateConstants(constants: Map<VirtualReg, ValueHolder>): Quadruple
 }
 
 sealed interface Jumping {
@@ -80,7 +80,7 @@ typealias UpdateIndex = (VirtualReg) -> Unit
 data class BinOpQ(override val to: VirtualReg, val left: ValueHolder, val op: NumOp, val right: ValueHolder) :
   Quadruple, DefiningVar {
   override fun redefine(asVar: VirtualReg): Quadruple = copy(to = asVar)
-  override fun propagateConstants(constants: Map<VirtualReg, ConstValue>): Quadruple =
+  override fun propagateConstants(constants: Map<VirtualReg, ValueHolder>): Quadruple =
     copy(left = constants[left] ?: left, right = constants[right] ?: right)
 
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): BinOpQ {
@@ -93,7 +93,7 @@ data class BinOpQ(override val to: VirtualReg, val left: ValueHolder, val op: Nu
 
 data class UnOpQ(override val to: VirtualReg, val op: UnOp, val from: ValueHolder) : Quadruple, DefiningVar {
   override fun redefine(asVar: VirtualReg): Quadruple = copy(to = asVar)
-  override fun propagateConstants(constants: Map<VirtualReg, ConstValue>): Quadruple =
+  override fun propagateConstants(constants: Map<VirtualReg, ValueHolder>): Quadruple =
     copy(from = constants[from] ?: from)
 
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): UnOpQ {
@@ -105,7 +105,7 @@ data class UnOpQ(override val to: VirtualReg, val op: UnOp, val from: ValueHolde
 
 data class UnOpModQ(override val to: VirtualReg, val op: UnOpMod, val from: VirtualReg) : Quadruple, DefiningVar {
   override fun redefine(asVar: VirtualReg): Quadruple = copy(to = asVar)
-  override fun propagateConstants(constants: Map<VirtualReg, ConstValue>): Quadruple = this
+  override fun propagateConstants(constants: Map<VirtualReg, ValueHolder>): Quadruple = this
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): UnOpModQ {
     val from = from.renameUsage(currIndex)
     val to = to.renameDefinition(currIndex, updateIndex)
@@ -115,7 +115,7 @@ data class UnOpModQ(override val to: VirtualReg, val op: UnOpMod, val from: Virt
 
 data class AssignQ(override val to: VirtualReg, val from: ValueHolder) : Quadruple, DefiningVar {
   override fun redefine(asVar: VirtualReg): Quadruple = copy(to = asVar)
-  override fun propagateConstants(constants: Map<VirtualReg, ConstValue>): Quadruple =
+  override fun propagateConstants(constants: Map<VirtualReg, ValueHolder>): Quadruple =
     copy(from = constants[from] ?: from)
 
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): AssignQ {
@@ -126,7 +126,7 @@ data class AssignQ(override val to: VirtualReg, val from: ValueHolder) : Quadrup
 }
 
 data class StoreQ(val at: ValueHolder, val offset: Bytes, val from: ValueHolder) : Quadruple {
-  override fun propagateConstants(constants: Map<VirtualReg, ConstValue>): Quadruple =
+  override fun propagateConstants(constants: Map<VirtualReg, ValueHolder>): Quadruple =
     copy(at = constants[at] ?: at, from = constants[from] ?: from)
 
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple {
@@ -138,7 +138,7 @@ data class StoreQ(val at: ValueHolder, val offset: Bytes, val from: ValueHolder)
 
 data class LoadQ(override val to: VirtualReg, val from: ValueHolder, val offset: Bytes) : Quadruple, DefiningVar {
   override fun redefine(asVar: VirtualReg): Quadruple = copy(to = asVar)
-  override fun propagateConstants(constants: Map<VirtualReg, ConstValue>): Quadruple =
+  override fun propagateConstants(constants: Map<VirtualReg, ValueHolder>): Quadruple =
     copy(from = constants[from] ?: from)
 
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple {
@@ -155,7 +155,7 @@ data class FunCallQ(
 ) : Quadruple, DefiningVar {
   val argsSize: Int = args.sumOf { it.type.size }
   override fun redefine(asVar: VirtualReg): Quadruple = copy(to = asVar)
-  override fun propagateConstants(constants: Map<VirtualReg, ConstValue>): Quadruple =
+  override fun propagateConstants(constants: Map<VirtualReg, ValueHolder>): Quadruple =
     copy(args = args.map { constants[it] ?: it })
 
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): FunCallQ {
@@ -174,7 +174,7 @@ data class MethodCallQ(
 ) : Quadruple, DefiningVar {
   val argsSize: Int = args.sumOf { it.type.size } + self.type.size
   override fun redefine(asVar: VirtualReg): Quadruple = copy(to = asVar)
-  override fun propagateConstants(constants: Map<VirtualReg, ConstValue>): Quadruple =
+  override fun propagateConstants(constants: Map<VirtualReg, ValueHolder>): Quadruple =
     copy(self = constants[self] ?: self, args = args.map { constants[it] ?: it })
 
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): MethodCallQ {
@@ -186,7 +186,7 @@ data class MethodCallQ(
 }
 
 data class FunCodeLabelQ(override val label: Label, val args: List<ArgValue>) : Quadruple, Labeled {
-  override fun propagateConstants(constants: Map<VirtualReg, ConstValue>): Quadruple = this
+  override fun propagateConstants(constants: Map<VirtualReg, ValueHolder>): Quadruple = this
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): FunCodeLabelQ {
     val args = args.map { it.renameDefinition(currIndex, updateIndex) as ArgValue }
     return FunCodeLabelQ(label, args)
@@ -195,11 +195,11 @@ data class FunCodeLabelQ(override val label: Label, val args: List<ArgValue>) : 
 
 data class CodeLabelQ(override val label: Label) : Quadruple, Labeled {
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple = this
-  override fun propagateConstants(constants: Map<VirtualReg, ConstValue>): Quadruple = this
+  override fun propagateConstants(constants: Map<VirtualReg, ValueHolder>): Quadruple = this
 }
 
 data class CondJumpQ(val cond: ValueHolder, override val toLabel: Label) : Quadruple, Jumping {
-  override fun propagateConstants(constants: Map<VirtualReg, ConstValue>): Quadruple =
+  override fun propagateConstants(constants: Map<VirtualReg, ValueHolder>): Quadruple =
     copy(cond = constants[cond] ?: cond)
 
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): CondJumpQ {
@@ -210,7 +210,7 @@ data class CondJumpQ(val cond: ValueHolder, override val toLabel: Label) : Quadr
 
 data class RelCondJumpQ(val left: ValueHolder, val op: RelOp, val right: ValueHolder, override val toLabel: Label) :
   Quadruple, Jumping {
-  override fun propagateConstants(constants: Map<VirtualReg, ConstValue>): Quadruple =
+  override fun propagateConstants(constants: Map<VirtualReg, ValueHolder>): Quadruple =
     copy(left = constants[left] ?: left, right = constants[right] ?: right)
 
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): RelCondJumpQ {
@@ -221,13 +221,13 @@ data class RelCondJumpQ(val left: ValueHolder, val op: RelOp, val right: ValueHo
 }
 
 data class JumpQ(override val toLabel: Label) : Quadruple, Jumping {
-  override fun propagateConstants(constants: Map<VirtualReg, ConstValue>): Quadruple = this
+  override fun propagateConstants(constants: Map<VirtualReg, ValueHolder>): Quadruple = this
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): Quadruple = this
 }
 
 data class RetQ(val value: ValueHolder? = null) : Quadruple, Jumping {
   override val toLabel: Label? = null
-  override fun propagateConstants(constants: Map<VirtualReg, ConstValue>): Quadruple =
+  override fun propagateConstants(constants: Map<VirtualReg, ValueHolder>): Quadruple =
     copy(value = constants[value] ?: value)
 
   override fun rename(currIndex: CurrIndex, updateIndex: UpdateIndex): RetQ {
@@ -252,7 +252,7 @@ data class PhonyQ(
     to = to, original = original, from = from + (label to original.renameUsage(currIndex))
   )
 
-  override fun propagateConstants(constants: Map<VirtualReg, ConstValue>): PhonyQ = copy(
+  override fun propagateConstants(constants: Map<VirtualReg, ValueHolder>): PhonyQ = copy(
     to = to, original = original, from = from.mapValues { constants[it.value] ?: it.value }
   )
 

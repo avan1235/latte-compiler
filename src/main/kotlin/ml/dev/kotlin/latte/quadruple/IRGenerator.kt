@@ -48,7 +48,7 @@ private data class IRGenerator(
   }
 
   private fun FunDefNode.generate(inClass: String? = null): Unit = varEnv.onLevel {
-    var argOffset = if (inClass != null) VoidRefType.size else 0
+    var argOffset = if (inClass != null) CLASS_METHOD_ARGS_OFFSET else 0
     thisClass = inClass?.let { ArgValue(THIS_ARG_ID, 0, RefType(it)) }
     val funArgs = thisClass?.let { arrayListOf(it) } ?: ArrayList()
     args.list.mapTo(funArgs) { (type, name) ->
