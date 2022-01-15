@@ -1292,7 +1292,7 @@ private fun testIR(
     removeNotReachableBlocks()
     transformToSSA()
   }
-  val instructions = graph.instructions().peepHoleOptimize(extract = { it }).asIterable()
+  val instructions = graph.instructions().asIterable()
   val repr = instructions.nlString { it.repr() }
   val notEmptyVTables = vTable.filter { it.value.declarations.isNotEmpty() }
   val orderedVTablesRepr = notEmptyVTables.entries.associate { classVTable ->

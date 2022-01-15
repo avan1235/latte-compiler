@@ -4,10 +4,8 @@ import ml.dev.kotlin.latte.asm.AllocatorStrategy
 import ml.dev.kotlin.latte.asm.AllocatorStrategyProducer
 import ml.dev.kotlin.latte.asm.compile
 import ml.dev.kotlin.latte.asm.nasm
+import ml.dev.kotlin.latte.quadruple.*
 import ml.dev.kotlin.latte.quadruple.instructions
-import ml.dev.kotlin.latte.quadruple.optimize
-import ml.dev.kotlin.latte.quadruple.repr
-import ml.dev.kotlin.latte.quadruple.toIR
 import ml.dev.kotlin.latte.syntax.parse
 import ml.dev.kotlin.latte.typecheck.typeCheck
 import ml.dev.kotlin.latte.util.LatteException
@@ -40,16 +38,17 @@ internal fun File.runCompiler(
   simplifyExpr: Boolean = true,
   removeDeadAssignQ: Boolean = true,
   lcse: Boolean = true,
+  gcse: Boolean = true,
   strategy: AllocatorStrategyProducer = DEFAULT_ALLOCATOR_STRATEGY,
-  printIR: Boolean = false
+  printIR: Boolean = true
 ): String = inputStream()
   .parse()
   .typeCheck()
   .toIR().apply {
     graph.removeNotReachableBlocks()
     graph.transformToSSA()
-    graph.optimize(removeTempDefs, propagateConstants, simplifyExpr, removeDeadAssignQ, lcse)
+    graph.optimize(removeTempDefs, propagateConstants, simplifyExpr, removeDeadAssignQ, lcse, gcse)
     graph.transformFromSSA()
-    if (printIR) graph.instructions().asIterable().nlString { it.repr() }.let { println(it) }
+    if (printIR) graph.printInstructions()
   }
   .compile(strategy)

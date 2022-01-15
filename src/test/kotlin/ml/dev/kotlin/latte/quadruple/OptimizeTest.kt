@@ -118,16 +118,17 @@ private fun testOptimize(
   simplifyExpr: Boolean = false,
   removeDeadAssignQ: Boolean = false,
   lcse: Boolean = false,
+  gcse: Boolean = false,
 ) {
   val (graph, _, _) = program.byteInputStream().parse().typeCheck().toIR()
   with(graph) {
     removeNotReachableBlocks()
     transformToSSA()
   }
-  val instructions = graph.instructions().peepHoleOptimize(extract = { it }).asIterable()
+  val instructions = graph.instructions().asIterable()
   val lcseInstructions = graph.apply {
-    optimize(removeTempDefs, propagateConstants, simplifyExpr, removeDeadAssignQ, lcse)
-  }.instructions().peepHoleOptimize(extract = { it }).asIterable()
+    optimize(removeTempDefs, propagateConstants, simplifyExpr, removeDeadAssignQ, lcse, gcse)
+  }.instructions().asIterable()
   val repr = instructions.nlString { it.repr() }
   val lcseRepr = lcseInstructions.nlString { it.repr() }
   assertEquals("\n${irRepresentation.trimIndent()}\n", repr, "Invalid IR Representation")

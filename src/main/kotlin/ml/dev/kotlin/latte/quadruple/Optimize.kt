@@ -1,6 +1,8 @@
 package ml.dev.kotlin.latte.quadruple
 
+import ml.dev.kotlin.latte.util.MutableDefaultMap
 import ml.dev.kotlin.latte.util.forEachPairIndexed
+import ml.dev.kotlin.latte.util.withSet
 import kotlin.collections.contains
 import kotlin.collections.set
 
@@ -10,23 +12,22 @@ fun CFG.optimize(
   simplifyExpr: Boolean,
   removeDeadAssignQ: Boolean,
   lcse: Boolean,
+  gcse: Boolean,
 ): Unit = with(functions.values) {
+  fun countIfEnabled(flag: Boolean, action: (FunctionCFG) -> Int): Int = if (flag) sumOf { action(it) } else 0
   while (true) {
-    var repeats = if (removeTempDefs) sumOf { it.removeTempDefs() } else 0
-    repeats += if (propagateConstants) sumOf { it.propagateConstants() } else 0
-    repeats += if (simplifyExpr) sumOf { it.simplifyExpr() } else 0
+    var repeats = countIfEnabled(removeTempDefs) { it.removeTempDefs() }
+    repeats += countIfEnabled(propagateConstants) { it.propagateConstants() }
+    repeats += countIfEnabled(simplifyExpr) { it.simplifyExpr() }
+    repeats += countIfEnabled(propagateConstants) { it.propagateConstants() }
+    repeats += countIfEnabled(removeDeadAssignQ) { it.removeDeadAssignQ() }
+    repeats += countIfEnabled(lcse) { it.lcse() }
+    repeats += countIfEnabled(gcse) { it.gcse() }
     if (repeats == 0) break
   }
-  if (removeDeadAssignQ) forEach { it.removeDeadAssignQ() }
-  if (lcse) forEach { it.lcse() }
-  while (true) {
-    val repeats = if (propagateConstants) sumOf { it.propagateConstants() } else 0
-    if (repeats == 0) break
-  }
-  if (removeDeadAssignQ) forEach { it.removeDeadAssignQ() }
 }
 
-private fun FunctionCFG.lcse(): Unit = block.values.forEach { while (it.lcse() > 0) Unit }
+private fun FunctionCFG.lcse(): Int = block.values.sumOf { it.lcse() }
 
 private fun BasicBlock.lcse(): Int {
   val definedAt = HashMap<SubExpr, IndexedSubExpr>()
@@ -45,6 +46,26 @@ private fun BasicBlock.lcse(): Int {
 }
 
 private data class IndexedSubExpr(val idx: StmtIdx, val subExpr: SubExpr)
+
+private fun FunctionCFG.gcse(): Int {
+  var optimized = 0
+  val (exprIn, _) = GlobalFlowAnalyzer.analyzeAliveExpr(this)
+  val exprFirstDefAt = MutableDefaultMap(withSet<SubExpr, GraphLocation>())
+  for (block in block.values) block.statements.forEachIndexed stmt@{ idx, stmt ->
+    val subExpr = stmt.constantSubExpr() ?: return@stmt
+    val loc = idx at block
+    if (subExpr !in exprIn[loc]) exprFirstDefAt[subExpr] += loc
+  }
+  val exprFirstDef = exprFirstDefAt.mapValues { if (it.value.size == 1) it.key else null }
+  for (block in block.values) block.mapStatements stmt@{ idx, stmt ->
+    val subExpr = stmt.constantSubExpr() ?: return@stmt stmt
+    val firstSubExpr = exprFirstDef[subExpr] ?: return@stmt stmt
+    if (idx at block == exprFirstDefAt[firstSubExpr].single()) return@stmt stmt
+    AssignQ(subExpr.definedBy, firstSubExpr.definedBy).also { optimized += 1 }
+  }
+  return optimized
+}
+
 
 private fun FunctionCFG.removeTempDefs(): Int {
   val aliveAfter = GlobalFlowAnalyzer.analyzeToGraph(this).aliveAfter
@@ -110,13 +131,18 @@ private fun Quadruple.simplify(): Quadruple = when (this) {
   else -> this
 }
 
-private fun FunctionCFG.removeDeadAssignQ() {
+private fun FunctionCFG.removeDeadAssignQ(): Int {
   val aliveAfter = GlobalFlowAnalyzer.analyzeToGraph(this).aliveAfter
+  var removed = 0
   for (block in block.values) {
     val phonyCount = block.phony.size
     block.mapStatements { idx, stmt ->
-      if (stmt is AssignQ && stmt.to !in aliveAfter[phonyCount + idx at block]) null else stmt
+      if (stmt is AssignQ && stmt.to !in aliveAfter[phonyCount + idx at block]) {
+        removed += 1
+        null
+      } else stmt
     }
   }
+  return removed
 }
 

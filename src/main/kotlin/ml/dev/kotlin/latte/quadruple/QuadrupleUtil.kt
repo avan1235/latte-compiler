@@ -1,5 +1,7 @@
 package ml.dev.kotlin.latte.quadruple
 
+import ml.dev.kotlin.latte.util.nlString
+
 fun Quadruple.definedVars(): Sequence<VirtualReg> = when (this) {
   is DefiningVar -> sequenceOf(to)
   is PhonyQ -> sequenceOf(to)
@@ -64,5 +66,7 @@ internal fun Iterable<Quadruple>.isSSA(): Boolean =
   flatMap { it.definedVars() }.map { it.repr() }.let { it.size == it.toHashSet().size }
 
 internal fun CFG.instructions(): Sequence<Quadruple> =
-  orderedBlocks().asSequence().flatMap { it.statementsWithPhony }
+  orderedBlocks().asSequence().flatMap { it.statementsWithPhony }.peepHoleOptimize { it }
 
+internal fun CFG.printInstructions(): Unit =
+  instructions().asIterable().nlString { it.repr() }.let { println(it) }

@@ -1,8 +1,6 @@
 package ml.dev.kotlin.latte.quadruple
 
-import ml.dev.kotlin.latte.util.DefaultMap
-import ml.dev.kotlin.latte.util.MutableDefaultMap
-import ml.dev.kotlin.latte.util.withSet
+import ml.dev.kotlin.latte.util.*
 
 object GlobalFlowAnalyzer {
 
@@ -64,6 +62,41 @@ object GlobalFlowAnalyzer {
 
     return AnalysisResult(aliveIn, aliveOut, kill, use, indexedStmts, blockStmts)
   }
+
+  fun analyzeAliveExpr(cfg: FunctionCFG): AliveExprAnalysis {
+    val blockSubExprs = MutableDefaultMap<Label, List<IdxSubExpr>>(default@{
+      val block = cfg.block[it] ?: return@default emptyList()
+      val stmts = block.statements
+      stmts.mapIndexed { idx, stmt ->
+        IdxSubExpr(idx, stmt.constantSubExpr(), block.label, idx == 0, idx == stmts.size - 1)
+      }
+    })
+    val indexedSubExprs = cfg.orderedBlocks().flatMap { blockSubExprs[it.label] }
+    val pred = MutableDefaultMap<IdxSubExpr, HashSet<IdxSubExpr>>({ idx ->
+      if (idx.isFirst) cfg.predecessors(idx.blockLabel).mapTo(HashSet()) { blockSubExprs[it].last() }
+      else hashSetOf(blockSubExprs[idx.blockLabel][idx.idx - 1])
+    })
+    val exprIn = MutableDefaultMap(withSet<IdxSubExpr, SubExpr>())
+    val exprOut = MutableDefaultMap(withSet<IdxSubExpr, SubExpr>()).also { exprOut ->
+      indexedSubExprs.forEach { idx -> idx.subExpr?.let { exprOut[idx] += it } }
+    }
+
+    while (true) {
+      val lastExprIn = exprIn.deepCopy { HashSet(it) }
+      val lastExprOut = exprOut.deepCopy { HashSet(it) }
+      indexedSubExprs.forEach { idx ->
+        exprIn[idx] = pred[idx].map { exprOut[it] }.intersect()
+        exprOut[idx] = hashSetOfNotNull(idx.subExpr).apply { addAll(exprIn[idx]) }
+      }
+      if (lastExprIn == exprIn && lastExprOut == exprOut) break
+    }
+    fun byGraphLocation(default: DefaultMap<IdxSubExpr, Set<SubExpr>>) = { loc: GraphLocation ->
+      val block = blockSubExprs[loc.label]
+      if (loc.stmtIdx !in block.indices) emptySet()
+      else default[block[loc.stmtIdx]]
+    }
+    return AliveExprAnalysis(MutableDefaultMap(byGraphLocation(exprIn)), MutableDefaultMap(byGraphLocation(exprOut)))
+  }
 }
 
 private data class AnalysisResult(
@@ -87,4 +120,17 @@ data class GraphFlowAnalysis(
   val definedAt: DefaultMap<GraphLocation, Set<VirtualReg>>,
   val usedAt: DefaultMap<GraphLocation, Set<VirtualReg>>,
   val graph: FunctionCFG,
+)
+
+private data class IdxSubExpr(
+  val idx: Int,
+  val subExpr: SubExpr?,
+  val blockLabel: Label,
+  val isFirst: Boolean,
+  val isLast: Boolean,
+)
+
+data class AliveExprAnalysis(
+  val exprIn: DefaultMap<GraphLocation, Set<SubExpr>>,
+  val exprOut: DefaultMap<GraphLocation, Set<SubExpr>>,
 )

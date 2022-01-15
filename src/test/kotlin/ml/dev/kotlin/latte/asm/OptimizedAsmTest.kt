@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test
 import java.io.File
 import java.nio.file.Files
 
-internal class OptimizeFinalEffectTest {
+internal class OptimizedAsmTest {
   @Test
   fun `optimize constants propagation`() = testCompilerOptimizedAndNot(
     program = """
@@ -98,6 +98,76 @@ internal class OptimizeFinalEffectTest {
     lcse = true,
     propagateConstants = true,
   )
+
+  @Test
+  fun `optimize common subexpressions in gcse at single block level`() = testCompilerOptimizedAndNot(
+    program = """
+    int main() {
+      int a = readInt();
+      int b = readInt();
+      int c = (a + b) * (a - b);
+      int d = (a + b) / (a - b);
+      if (c < d) {
+        printInt(c);
+        printInt(d);
+      }
+      else {
+        printInt(d);
+        printInt(c);
+      }
+      return 0;
+    }
+    """,
+    input = """
+    5
+    3
+
+    """,
+    output = """
+    4
+    16
+
+    """,
+    gcse = true,
+    propagateConstants = true,
+  )
+
+  @Test
+  fun `optimize common subexpressions in gcse at different blocks level`() = testCompilerOptimizedAndNot(
+    program = """
+    int main() {
+      int a = readInt();
+      int b = readInt();
+      int k = a + b;
+      int j = a - b;
+      if (k < j) {
+        int c = (a + b) * (a - b);
+        int d = (a + b) / (a - b);
+        printInt(c);
+        printInt(d);
+      }
+      else {
+        int c = (a + b) * (a - b);
+        int d = (a + b) / (a - b);
+        printInt(d);
+        printInt(c);
+      }
+      return 0;
+    }
+    """,
+    input = """
+    5
+    3
+
+    """,
+    output = """
+    4
+    16
+
+    """,
+    gcse = true,
+    propagateConstants = true,
+  )
 }
 
 private fun testCompilerOptimizedAndNot(
@@ -105,6 +175,7 @@ private fun testCompilerOptimizedAndNot(
   propagateConstants: Boolean = false,
   simplifyExpr: Boolean = false,
   lcse: Boolean = false,
+  gcse: Boolean = false,
   input: String? = null,
   output: String = "",
 ) {
@@ -116,6 +187,7 @@ private fun testCompilerOptimizedAndNot(
     propagateConstants = false,
     simplifyExpr = false,
     lcse = false,
+    gcse = false,
     input,
     output
   ).filterPopPush()
@@ -124,12 +196,11 @@ private fun testCompilerOptimizedAndNot(
     propagateConstants,
     simplifyExpr,
     lcse,
+    gcse,
     input,
     output
   ).filterPopPush()
-  assertTrue(notOptimized.lines().size > optimized.lines().size,
-    "Expected optimized code to have less instructions but got\n${optimized}while before optimize\n\n${notOptimized}"
-  )
+  assertTrue(notOptimized.lines().size > optimized.lines().size, "Expected optimized code to have less instructions")
 }
 
 private fun configuredRunCompiler(
@@ -137,14 +208,14 @@ private fun configuredRunCompiler(
   propagateConstants: Boolean,
   simplifyExpr: Boolean,
   lcse: Boolean,
+  gcse: Boolean,
   input: String?,
   output: String,
 ): String {
   val dataDir = File("testData/").apply { mkdirs() }.dir.toPath()
   val programFile = Files.createTempFile(dataDir, "opt", ".lat").toFile().apply { writeText(program) }
   val inputFile = input?.let { programFile.withExtension(".input", it.trimIndent()) }
-  val code =
-    programFile.runCompiler(removeTempDefs = true, propagateConstants, simplifyExpr, removeDeadAssignQ = true, lcse)
+  val code = programFile.runCompiler(true, propagateConstants, simplifyExpr, true, lcse, gcse)
   val asmFile = programFile.withExtension(".asm", code)
   val (o, exe) = nasm(asmFile, libFile = File("lib/runtime.o"))
   val outFile = programFile.withExtension(".outputTest")
