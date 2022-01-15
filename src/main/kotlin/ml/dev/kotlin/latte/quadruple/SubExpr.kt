@@ -2,7 +2,7 @@ package ml.dev.kotlin.latte.quadruple
 
 import ml.dev.kotlin.latte.syntax.*
 
-fun Quadruple.subExpr(): SubExpr? = when (this) {
+fun Quadruple.constantSubExpr(): SubExpr? = when (this) {
   is BinOpQ -> BinOpSubExpr(this)
   is UnOpQ -> UnOpSubExpr(this)
   is UnOpModQ -> UnOpModSubExpr(this)

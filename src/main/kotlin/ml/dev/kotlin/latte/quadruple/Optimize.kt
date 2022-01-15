@@ -24,12 +24,12 @@ private fun FunctionCFG.lcse(): Unit = block.values.forEach { while (it.lcse() >
 private fun BasicBlock.lcse(): Int {
   val definedAt = HashMap<SubExpr, IndexedSubExpr>()
   statements.forEachIndexed { idx, stmt ->
-    val subExpr = stmt.subExpr() ?: return@forEachIndexed
+    val subExpr = stmt.constantSubExpr() ?: return@forEachIndexed
     if (subExpr !in definedAt) definedAt[subExpr] = IndexedSubExpr(idx, subExpr)
   }
   var optimized = 0
   mapStatements { idx, stmt ->
-    val subExpr = stmt.subExpr() ?: return@mapStatements stmt
+    val subExpr = stmt.constantSubExpr() ?: return@mapStatements stmt
     val (firstIdx, firstSubExpr) = definedAt[subExpr]!!
     if (idx <= firstIdx) stmt
     else AssignQ(subExpr.definedBy, firstSubExpr.definedBy).also { optimized += 1 }
