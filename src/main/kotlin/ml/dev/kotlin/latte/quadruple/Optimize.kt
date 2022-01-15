@@ -103,10 +103,10 @@ private fun FunctionCFG.simplifyExpr(): Int {
   return repeats
 }
 
-private fun Quadruple.simplify(): Quadruple = when {
-  this is BinOpQ -> constSimplify()?.let { AssignQ(to, it) } ?: this
-  this is UnOpQ -> constSimplify()?.let { AssignQ(to, it) } ?: this
-  this is RelCondJumpQ -> constSimplify()?.let { CondJumpQ(it, toLabel) } ?: this
+private fun Quadruple.simplify(): Quadruple = when (this) {
+  is BinOpQ -> constSimplify()?.let { AssignQ(to, it) } ?: this
+  is UnOpQ -> constSimplify()?.let { AssignQ(to, it) } ?: this
+  is RelCondJumpQ -> constSimplify()?.let { CondJumpQ(it, toLabel) } ?: this
   else -> this
 }
 
