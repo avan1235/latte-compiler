@@ -4,7 +4,7 @@ import ml.dev.kotlin.latte.util.*
 
 
 class FunctionCFG private constructor(
-  private val start: Label,
+  val start: Label,
   private val jumpPred: MutableDefaultMap<Label, LinkedHashSet<Label>> = MutableDefaultMap({ LinkedHashSet() }),
   private val byName: LinkedHashMap<Label, BasicBlock> = LinkedHashMap(),
 ) : DirectedGraph<Label> {

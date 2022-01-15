@@ -54,7 +54,9 @@ private fun FunctionCFG.gcse(): Int {
   for (block in block.values) block.statements.forEachIndexed stmt@{ idx, stmt ->
     val subExpr = stmt.constantSubExpr() ?: return@stmt
     val loc = idx at block
-    if (subExpr !in exprIn[loc]) exprFirstDefAt[subExpr] += loc
+    if (subExpr !in exprIn[loc]) {
+      exprFirstDefAt[subExpr] += loc
+    }
   }
   val exprFirstDef = exprFirstDefAt.mapValues { if (it.value.size == 1) it.key else null }
   for (block in block.values) block.mapStatements stmt@{ idx, stmt ->

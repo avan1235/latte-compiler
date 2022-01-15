@@ -107,6 +107,240 @@ internal class OptimizeTest {
     removeTempDefs = true,
     lcse = true,
   )
+
+  @Test
+  fun `gcse with removed temp defs works locally as lcse`() = testOptimize(
+    program = """
+    int main() {
+      int a = readInt();
+      int b = readInt();
+      int c = a + b;
+      int d = b + a;
+      int e = b * a;
+      int f = a * b;
+      int g = c - d;
+      int h = e / f;
+      printInt(g);
+      printInt(h);
+      return 0;
+    }
+    """,
+    irRepresentation = """
+    main():
+      @T0#0 = call __readInt ()
+      a@1#0 = @T0#0
+      @T2#0 = call __readInt ()
+      b@3#0 = @T2#0
+      @T4#0 = a@1#0 plus b@3#0
+      c@5#0 = @T4#0
+      @T6#0 = b@3#0 plus a@1#0
+      d@7#0 = @T6#0
+      @T8#0 = b@3#0 times a@1#0
+      e@9#0 = @T8#0
+      @T10#0 = a@1#0 times b@3#0
+      f@11#0 = @T10#0
+      @T12#0 = c@5#0 minus d@7#0
+      g@13#0 = @T12#0
+      @T14#0 = e@9#0 div f@11#0
+      h@15#0 = @T14#0
+      @T16#0 = call __printInt (g@13#0)
+      @T17#0 = call __printInt (h@15#0)
+      ret 0
+    """,
+    optimizedIrRepresentation = """
+    main():
+      a@1#0 = call __readInt ()
+      b@3#0 = call __readInt ()
+      c@5#0 = a@1#0 plus b@3#0
+      d@7#0 = c@5#0
+      e@9#0 = b@3#0 times a@1#0
+      f@11#0 = e@9#0
+      g@13#0 = c@5#0 minus d@7#0
+      h@15#0 = e@9#0 div f@11#0
+      @T16#0 = call __printInt (g@13#0)
+      @T17#0 = call __printInt (h@15#0)
+      ret 0
+    """,
+    removeTempDefs = true,
+    gcse = true,
+  )
+
+  @Test
+  fun `gcse with removed temp defs works on different blocks scopes`() = testOptimize(
+    program = """
+    int main() {
+      int a = readInt();
+      int b = readInt();
+      int c = a + b;
+      int d = a / b;
+      int i = readInt();
+      while (i > 0) {
+        int result = (a + b) - (a / b);
+        printInt(result);
+        i--;
+      }
+      return 0;
+    }
+    """,
+    irRepresentation = """
+    main():
+      @T0#0 = call __readInt ()
+      a@1#0 = @T0#0
+      @T2#0 = call __readInt ()
+      b@3#0 = @T2#0
+      @T4#0 = a@1#0 plus b@3#0
+      c@5#0 = @T4#0
+      @T6#0 = a@1#0 div b@3#0
+      d@7#0 = @T6#0
+      @T8#0 = call __readInt ()
+      i@9#0 = @T8#0
+      goto L11
+    L10:
+      @T13#0 = a@1#0 plus b@3#0
+      @T14#0 = a@1#0 div b@3#0
+      @T15#0 = @T13#0 minus @T14#0
+      result@16#0 = @T15#0
+      @T17#0 = call __printInt (result@16#0)
+      i@9#2 = dec i@9#1
+    L11:
+      i@9#1 = phi (L10:i@9#2, main:i@9#0)
+      if i@9#1 gt 0 goto L10
+      ret 0
+    """,
+    optimizedIrRepresentation = """
+    main():
+      a@1#0 = call __readInt ()
+      b@3#0 = call __readInt ()
+      c@5#0 = a@1#0 plus b@3#0
+      d@7#0 = a@1#0 div b@3#0
+      i@9#0 = call __readInt ()
+      goto L11
+    L10:
+      @T13#0 = c@5#0
+      @T14#0 = d@7#0
+      result@16#0 = @T13#0 minus @T14#0
+      @T17#0 = call __printInt (result@16#0)
+      i@9#2 = dec i@9#1
+    L11:
+      i@9#1 = phi (L10:i@9#2, main:i@9#0)
+      if i@9#1 gt 0 goto L10
+      ret 0
+    """,
+    removeTempDefs = true,
+    gcse = true,
+  )
+
+  @Test
+  fun `gcse with removed temp defs works on further blocks scopes`() = testOptimize(
+    program = """
+    int main() {
+      int a = readInt();
+      int b = readInt();
+      int c = a + b;
+      int d = a * b;
+      int i = readInt();
+      while (i > 0) {
+        int result = (a + b) - (a * b);
+        printInt(result);
+        i--;
+      }
+      while (i < 42) {
+        printInt(i);
+        i++;
+      }
+      if (readInt() > 0) {
+        int g = b + a;
+        printInt(g);
+      } else {
+        int g = b * a;
+        printInt(g);
+      }
+      return 0;
+    }
+    """,
+    irRepresentation = """
+    main():
+      @T0#0 = call __readInt ()
+      a@1#0 = @T0#0
+      @T2#0 = call __readInt ()
+      b@3#0 = @T2#0
+      @T4#0 = a@1#0 plus b@3#0
+      c@5#0 = @T4#0
+      @T6#0 = a@1#0 times b@3#0
+      d@7#0 = @T6#0
+      @T8#0 = call __readInt ()
+      i@9#0 = @T8#0
+      goto L11
+    L10:
+      @T13#0 = a@1#0 plus b@3#0
+      @T14#0 = a@1#0 times b@3#0
+      @T15#0 = @T13#0 minus @T14#0
+      result@16#0 = @T15#0
+      @T17#0 = call __printInt (result@16#0)
+      i@9#4 = dec i@9#1
+    L11:
+      i@9#1 = phi (L10:i@9#4, main:i@9#0)
+      if i@9#1 gt 0 goto L10
+    L12:
+      goto L19
+    L18:
+      @T21#0 = call __printInt (i@9#2)
+      i@9#3 = inc i@9#2
+    L19:
+      i@9#2 = phi (L12:i@9#1, L18:i@9#3)
+      if i@9#2 lt 42 goto L18
+      @T25#0 = call __readInt ()
+      if @T25#0 gt 0 goto L22
+      @T26#0 = b@3#0 times a@1#0
+      g@27#0 = @T26#0
+      @T28#0 = call __printInt (g@27#0)
+      goto L24
+    L22:
+      @T29#0 = b@3#0 plus a@1#0
+      g@30#0 = @T29#0
+      @T31#0 = call __printInt (g@30#0)
+    L24:
+      ret 0
+    """,
+    optimizedIrRepresentation = """
+    main():
+      a@1#0 = call __readInt ()
+      b@3#0 = call __readInt ()
+      c@5#0 = a@1#0 plus b@3#0
+      d@7#0 = a@1#0 times b@3#0
+      i@9#0 = call __readInt ()
+      goto L11
+    L10:
+      @T13#0 = c@5#0
+      @T14#0 = d@7#0
+      result@16#0 = @T13#0 minus @T14#0
+      @T17#0 = call __printInt (result@16#0)
+      i@9#4 = dec i@9#1
+    L11:
+      i@9#1 = phi (L10:i@9#4, main:i@9#0)
+      if i@9#1 gt 0 goto L10
+    L12:
+      goto L19
+    L18:
+      @T21#0 = call __printInt (i@9#2)
+      i@9#3 = inc i@9#2
+    L19:
+      i@9#2 = phi (L12:i@9#1, L18:i@9#3)
+      if i@9#2 lt 42 goto L18
+      @T25#0 = call __readInt ()
+      if @T25#0 gt 0 goto L22
+      g@27#0 = d@7#0
+      @T28#0 = call __printInt (g@27#0)
+      goto L24
+    L22:
+      g@30#0 = c@5#0
+      @T31#0 = call __printInt (g@30#0)
+    L24:
+      ret 0
+    """,
+    removeTempDefs = true,
+    gcse = true,
+  )
 }
 
 private fun testOptimize(
@@ -126,13 +360,13 @@ private fun testOptimize(
     transformToSSA()
   }
   val instructions = graph.instructions().asIterable()
-  val lcseInstructions = graph.apply {
+  val optimizedInstructions = graph.apply {
     optimize(removeTempDefs, propagateConstants, simplifyExpr, removeDeadAssignQ, lcse, gcse)
   }.instructions().asIterable()
   val repr = instructions.nlString { it.repr() }
-  val lcseRepr = lcseInstructions.nlString { it.repr() }
+  val optimizedRepr = optimizedInstructions.nlString { it.repr() }
   assertEquals("\n${irRepresentation.trimIndent()}\n", repr, "Invalid IR Representation")
-  assertEquals("\n${optimizedIrRepresentation.trimIndent()}\n", lcseRepr, "Invalid optimized IR Representation")
+  assertEquals("\n${optimizedIrRepresentation.trimIndent()}\n", optimizedRepr, "Invalid optimized IR Representation")
   assert(instructions.splitAt { it is FunCodeLabelQ }.all { it.isSSA() })
-  assert(lcseInstructions.splitAt { it is FunCodeLabelQ }.all { it.isSSA() })
+  assert(optimizedInstructions.splitAt { it is FunCodeLabelQ }.all { it.isSSA() })
 }
