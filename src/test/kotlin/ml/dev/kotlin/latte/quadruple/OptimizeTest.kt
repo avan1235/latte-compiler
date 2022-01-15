@@ -107,121 +107,6 @@ internal class OptimizeTest {
     removeTempDefs = true,
     lcse = true,
   )
-
-  @Test
-  fun `gcse with removed temp defs in single block`() = testOptimize(
-    program = """
-    int main() {
-      int a = readInt();
-      int b = readInt();
-      int c = a + b;
-      int d = b + a;
-      int e = b * a;
-      int f = a * b;
-      int g = c - d;
-      int h = e / f;
-      printInt(g);
-      printInt(h);
-      return 0;
-    }
-    """,
-    irRepresentation = """
-    main():
-      @T0#0 = call __readInt ()
-      a@1#0 = @T0#0
-      @T2#0 = call __readInt ()
-      b@3#0 = @T2#0
-      @T4#0 = a@1#0 plus b@3#0
-      c@5#0 = @T4#0
-      @T6#0 = b@3#0 plus a@1#0
-      d@7#0 = @T6#0
-      @T8#0 = b@3#0 times a@1#0
-      e@9#0 = @T8#0
-      @T10#0 = a@1#0 times b@3#0
-      f@11#0 = @T10#0
-      @T12#0 = c@5#0 minus d@7#0
-      g@13#0 = @T12#0
-      @T14#0 = e@9#0 div f@11#0
-      h@15#0 = @T14#0
-      @T16#0 = call __printInt (g@13#0)
-      @T17#0 = call __printInt (h@15#0)
-      ret 0
-    """,
-    optimizedIrRepresentation = """
-    main():
-      a@1#0 = call __readInt ()
-      b@3#0 = call __readInt ()
-      c@5#0 = a@1#0 plus b@3#0
-      d@7#0 = c@5#0
-      e@9#0 = b@3#0 times a@1#0
-      f@11#0 = e@9#0
-      g@13#0 = c@5#0 minus d@7#0
-      h@15#0 = e@9#0 div f@11#0
-      @T16#0 = call __printInt (g@13#0)
-      @T17#0 = call __printInt (h@15#0)
-      ret 0
-    """,
-    removeTempDefs = true,
-    gcse = true,
-  )
-
-  @Test
-  fun `gcse with removed temp defs in nonlinear cfg`() = testOptimize(
-    program = """
-    int main() {
-      int a = readInt();
-      int b = readInt();
-      int c = 0;
-      while (c < a + b) {
-        c = c + 1;
-      }
-      int d = a + b;
-      printInt(c);
-      printInt(d);
-      return 0;
-    }
-    """,
-    irRepresentation = """
-    main():
-      @T0#0 = call __readInt ()
-      a@1#0 = @T0#0
-      @T2#0 = call __readInt ()
-      b@3#0 = @T2#0
-      c@4#0 = 0
-      goto L6
-    L5:
-      @T8#0 = c@4#1 plus 1
-      c@4#2 = @T8#0
-    L6:
-      c@4#1 = phi (L5:c@4#2, main:c@4#0)
-      @T9#0 = a@1#0 plus b@3#0
-      if c@4#1 lt @T9#0 goto L5
-      @T10#0 = a@1#0 plus b@3#0
-      d@11#0 = @T10#0
-      @T12#0 = call __printInt (c@4#1)
-      @T13#0 = call __printInt (d@11#0)
-      ret 0
-    """,
-    optimizedIrRepresentation = """
-    main():
-      a@1#0 = call __readInt ()
-      b@3#0 = call __readInt ()
-      c@4#0 = 0
-      goto L6
-    L5:
-      c@4#2 = c@4#1 plus 1
-    L6:
-      c@4#1 = phi (L5:c@4#2, main:c@4#0)
-      @T9#0 = a@1#0 plus b@3#0
-      if c@4#1 lt @T9#0 goto L5
-      d@11#0 = @T9#0
-      @T12#0 = call __printInt (c@4#1)
-      @T13#0 = call __printInt (d@11#0)
-      ret 0
-    """,
-    removeTempDefs = true,
-    gcse = true,
-  )
 }
 
 private fun testOptimize(
@@ -232,7 +117,6 @@ private fun testOptimize(
   propagateConstants: Boolean = false,
   simplifyExpr: Boolean = false,
   removeDeadAssignQ: Boolean = false,
-  gcse: Boolean = false,
   lcse: Boolean = false,
 ) {
   val (graph, _, _) = program.byteInputStream().parse().typeCheck().toIR()
@@ -242,7 +126,7 @@ private fun testOptimize(
   }
   val instructions = graph.instructions().peepHoleOptimize(extract = { it }).asIterable()
   val lcseInstructions = graph.apply {
-    optimize(removeTempDefs, propagateConstants, simplifyExpr, removeDeadAssignQ, gcse, lcse)
+    optimize(removeTempDefs, propagateConstants, simplifyExpr, removeDeadAssignQ, lcse)
   }.instructions().peepHoleOptimize(extract = { it }).asIterable()
   val repr = instructions.nlString { it.repr() }
   val lcseRepr = lcseInstructions.nlString { it.repr() }

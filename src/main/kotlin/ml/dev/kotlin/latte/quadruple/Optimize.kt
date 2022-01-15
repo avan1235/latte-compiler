@@ -7,7 +7,6 @@ fun CFG.optimize(
   propagateConstants: Boolean,
   simplifyExpr: Boolean,
   removeDeadAssignQ: Boolean,
-  gcse: Boolean,
   lcse: Boolean,
 ): Unit = with(functions.values) {
   while (true) {
@@ -17,7 +16,6 @@ fun CFG.optimize(
     if (repeats == 0) break
   }
   if (removeDeadAssignQ) forEach { it.removeDeadAssignQ() }
-  if (gcse) forEach { it.gcse() }
   if (lcse) forEach { it.lcse() }
 }
 
@@ -37,27 +35,6 @@ private fun BasicBlock.lcse(): Int {
     else AssignQ(subExpr.definedBy, firstSubExpr.definedBy).also { optimized += 1 }
   }
   return optimized
-}
-
-private fun FunctionCFG.gcse() {
-  var optimized: Int
-  do {
-    optimized = 0
-    val (exprIn, _) = analyzeExpr(this)
-    val subExprFirst = MutableDefaultMap(withSet<SubExpr, GraphLocation>())
-    for (block in block.values) block.statements.forEachIndexed { idx, stmt ->
-      val subExpr = stmt.subExpr() ?: return@forEachIndexed
-      val loc = idx at block
-      if (subExpr !in exprIn[loc]) subExprFirst[subExpr] += loc
-    }
-    val firstDefinitions = subExprFirst.mapValues { it.value.singleOrNull()?.then { it.key } }
-    for (block in block.values) block.mapStatements { idx, stmt ->
-      val subExpr = stmt.subExpr() ?: return@mapStatements stmt
-      val firstSubExpr = firstDefinitions[subExpr] ?: return@mapStatements stmt
-      if (idx at block == subExprFirst[firstSubExpr].single()) return@mapStatements stmt
-      AssignQ(subExpr.definedBy, firstSubExpr.definedBy).also { optimized += 1 }
-    }
-  } while (optimized > 0)
 }
 
 private data class IndexedSubExpr(val idx: StmtIdx, val subExpr: SubExpr)
@@ -138,48 +115,3 @@ private fun FunctionCFG.removeDeadAssignQ() {
   }
 }
 
-private fun analyzeExpr(cfg: FunctionCFG): AliveExprAnalysis {
-  val blockSubExprs = MutableDefaultMap<Label, List<IdxSubExpr>>(default@{
-    val block = cfg.block[it] ?: return@default emptyList()
-    val stmts = block.statements
-    stmts.mapIndexed { idx, stmt -> IdxSubExpr(idx, stmt.subExpr(), block.label, idx == 0, idx == stmts.size - 1) }
-  })
-  val indexedSubExprs = cfg.orderedBlocks().flatMap { blockSubExprs[it.label] }
-  val pred = MutableDefaultMap<IdxSubExpr, HashSet<IdxSubExpr>>({ idx ->
-    if (idx.isFirst) cfg.predecessors(idx.blockLabel).mapTo(HashSet()) { blockSubExprs[it].last() }
-    else hashSetOf(blockSubExprs[idx.blockLabel][idx.idx - 1])
-  })
-  val exprIn = MutableDefaultMap(withSet<IdxSubExpr, SubExpr>())
-  val exprOut = MutableDefaultMap(withSet<IdxSubExpr, SubExpr>()).also { exprOut ->
-    indexedSubExprs.forEach { idx -> idx.subExpr?.let { exprOut[idx] += it } }
-  }
-
-  while (true) {
-    val lastExprIn = exprIn.deepCopy { HashSet(it) }
-    val lastExprOut = exprOut.deepCopy { HashSet(it) }
-    indexedSubExprs.forEach { idx ->
-      exprIn[idx] = pred[idx].map { exprOut[it] }.intersect()
-      exprOut[idx] = hashSetOfNotNull(idx.subExpr).apply { addAll(exprIn[idx]) }
-    }
-    if (lastExprIn == exprIn && lastExprOut == exprOut) break
-  }
-  fun byGraphLocation(default: DefaultMap<IdxSubExpr, Set<SubExpr>>) = { loc: GraphLocation ->
-    val block = blockSubExprs[loc.label]
-    if (loc.stmtIdx !in block.indices) emptySet()
-    else default[block[loc.stmtIdx]]
-  }
-  return AliveExprAnalysis(MutableDefaultMap(byGraphLocation(exprIn)), MutableDefaultMap(byGraphLocation(exprOut)))
-}
-
-private data class IdxSubExpr(
-  val idx: Int,
-  val subExpr: SubExpr?,
-  val blockLabel: Label,
-  val isFirst: Boolean,
-  val isLast: Boolean,
-)
-
-data class AliveExprAnalysis(
-  val exprIn: DefaultMap<GraphLocation, Set<SubExpr>>,
-  val exprOut: DefaultMap<GraphLocation, Set<SubExpr>>,
-)

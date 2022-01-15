@@ -36,7 +36,6 @@ internal fun File.runCompiler(
   propagateConstants: Boolean = true,
   simplifyExpr: Boolean = true,
   removeDeadAssignQ: Boolean = true,
-  gcse: Boolean = true,
   lcse: Boolean = true,
   strategy: AllocatorStrategyProducer = DEFAULT_ALLOCATOR_STRATEGY
 ): String = inputStream()
@@ -45,7 +44,7 @@ internal fun File.runCompiler(
   .toIR().apply {
     graph.removeNotReachableBlocks()
     graph.transformToSSA()
-    graph.optimize(removeTempDefs, propagateConstants, simplifyExpr, removeDeadAssignQ, gcse, lcse)
+    graph.optimize(removeTempDefs, propagateConstants, simplifyExpr, removeDeadAssignQ, lcse)
     graph.transformFromSSA()
   }
   .compile(strategy)

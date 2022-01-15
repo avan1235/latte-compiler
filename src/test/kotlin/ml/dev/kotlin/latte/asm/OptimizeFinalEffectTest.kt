@@ -73,15 +73,21 @@ internal class OptimizeFinalEffectTest {
       int c = (a + b) * (a - b);
       int d = (a + b) / (a - b);
       int e = (a + b) % (a - b);
+      int f = (a + b) + (a - b);
+      int g = (a + b) - (a - b);
       if (c < d) {
         printInt(c);
         printInt(d);
         printInt(e);
+        printInt(f);
+        printInt(g);
       }
       else {
         printInt(d);
         printInt(e);
         printInt(c);
+        printInt(g);
+        printInt(f);
       }
       return 0;
     }
@@ -95,43 +101,11 @@ internal class OptimizeFinalEffectTest {
     4
     0
     16
+    6
+    10
 
     """,
     lcse = true,
-  )
-
-  @Test
-  fun `optimize common subexpressions in gcse`() = testCompilerOptimizedAndNot(
-    program = """
-    int main() {
-      int a = readInt();
-      int b = readInt();
-      int c = (a * b) * (a + b);
-      while (c > 118) {
-        int d = (a * b) * (a + b);
-        printInt(d);
-        printInt(c);
-        c--;
-      }
-      int d = (a * b) * (a + b);
-      printInt(d);
-      return 0;
-    }
-    """,
-    input = """
-    3
-    5
-
-    """,
-    output = """
-    120
-    120
-    120
-    119
-    120
-
-    """,
-    gcse = true,
   )
 }
 
@@ -139,7 +113,6 @@ private fun testCompilerOptimizedAndNot(
   program: String,
   propagateConstants: Boolean = false,
   simplifyExpr: Boolean = false,
-  gcse: Boolean = false,
   lcse: Boolean = false,
   input: String? = null,
   output: String = "",
@@ -148,7 +121,6 @@ private fun testCompilerOptimizedAndNot(
     program,
     propagateConstants = false,
     simplifyExpr = false,
-    gcse = false,
     lcse = false,
     input,
     output
@@ -157,7 +129,6 @@ private fun testCompilerOptimizedAndNot(
     program,
     propagateConstants,
     simplifyExpr,
-    gcse,
     lcse,
     input,
     output
@@ -172,17 +143,14 @@ private fun configuredRunCompiler(
   program: String,
   propagateConstants: Boolean,
   simplifyExpr: Boolean,
-  gcse: Boolean,
   lcse: Boolean,
   input: String?,
   output: String,
 ): String {
-  val mask = listOf(propagateConstants, simplifyExpr, gcse, lcse).joinToString("") { if (it) " 1" else "0" }
-  val shortcut = "opt.$mask"
   val dataDir = File("testData/").apply { mkdirs() }.dir.toPath()
-  val programFile = Files.createTempFile(dataDir, shortcut, ".lat").toFile().apply { writeText(program) }
+  val programFile = Files.createTempFile(dataDir, "opt", ".lat").toFile().apply { writeText(program) }
   val inputFile = input?.let { programFile.withExtension(".input", it.trimIndent()) }
-  val code = programFile.runCompiler(true, propagateConstants, simplifyExpr, true, gcse, lcse)
+  val code = programFile.runCompiler(true, propagateConstants, simplifyExpr, true, lcse)
   val asmFile = programFile.withExtension(".asm", code)
   val (o, exe) = nasm(asmFile, libFile = File("lib/runtime.o"))
   val outFile = programFile.withExtension(".outputTest")
