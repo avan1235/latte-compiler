@@ -40,7 +40,7 @@ internal fun File.runCompiler(
   lcse: Boolean = true,
   gcse: Boolean = true,
   strategy: AllocatorStrategyProducer = DEFAULT_ALLOCATOR_STRATEGY,
-  printIR: Boolean = true
+  printIR: Boolean = false,
 ): String = inputStream()
   .parse()
   .typeCheck()

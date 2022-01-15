@@ -200,7 +200,10 @@ private fun testCompilerOptimizedAndNot(
     input,
     output
   ).filterPopPush()
-  assertTrue(notOptimized.lines().size > optimized.lines().size, "Expected optimized code to have less instructions")
+  assertTrue(
+    notOptimized.lines().size > optimized.lines().size,
+    "Expected optimized code to have less instructions.\nOptimized:\n$optimized\nNot optimized:\n$notOptimized"
+  )
 }
 
 private fun configuredRunCompiler(
