@@ -1,5 +1,7 @@
 package ml.dev.kotlin.latte.asm
 
+import ml.dev.kotlin.latte.asm.Cmd.POP
+import ml.dev.kotlin.latte.asm.Cmd.PUSH
 import ml.dev.kotlin.latte.runCompiler
 import ml.dev.kotlin.latte.util.dir
 import ml.dev.kotlin.latte.util.invoke
@@ -70,10 +72,6 @@ internal class OptimizeFinalEffectTest {
     int main() {
       int a = readInt();
       int b = readInt();
-      f(a, b);
-      return 0;
-    }
-    void f(int a, int b) {
       int c = (a + b) * (a - b);
       int d = (a + b) / (a - b);
       if (c < d) {
@@ -84,6 +82,7 @@ internal class OptimizeFinalEffectTest {
         printInt(d);
         printInt(c);
       }
+      return 0;
     }
     """,
     input = """
@@ -109,6 +108,9 @@ private fun testCompilerOptimizedAndNot(
   input: String? = null,
   output: String = "",
 ) {
+  fun String.filterPopPush() =
+    lines().asSequence().filterNot { it.contains(POP.name) }.filterNot { it.contains(PUSH.name) }.joinToString("\n")
+
   val notOptimized = configuredRunCompiler(
     program,
     propagateConstants = false,
@@ -116,7 +118,7 @@ private fun testCompilerOptimizedAndNot(
     lcse = false,
     input,
     output
-  )
+  ).filterPopPush()
   val optimized = configuredRunCompiler(
     program,
     propagateConstants,
@@ -124,9 +126,8 @@ private fun testCompilerOptimizedAndNot(
     lcse,
     input,
     output
-  )
-  assertTrue(
-    notOptimized.lines().size > optimized.lines().size,
+  ).filterPopPush()
+  assertTrue(notOptimized.lines().size > optimized.lines().size,
     "Expected optimized code to have less instructions but got\n${optimized}while before optimize\n\n${notOptimized}"
   )
 }
