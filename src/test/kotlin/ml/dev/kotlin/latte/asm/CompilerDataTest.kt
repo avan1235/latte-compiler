@@ -437,6 +437,54 @@ internal class CompilerDataTest {
       """
     )
 
+
+  @ParameterizedTest
+  @MethodSource("allocatorsProvider")
+  fun `should allow to access class variables with self`(alloc: TestAllocator) =
+    testCompilerWithAllocatorStrategy(
+      alloc,
+      program = """
+      int main() {
+        A a = new A;
+        a.x = 33;
+        a.a = new B;
+        a.a.x = 11;
+        a.test();
+        a.a.test();
+
+        return 0;
+      }
+      class A {
+        int x;
+        A a;
+        void test() {
+          printString("A test");
+          printInt(x);
+          int x = 42;
+          printInt(x);
+          printInt(self.x);
+          printInt(a.x);
+          printInt(self.a.x);
+        }
+      }
+      class B extends A {
+        void test() {
+          printString("B test");
+        }
+      }
+      """,
+      output = """
+      A test
+      33
+      42
+      33
+      11
+      11
+      B test
+
+      """
+    )
+
   companion object {
     @JvmStatic
     fun allocatorsProvider(): Stream<TestAllocator> = Stream.of(*TestAllocator.values())
