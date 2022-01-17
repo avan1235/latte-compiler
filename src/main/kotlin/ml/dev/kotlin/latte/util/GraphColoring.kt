@@ -18,11 +18,11 @@ class GraphColoring<V, Common, Colored : Common, Default : Common>(
     val withEdges = edgesCount.entries
       .groupBy(keySelector = { it.value }, valueTransform = { it.key })
       .mapValuesTo(TreeMap()) { it.value.toHashSet() }
-    val stack = LinkedHashSet<SN<V>>()
+    val stack = LinkedHashSet<StackNode<V>>()
 
-    fun removeNode(of: SN<V>) {
+    fun removeNode(of: StackNode<V>) {
       for (n in neigh[of.n]) {
-        if (SN(n) in stack) continue
+        if (StackNode(n) in stack) continue
         val oldCount = edgesCount[n]!!
         val newCount = oldCount - 1
         edgesCount[n] = newCount
@@ -39,7 +39,7 @@ class GraphColoring<V, Common, Colored : Common, Default : Common>(
           continue
         }
         val v = if (count < colors.size) nodes.first() else break
-        SN(v).also { removeNode(it) }.let { stack += it }
+        StackNode(v).also { removeNode(it) }.let { stack += it }
         withEdges[count]?.remove(v)
       }
 
@@ -47,13 +47,13 @@ class GraphColoring<V, Common, Colored : Common, Default : Common>(
       else {
         val spill = strategy.spillSelectHeuristics(withEdges)
         val spilledCount = edgesCount[spill]!!
-        SN(spill, spill = true).also { removeNode(it) }.let { stack += it }
+        StackNode(spill, spill = true).also { removeNode(it) }.let { stack += it }
         withEdges[spilledCount]?.remove(spill)
       }
     }
   }
 
-  private fun List<SN<V>>.assignColors(neigh: DefaultMap<V, Set<V>>, coloring: MutableMap<V, Common>): Unit =
+  private fun List<StackNode<V>>.assignColors(neigh: DefaultMap<V, Set<V>>, coloring: MutableMap<V, Common>): Unit =
     forEach { node ->
       if (node.spill) coloring[node.n] = strategy.extraColor(node.n)
       else {
@@ -81,9 +81,9 @@ inline fun <V, Common, Colored : Common, Default : Common> graphColoringStrategy
     colorSelectHeuristics(node, available, coloring)
 }
 
-private data class SN<N>(val n: N, val spill: Boolean = false) {
+private data class StackNode<N>(val n: N, val spill: Boolean = false) {
   override fun hashCode(): Int = n.hashCode()
-  override fun equals(other: Any?): Boolean = (other as? SN<*>)?.n?.equals(n) ?: false
+  override fun equals(other: Any?): Boolean = (other as? StackNode<*>)?.n?.equals(n) ?: false
 }
 
 

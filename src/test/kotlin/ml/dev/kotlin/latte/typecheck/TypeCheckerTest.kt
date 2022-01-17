@@ -38,43 +38,112 @@ internal class TypeCheckerTest {
 
   @Nested
   inner class ExplicitTypeCheckerTest {
-    @Test
-    fun `test matching functions by signatures`() = testTypeCheckerOn(
-      program = """
-      int main () {
-        A a = new A;
-        B b = new B;
-        C c = new C;
-        checkMeAAA(a, b, c);
-        checkMeABC(a, b, c);
-        return 0;
-      }
+    @Nested
+    inner class ClassesTypeCheckerTest {
+      @Test
+      fun `test matching functions by signatures`() = testTypeCheckerOn(
+        program = """
+        int main () {
+          A a = new A;
+          B b = new B;
+          C c = new C;
+          checkMeAAA(a, b, c);
+          checkMeABC(a, b, c);
+          return 0;
+        }
 
-      class A {
-        int x;
-      }
+        class A {
+          int x;
+        }
 
-      class B extends A {
-        int y;
-      }
+        class B extends A {
+          int y;
+        }
 
-      class C extends B {
-        int z;
-      }
+        class C extends B {
+          int z;
+        }
 
-      void checkMeAAA(A x, A y, A z) {
-        printInt(x.x);
-        printInt(y.x);
-        printInt(z.x);
-      }
+        void checkMeAAA(A x, A y, A z) {
+          printInt(x.x);
+          printInt(y.x);
+          printInt(z.x);
+        }
 
-      void checkMeABC(A x, B y, C z) {
-        printInt(x.x);
-        printInt(y.y);
-        printInt(z.z);
-      }
-      """
-    )
+        void checkMeABC(A x, B y, C z) {
+          printInt(x.x);
+          printInt(y.y);
+          printInt(z.z);
+        }
+        """
+      )
+
+      @Test
+      fun `test allow empty class definition`() = testTypeCheckerOn(
+        program = """
+        int main () {
+          A a = new A;
+          B b = new B;
+          return 0;
+        }
+
+        class A
+        class B extends A
+        """
+      )
+
+      @Test
+      fun `test allow overridden function return inherited types`() = testTypeCheckerOn(
+        program = """
+        int main () {
+          A a = new A;
+          B b = new B;
+          return 0;
+        }
+
+        class A {
+          int x;
+          A f() {
+            return new A;
+          }
+          A g() {
+            return new A;
+          }
+        }
+
+        class B extends A {
+          int y;
+          A f() {
+            return new B;
+          }
+          B g() {
+            return new B;
+          }
+        }
+        """
+      )
+
+      @Test
+      fun `test allow assign subtype to reference`() = testTypeCheckerOn(
+        program = """
+        int main () {
+          A a = new A;
+          B b = new B;
+          A c = new B;
+          A d = b;
+          return 0;
+        }
+
+        class A {
+          int x;
+        }
+
+        class B extends A {
+          int y;
+        }
+        """
+      )
+    }
   }
 
   companion object {

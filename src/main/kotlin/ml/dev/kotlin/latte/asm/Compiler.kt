@@ -2,7 +2,6 @@ package ml.dev.kotlin.latte.asm
 
 import ml.dev.kotlin.latte.quadruple.*
 import ml.dev.kotlin.latte.syntax.Bytes
-import ml.dev.kotlin.latte.syntax.PrimitiveType.IntType
 import ml.dev.kotlin.latte.syntax.PrimitiveType.VoidRefType
 import ml.dev.kotlin.latte.syntax.Type
 import ml.dev.kotlin.latte.typecheck.STD_LIB_FUNCTIONS

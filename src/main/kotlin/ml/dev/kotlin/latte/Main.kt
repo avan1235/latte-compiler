@@ -4,13 +4,13 @@ import ml.dev.kotlin.latte.asm.AllocatorStrategy
 import ml.dev.kotlin.latte.asm.AllocatorStrategyProducer
 import ml.dev.kotlin.latte.asm.compile
 import ml.dev.kotlin.latte.asm.nasm
-import ml.dev.kotlin.latte.quadruple.*
-import ml.dev.kotlin.latte.quadruple.instructions
+import ml.dev.kotlin.latte.quadruple.optimize
+import ml.dev.kotlin.latte.quadruple.printInstructions
+import ml.dev.kotlin.latte.quadruple.toIR
 import ml.dev.kotlin.latte.syntax.parse
 import ml.dev.kotlin.latte.typecheck.typeCheck
 import ml.dev.kotlin.latte.util.LatteException
 import ml.dev.kotlin.latte.util.exit
-import ml.dev.kotlin.latte.util.nlString
 import ml.dev.kotlin.latte.util.withExtension
 import java.io.File
 

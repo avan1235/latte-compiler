@@ -64,40 +64,37 @@ object GlobalFlowAnalyzer {
   }
 
   fun analyzeAliveExpr(cfg: FunctionCFG): AliveExprAnalysis {
-    val blockSubExprs = MutableDefaultMap<Label, List<IdxSubExpr>>(default@{
+    val blockSubExpr = MutableDefaultMap<Label, List<IdxSubExpr>>(default@{
       val block = cfg.block[it] ?: return@default emptyList()
       val stmts = block.statements
       stmts.mapIndexed { idx, stmt ->
         IdxSubExpr(idx, stmt.constantSubExpr(), block.label, idx == 0, idx == stmts.size - 1)
       }
     })
-    val indexedSubExprs = cfg.orderedBlocks().flatMap { blockSubExprs[it.label] }
-    val allExpressions = indexedSubExprs.mapNotNullTo(HashSet()) { it.subExpr }
+    val indexedSubExpr = cfg.orderedBlocks().flatMap { blockSubExpr[it.label] }
+    val allExpressions = indexedSubExpr.mapNotNullTo(HashSet()) { it.subExpr }
     val pred = MutableDefaultMap<IdxSubExpr, HashSet<IdxSubExpr>>({ idx ->
-      if (idx.isFirst) cfg.predecessors(idx.blockLabel).mapTo(HashSet()) { blockSubExprs[it].last() }
-      else hashSetOf(blockSubExprs[idx.blockLabel][idx.idx - 1])
+      if (idx.isFirst) cfg.predecessors(idx.blockLabel).mapTo(HashSet()) { blockSubExpr[it].last() }
+      else hashSetOf(blockSubExpr[idx.blockLabel][idx.idx - 1])
     })
-    val firstIdxSubExpr = blockSubExprs[cfg.start].first()
+    val firstIdxSubExpr = blockSubExpr[cfg.start].first()
     val exprIn = MutableDefaultMap(withSet<IdxSubExpr, SubExpr>()).also { exprIn ->
-      indexedSubExprs.forEach { if (it != firstIdxSubExpr) exprIn[it] = HashSet(allExpressions) }
-    }
-    val exprDef = MutableDefaultMap(withSet<IdxSubExpr, SubExpr>()).also { exprDef ->
-      indexedSubExprs.forEach { idx -> idx.subExpr?.let { exprDef[idx] += it } }
+      indexedSubExpr.forEach { if (it != firstIdxSubExpr) exprIn[it] = HashSet(allExpressions) }
     }
 
     while (true) {
       val lastExprIn = exprIn.deepCopy { HashSet(it) }
-      indexedSubExprs.forEach { idx ->
-        exprIn[idx] = pred[idx].map { exprIn[it] + exprDef[it] }.intersect()
+      indexedSubExpr.forEach {
+        exprIn[it] = pred[it].map { pred -> hashSetOfNotNull(pred.subExpr).apply { addAll(exprIn[pred]) } }.intersect()
       }
       if (lastExprIn == exprIn) break
     }
     fun byGraphLocation(default: DefaultMap<IdxSubExpr, Set<SubExpr>>) = { loc: GraphLocation ->
-      val block = blockSubExprs[loc.label]
+      val block = blockSubExpr[loc.label]
       if (loc.stmtIdx !in block.indices) emptySet()
       else default[block[loc.stmtIdx]]
     }
-    return AliveExprAnalysis(MutableDefaultMap(byGraphLocation(exprIn)), MutableDefaultMap(byGraphLocation(exprDef)))
+    return AliveExprAnalysis(MutableDefaultMap(byGraphLocation(exprIn)))
   }
 }
 
@@ -134,5 +131,4 @@ private data class IdxSubExpr(
 
 data class AliveExprAnalysis(
   val exprIn: DefaultMap<GraphLocation, Set<SubExpr>>,
-  val exprDef: DefaultMap<GraphLocation, Set<SubExpr>>,
 )

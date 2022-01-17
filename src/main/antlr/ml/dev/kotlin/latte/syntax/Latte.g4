@@ -5,8 +5,8 @@ program
     ;
 
 topDef
-    : type ID '(' arg? ')' block                        # Fun
-    | 'class' ID ('extends' ID)? '{' classBodyDef* '}'  # Class
+    : type ID '(' arg? ')' block                           # Fun
+    | 'class' ID ('extends' ID)? ('{' classBodyDef* '}')?  # Class
     ;
 
 classBodyDef
@@ -27,10 +27,10 @@ stmt
     | block                              # BlockStmt
     | type item ( ',' item )* ';'        # Decl
     | expr '.' ID '=' expr ';'           # RefAss
-    | ID '=' expr ';'                    # Ass
     | expr '.' ID '++' ';'               # RefIncr
-    | ID '++' ';'                        # Incr
     | expr '.' ID '--' ';'               # RefDecr
+    | ID '=' expr ';'                    # Ass
+    | ID '++' ';'                        # Incr
     | ID '--' ';'                        # Decr
     | 'return' expr ';'                  # Ret
     | 'return' ';'                       # VRet

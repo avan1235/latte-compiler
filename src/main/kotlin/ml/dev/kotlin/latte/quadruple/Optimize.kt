@@ -14,17 +14,20 @@ fun CFG.optimize(
   lcse: Boolean,
   gcse: Boolean,
 ): Unit = with(functions.values) {
-  fun countIfEnabled(flag: Boolean, action: (FunctionCFG) -> Int): Int = if (flag) sumOf { action(it) } else 0
-  while (true) {
-    var repeats = countIfEnabled(removeTempDefs) { it.removeTempDefs() }
-    repeats += countIfEnabled(propagateConstants) { it.propagateConstants() }
-    repeats += countIfEnabled(simplifyExpr) { it.simplifyExpr() }
-    repeats += countIfEnabled(propagateConstants) { it.propagateConstants() }
-    repeats += countIfEnabled(removeDeadAssignQ) { it.removeDeadAssignQ() }
-    repeats += countIfEnabled(lcse) { it.lcse() }
-    repeats += countIfEnabled(gcse) { it.gcse() }
-    if (repeats == 0) break
+  var repeats = 0
+  fun countIfEnabled(flag: Boolean, action: FunctionCFG.() -> Int) {
+    repeats += if (flag) sumOf { it.action() } else 0
   }
+  do {
+    repeats = 0
+    countIfEnabled(removeTempDefs) { removeTempDefs() }
+    countIfEnabled(propagateConstants) { propagateConstants() }
+    countIfEnabled(simplifyExpr) { simplifyExpr() }
+    countIfEnabled(propagateConstants) { propagateConstants() }
+    countIfEnabled(removeDeadAssignQ) { removeDeadAssignQ() }
+    countIfEnabled(lcse) { lcse() }
+    countIfEnabled(gcse) { gcse() }
+  } while (repeats > 0)
 }
 
 private fun FunctionCFG.lcse(): Int = block.values.sumOf { it.lcse() }
@@ -49,7 +52,7 @@ private data class IndexedSubExpr(val idx: StmtIdx, val subExpr: SubExpr)
 
 private fun FunctionCFG.gcse(): Int {
   var optimized = 0
-  val (exprIn, _) = GlobalFlowAnalyzer.analyzeAliveExpr(this)
+  val exprIn = GlobalFlowAnalyzer.analyzeAliveExpr(this).exprIn
   val exprFirstDefAt = MutableDefaultMap(withSet<SubExpr, GraphLocation>())
   for (block in block.values) block.statements.forEachIndexed stmt@{ idx, stmt ->
     val subExpr = stmt.constantSubExpr() ?: return@stmt

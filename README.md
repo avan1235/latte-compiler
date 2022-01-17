@@ -15,7 +15,7 @@ To build project you need:
 
 - [Java 11](https://adoptopenjdk.net/) to build compiler from Kotlin sources and run Gradle in Java 11 environment
 - [gcc](https://gcc.gnu.org/)  with `gcc-multilib` to compile [runtime.c](./lib/runtime.c) library file in x86 version
-- [nasm](https://www.nasm.us/) to run tests that requires compiling program from generated assembly
+- [nasm](https://www.nasm.us/) to run tests that require compiling program from generated assembly
 
 ### Build commands
 

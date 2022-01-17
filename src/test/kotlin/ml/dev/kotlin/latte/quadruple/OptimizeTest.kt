@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test
 
 internal class OptimizeTest {
   @Test
-  fun `propagate constants and simplify with predefined variables`() = testOptimize(
+  fun `test propagate constants and simplify with predefined variables`() = testOptimize(
     program = """
     int main() {
       int a = 42;
@@ -52,7 +52,7 @@ internal class OptimizeTest {
   )
 
   @Test
-  fun `lcse with removed temp defs`() = testOptimize(
+  fun `test lcse with removed temp defs`() = testOptimize(
     program = """
     int main() {
       int a = readInt();
@@ -109,7 +109,7 @@ internal class OptimizeTest {
   )
 
   @Test
-  fun `gcse with removed temp defs works locally as lcse`() = testOptimize(
+  fun `test gcse with removed temp defs works locally as lcse`() = testOptimize(
     program = """
     int main() {
       int a = readInt();
@@ -166,7 +166,7 @@ internal class OptimizeTest {
   )
 
   @Test
-  fun `gcse with removed temp defs works on different blocks scopes`() = testOptimize(
+  fun `test gcse with removed temp defs works on different blocks scopes`() = testOptimize(
     program = """
     int main() {
       int a = readInt();
@@ -231,7 +231,7 @@ internal class OptimizeTest {
   )
 
   @Test
-  fun `gcse with removed temp defs works on further blocks scopes`() = testOptimize(
+  fun `test gcse with removed temp defs works on further blocks scopes`() = testOptimize(
     program = """
     int main() {
       int a = readInt();
@@ -339,6 +339,136 @@ internal class OptimizeTest {
       ret 0
     """,
     removeTempDefs = true,
+    gcse = true,
+  )
+
+  @Test
+  fun `test full optimization enabled`() = testOptimize(
+    program = """
+    int main() {
+      int a = readInt();
+      int b = readInt();
+      int c = a + b;
+      int d = a * b;
+      int i = 42;
+      while (i > 0) {
+        int result = (a + b) - (b * a) + i;
+        printInt(result);
+        i--;
+      }
+      while (i < 42) { i++; }
+
+      if (c > d) {
+        int g = b + a;
+        printInt(g);
+      } else {
+        int g = b * a;
+        printInt(g);
+      }
+
+      if (d < c) {
+        int g = a * b;
+        printInt(g);
+      } else {
+        int g = a + b;
+        printInt(g);
+      }
+      return 0;
+    }
+    """,
+    irRepresentation = """
+    main():
+      @T0#0 = call __readInt ()
+      a@1#0 = @T0#0
+      @T2#0 = call __readInt ()
+      b@3#0 = @T2#0
+      @T4#0 = a@1#0 plus b@3#0
+      c@5#0 = @T4#0
+      @T6#0 = a@1#0 times b@3#0
+      d@7#0 = @T6#0
+      i@8#0 = 42
+      goto L10
+    L9:
+      @T12#0 = a@1#0 plus b@3#0
+      @T13#0 = b@3#0 times a@1#0
+      @T14#0 = @T12#0 minus @T13#0
+      @T15#0 = @T14#0 plus i@8#1
+      result@16#0 = @T15#0
+      @T17#0 = call __printInt (result@16#0)
+      i@8#4 = dec i@8#1
+    L10:
+      i@8#1 = phi (L9:i@8#4, main:i@8#0)
+      if i@8#1 gt 0 goto L9
+    L11:
+      goto L19
+    L18:
+      i@8#3 = inc i@8#2
+    L19:
+      i@8#2 = phi (L11:i@8#1, L18:i@8#3)
+      if i@8#2 lt 42 goto L18
+      if c@5#0 gt d@7#0 goto L21
+      @T24#0 = b@3#0 times a@1#0
+      g@25#0 = @T24#0
+      @T26#0 = call __printInt (g@25#0)
+      goto L23
+    L21:
+      @T27#0 = b@3#0 plus a@1#0
+      g@28#0 = @T27#0
+      @T29#0 = call __printInt (g@28#0)
+    L23:
+      if d@7#0 lt c@5#0 goto L30
+      @T33#0 = a@1#0 plus b@3#0
+      g@34#0 = @T33#0
+      @T35#0 = call __printInt (g@34#0)
+      goto L32
+    L30:
+      @T36#0 = a@1#0 times b@3#0
+      g@37#0 = @T36#0
+      @T38#0 = call __printInt (g@37#0)
+    L32:
+      ret 0
+    """,
+    optimizedIrRepresentation = """
+    main():
+      a@1#0 = call __readInt ()
+      b@3#0 = call __readInt ()
+      c@5#0 = a@1#0 plus b@3#0
+      d@7#0 = a@1#0 times b@3#0
+      goto L10
+    L9:
+      @T14#0 = c@5#0 minus d@7#0
+      result@16#0 = @T14#0 plus i@8#1
+      @T17#0 = call __printInt (result@16#0)
+      i@8#4 = dec i@8#1
+    L10:
+      i@8#1 = phi (L9:i@8#4, main:42)
+      if i@8#1 gt 0 goto L9
+    L11:
+      goto L19
+    L18:
+      i@8#3 = inc i@8#2
+    L19:
+      i@8#2 = phi (L11:i@8#1, L18:i@8#3)
+      if i@8#2 lt 42 goto L18
+      if c@5#0 gt d@7#0 goto L21
+      @T26#0 = call __printInt (d@7#0)
+      goto L23
+    L21:
+      @T29#0 = call __printInt (c@5#0)
+    L23:
+      if d@7#0 lt c@5#0 goto L30
+      @T35#0 = call __printInt (c@5#0)
+      goto L32
+    L30:
+      @T38#0 = call __printInt (d@7#0)
+    L32:
+      ret 0
+    """,
+    removeTempDefs = true,
+    simplifyExpr = true,
+    removeDeadAssignQ = true,
+    propagateConstants = true,
+    lcse = true,
     gcse = true,
   )
 }

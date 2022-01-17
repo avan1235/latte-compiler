@@ -11,7 +11,6 @@ fun Quadruple.constantSubExpr(): SubExpr? = when (this) {
 
 sealed interface SubExpr {
   val definedBy: VirtualReg
-  override fun toString(): String
   override fun hashCode(): Int
   override fun equals(other: Any?): Boolean
 }
@@ -21,7 +20,6 @@ class UnOpSubExpr(unOpQ: UnOpQ) : SubExpr {
   val op: UnOp = unOpQ.op
   val from: ValueHolder = unOpQ.from
 
-  override fun toString(): String = "${definedBy.repr()} = $op ${from.repr()}"
   override fun hashCode(): Int = setOf(op, from).hashCode()
   override fun equals(other: Any?): Boolean =
     (other as? UnOpSubExpr)?.let { it.op == op && it.from == from } ?: false
@@ -32,7 +30,6 @@ class UnOpModSubExpr(unOpModQ: UnOpModQ) : SubExpr {
   val op: UnOpMod = unOpModQ.op
   val from: ValueHolder = unOpModQ.from
 
-  override fun toString(): String = "${definedBy.repr()} = $op ${from.repr()}"
   override fun hashCode(): Int = setOf(op, from).hashCode()
   override fun equals(other: Any?): Boolean =
     (other as? UnOpModSubExpr)?.let { it.op == op && it.from == from } ?: false
@@ -44,7 +41,6 @@ class BinOpSubExpr(binOpQ: BinOpQ) : SubExpr {
   val op: BinOp = binOpQ.op
   val right: ValueHolder = binOpQ.right
 
-  override fun toString(): String = "${definedBy.repr()} = ${left.repr()} $op ${right.repr()}"
   override fun hashCode(): Int = setOf(left, right, op).hashCode()
   override fun equals(other: Any?): Boolean {
     if (other !is BinOpSubExpr) return false
