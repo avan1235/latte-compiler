@@ -245,7 +245,6 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         @T0#0 = call __alloc (8)
-        *(@T0#0 + 0) = A
         a@1#0 = @T0#0
         *(a@1#0 + 4) = 42
         *(a@1#0 + 8) = true
@@ -380,7 +379,6 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         @T0#0 = call __alloc (4)
-        *(@T0#0 + 0) = A
         a@1#0 = @T0#0
         *(a@1#0 + 4) = 0
         @T2#0 = *(a@1#0 + 4)
@@ -413,13 +411,10 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         @T0#0 = call __alloc (4)
-        *(@T0#0 + 0) = C
         c@1#0 = @T0#0
         @T2#0 = call __alloc (4)
-        *(@T2#0 + 0) = B
         *(c@1#0 + 4) = @T2#0
         @T3#0 = call __alloc (4)
-        *(@T3#0 + 0) = A
         @T4#0 = *(c@1#0 + 4)
         *(@T4#0 + 4) = @T3#0
         @T5#0 = *(c@1#0 + 4)

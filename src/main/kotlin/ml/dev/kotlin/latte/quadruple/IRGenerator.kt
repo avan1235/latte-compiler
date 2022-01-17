@@ -28,7 +28,7 @@ private data class IRGenerator(
   private var emitting: Boolean = true,
   private var thisClass: ArgValue? = null,
 ) {
-  private val functionsTypesByMangledName: Map<String, Type> by lazy { hierarchy.functionsTypesByMangledName() }
+  private val functionsTypesByMangledName: Map<String, Type> = hierarchy.functionsTypesByMangledName()
   private val thisFields: Map<String, ClassField>? get() = thisClass?.type?.typeName?.let { hierarchy.classFields[it] }
 
   fun TypeCheckedProgram.generate(): IR {
@@ -233,7 +233,8 @@ private data class IRGenerator(
     }
     is ConstructorCallExprNode -> freshTemp(type) { to ->
       emit { FunCallQ(to, ALLOC_FUN_LABEL, listOf(IntConstValue(hierarchy.classSizeBytes[type.typeName]))) }
-      emit { StoreQ(to, 0, LabelConstValue(type.typeName.label)) }
+      val hasClassMethods = hierarchy.classMethods[type.typeName].size > 0
+      if (hasClassMethods) emit { StoreQ(to, 0, LabelConstValue(type.typeName.label)) }
     }
     is FieldExprNode -> {
       val expr = expr.generate()

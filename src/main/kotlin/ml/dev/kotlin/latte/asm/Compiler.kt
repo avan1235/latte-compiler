@@ -43,6 +43,7 @@ private class Compiler(
 
   private fun Map<Type, VirtualTable>.defineVTables() {
     entries.forEach { (classType, vTable) ->
+      if (vTable.declarations.isEmpty()) return@forEach
       result.append(classType.typeName).append(": dd ")
       vTable.declarations.joinTo(result, separator = ", ") { it.name }
       result.appendLine()

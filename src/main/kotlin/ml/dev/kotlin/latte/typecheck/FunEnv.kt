@@ -11,6 +11,8 @@ data class FunEnv(
   private val argsCombinations: DefaultMap<List<Type>, Set<List<Type>>>,
   private val funEnv: LinkedHashMap<FunSignature, FunDeclaration> = LinkedHashMap()
 ) {
+  val size: Int get() = funEnv.size
+
   fun ordered(): List<FunDeclaration> = funEnv.values.toList()
 
   operator fun get(name: String, args: List<Type>): FunDeclaration? =
