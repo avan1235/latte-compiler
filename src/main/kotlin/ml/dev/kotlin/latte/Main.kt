@@ -25,7 +25,7 @@ fun main(args: Array<String>): Unit = args.takeIf { it.isNotEmpty() }?.forEach {
   } catch (e: LatteException) {
     exit("ERROR", e.userMessage, exitCode = 2)
   } catch (e: Throwable) {
-    exit("ERROR", e, e.stackTrace, exitCode = 3)
+    exit("ERROR", e, exitCode = 3)
   }
 } ?: exit("Usage: ./latte <input-file-paths>", exitCode = 1)
 
