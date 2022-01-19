@@ -293,8 +293,8 @@ private inline val Type.default: ConstValue
     BooleanType -> false.bool
     IntType -> IntConstValue(0)
     StringType -> StringConstValue(EMPTY_STRING_LABEL, "")
-    VoidRefType -> err("No default value for void* type as it cannot be assigned")
-    VoidType -> err("No default value for void type as it cannot be assigned")
+    VoidRefType -> err("No default value for $VoidRefType type as it cannot be assigned")
+    VoidType -> err("No default value for $VoidType type as it cannot be assigned")
     is RefType -> NullConstValue
   }
 

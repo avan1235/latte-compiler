@@ -23,7 +23,11 @@ data class Loc(private val offset: Bytes, private val type: Type) : Mem {
 }
 
 data class Adr(val loc: Reg, val offset: Bytes = 0) : Named {
-  override val name: String = "[${loc.name} + $offset]"
+  override val name: String = when {
+    offset > 0 -> "[${loc.name} + $offset]"
+    offset < 0 -> "[${loc.name} - ${-offset}]"
+    else -> "[${loc.name}]"
+  }
 }
 
 private const val ARG_OFFSET: Bytes = 8
