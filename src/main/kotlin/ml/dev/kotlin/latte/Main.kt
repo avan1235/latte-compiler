@@ -3,7 +3,7 @@ package ml.dev.kotlin.latte
 import ml.dev.kotlin.latte.asm.AllocatorStrategy
 import ml.dev.kotlin.latte.asm.AllocatorStrategyProducer
 import ml.dev.kotlin.latte.asm.compile
-import ml.dev.kotlin.latte.asm.nasm
+import ml.dev.kotlin.latte.asm.asm
 import ml.dev.kotlin.latte.quadruple.optimize
 import ml.dev.kotlin.latte.quadruple.printInstructions
 import ml.dev.kotlin.latte.quadruple.toIR
@@ -20,7 +20,7 @@ fun main(args: Array<String>): Unit = args.takeIf { it.isNotEmpty() }?.forEach {
     val asmCode = inputFile.runCompiler()
     val asmFile = inputFile.withExtension(".s")
     asmFile.writeText(asmCode)
-    nasm(asmFile).run { oFile.delete() }
+    asm(asmFile).run { oFile.delete() }
     exit("OK", exitCode = 0)
   } catch (e: LatteException) {
     exit("ERROR", e.userMessage, exitCode = 2)

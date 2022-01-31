@@ -503,7 +503,7 @@ private fun testCompilerWithAllocatorStrategy(
   val inputFile = input?.let { programFile.withExtension(".input", it.trimIndent()) }
   val compiled = programFile.runCompiler(strategy = allocator.strategy)
   val asmFile = programFile.withExtension(".s", compiled)
-  val (o, exe) = nasm(asmFile, libFile = File("lib/runtime.o"))
+  val (o, exe) = asm(asmFile, libFile = File("lib/runtime.o"))
   val outFile = programFile.withExtension(".outputTest")
   val errFile = programFile.withExtension(".errorTest")
   exe.absolutePath(inputFile, outFile, errFile).zeroCode()

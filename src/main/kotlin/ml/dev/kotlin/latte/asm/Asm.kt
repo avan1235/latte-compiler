@@ -4,7 +4,7 @@ import ml.dev.kotlin.latte.util.*
 import java.io.File
 import java.nio.file.Files
 
-fun nasm(assembly: File, libFile: File = DEFAULT_LIB_FILE): CompilationResult {
+fun asm(assembly: File, libFile: File = DEFAULT_LIB_FILE): CompilationResult {
   val o = assembly.withExtension(".o")
   val result = assembly.withExtension("")
   withLibFile(libFile) { lib ->
@@ -33,9 +33,9 @@ private fun withLibFile(libFile: File, action: (File) -> Unit) {
 
 private fun createTempLibFromResources(): File {
   val file = Files.createTempFile(exeFile().dir.toPath(), "temp-runtime-", ".o").toFile()
-  Nasm.javaClass.getResourceAsStream("runtime.o")?.let { file.writeBytes(it.readBytes()) }
+  Asm.javaClass.getResourceAsStream("runtime.o")?.let { file.writeBytes(it.readBytes()) }
     ?: throw LatteIllegalStateException("No runtime.o file in resources to use as backup".msg)
   return file
 }
 
-private object Nasm
+private object Asm
