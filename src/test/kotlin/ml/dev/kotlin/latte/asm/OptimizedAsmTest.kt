@@ -219,7 +219,7 @@ private fun configuredRunCompiler(
   val programFile = Files.createTempFile(dataDir, "opt", ".lat").toFile().apply { writeText(program) }
   val inputFile = input?.let { programFile.withExtension(".input", it.trimIndent()) }
   val code = programFile.runCompiler(true, propagateConstants, simplifyExpr, true, lcse, gcse)
-  val asmFile = programFile.withExtension(".asm", code)
+  val asmFile = programFile.withExtension(".s", code)
   val (o, exe) = nasm(asmFile, libFile = File("lib/runtime.o"))
   val outFile = programFile.withExtension(".outputTest")
   val errFile = programFile.withExtension(".errorTest")

@@ -13,13 +13,14 @@ private class Compiler(
   private val result: StringBuilder = StringBuilder(),
 ) {
   fun IR.compile(): String {
-    STD_LIB_FUNCTIONS.keys.forEach { result.append("extern ").appendLine(it) }
-    graph.functions.keys.forEach { result.append("global ").appendLine(it.name) }
+    result.appendLine(".intel_syntax noprefix")
+    STD_LIB_FUNCTIONS.keys.forEach { result.append(".extern ").appendLine(it) }
+    graph.functions.keys.forEach { result.append(".global ").appendLine(it.name) }
     val code = compileFunctions()
-    result.appendLine("section .data")
+    result.appendLine(".section .data")
     strings.defineUsedStrings(code)
     vTables.defineVTables()
-    result.appendLine("section .text")
+    result.appendLine(".section .text")
     result.appendLine(code)
     return result.toString()
   }
@@ -34,7 +35,7 @@ private class Compiler(
   private fun Map<String, Label>.defineUsedStrings(code: String) {
     entries.forEach { (string, label) ->
       if (!label.name.toRegex().containsMatchIn(code)) return@forEach
-      result.append(label.name).append(": db ")
+      result.append(label.name).append(": .byte ")
       val bytes = string.toByteArray()
       bytes.joinTo(result, separator = ", ")
       if (bytes.isNotEmpty()) result.appendLine(", 0") else result.appendLine("0")
@@ -44,8 +45,8 @@ private class Compiler(
   private fun Map<Type, VirtualTable>.defineVTables() {
     entries.forEach { (classType, vTable) ->
       if (vTable.declarations.isEmpty()) return@forEach
-      result.append(classType.typeName).append(": dd ")
-      vTable.declarations.joinTo(result, separator = ", ") { it.name }
+      result.append(classType.typeName).append(": .long ")
+      vTable.declarations.joinTo(result, prefix = "OFFSET ", separator = ", OFFSET ") { it.name }
       result.appendLine()
     }
   }
@@ -57,6 +58,6 @@ val CLASS_METHOD_ARGS_OFFSET: Bytes = VoidRefType.size
 const val THIS_ARG_ID: String = "self"
 val ALLOC_FUN_LABEL: Label = "__alloc".label
 val CONCAT_STRING_FUN_LABEL: Label = "__concatString".label
-val EMPTY_STRING_LABEL: Label = "S@EMPTY".label
+val EMPTY_STRING_LABEL: Label = "EMPTY".label
 
 

@@ -26,7 +26,9 @@ fun createStdLibFunEnv(): LinkedHashMap<FunSignature, FunDeclaration> = STD_LIB.
 }
 
 infix fun String.mangled(args: List<Type>): String =
-  if (this with args in STD_LIB_FUNCTIONS_SIGNATURES) "__$this" else "$this${args.joinToString("") { "@$it" }}"
+  if (this with args in STD_LIB_FUNCTIONS_SIGNATURES) "__$this" else "$this${args.joinToString("") { "$ARG_SEP$it" }}"
+
+const val ARG_SEP: String = "$$"
 
 data class FunSignature(val name: String, val args: List<Type>)
 data class FunDeclaration(val name: String, val args: List<Type>, val ret: Type)

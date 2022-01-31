@@ -2,6 +2,7 @@ package ml.dev.kotlin.latte.quadruple
 
 import ml.dev.kotlin.latte.syntax.PrimitiveType.IntType
 import ml.dev.kotlin.latte.syntax.parse
+import ml.dev.kotlin.latte.typecheck.ARG_SEP
 import ml.dev.kotlin.latte.typecheck.mangled
 import ml.dev.kotlin.latte.typecheck.typeCheck
 import ml.dev.kotlin.latte.util.DefaultMap
@@ -27,7 +28,7 @@ internal class GlobalFlowAnalyzerTest {
       }
     """,
       /**
-       * 0: f@int(x#0):
+       * 0: f$$int(x#0):
        * 1:  ret x#0
        */
       label = "f" mangled listOf(IntType),
@@ -67,7 +68,7 @@ internal class GlobalFlowAnalyzerTest {
       }
     """,
       /**
-       * 0:  f@int(x#0):
+       * 0:  f$$int(x#0):
        * 1:    y@1#0 = 0
        * 2:    if x#0 eq 42 goto L2
        * 3:    y@1#3 = x#0
@@ -154,7 +155,7 @@ internal class GlobalFlowAnalyzerTest {
       }
     """,
       /**
-       * 0:  f@int(x#0):
+       * 0:  f$$int(x#0):
        * 1:    y@1#0 = 0
        * 2:    y@1#1 = y@1#0
        * 3:    goto L3
@@ -206,34 +207,34 @@ internal class GlobalFlowAnalyzerTest {
       }
     """,
       /**
-       * 0: f@int(x#0):
+       * 0: f$$int(x#0):
        * 1:  ret x#0
        */
       /**
-       * 0: f@int(x#0):
+       * 0: f$$int(x#0):
        * 1:  ret x#0
        */
       label = "f" mangled listOf(IntType),
       aliveBefore = mapOf(
-        "f@int".label to mapOf(
+        "f${ARG_SEP}int".label to mapOf(
           0 to setOf(),
           1 to setOf(intArg("x#0", 0))
         ),
       ),
       aliveAfter = mapOf(
-        "f@int".label to mapOf(
+        "f${ARG_SEP}int".label to mapOf(
           0 to setOf(intArg("x#0", 0)),
           1 to setOf(),
         )
       ),
       definedAt = mapOf(
-        "f@int".label to mapOf(
+        "f${ARG_SEP}int".label to mapOf(
           0 to setOf(intArg("x#0", 0)),
           1 to setOf(),
         )
       ),
       usedAt = mapOf(
-        "f@int".label to mapOf(
+        "f${ARG_SEP}int".label to mapOf(
           0 to setOf(),
           1 to setOf(intArg("x#0", 0)),
         )
@@ -258,7 +259,7 @@ internal class GlobalFlowAnalyzerTest {
       }
     """,
       /**
-       * 0:  f@int(x#0):
+       * 0:  f$$int(x#0):
        * 1:    y@1#0 = 0
        * 2:    if x#0 eq 42 goto L2
        * 3:  G6:
@@ -276,7 +277,7 @@ internal class GlobalFlowAnalyzerTest {
        */
       label = "f" mangled listOf(IntType),
       aliveBefore = mapOf(
-        "f@int".label to mapOf(
+        "f${ARG_SEP}int".label to mapOf(
           0 to setOf(),
           1 to setOf(intArg("x#0", 0)),
           2 to setOf(intArg("x#0", 0)),
@@ -303,7 +304,7 @@ internal class GlobalFlowAnalyzerTest {
         )
       ),
       aliveAfter = mapOf(
-        "f@int".label to mapOf(
+        "f${ARG_SEP}int".label to mapOf(
           0 to setOf(intArg("x#0", 0)),
           1 to setOf(intArg("x#0", 0)),
           2 to setOf(intArg("x#0", 0)),
@@ -348,7 +349,7 @@ internal class GlobalFlowAnalyzerTest {
       }
     """,
       /**
-        * 0:  f@int(x#0):
+        * 0:  f$$int(x#0):
         * 1:    y@1#0 = 0
         * 2:    y@1#1 = y@1#0
         * 3:    goto L3
@@ -364,7 +365,7 @@ internal class GlobalFlowAnalyzerTest {
        */
       label = "f" mangled listOf(IntType),
       aliveBefore = mapOf(
-        "f@int".label to mapOf(
+        "f${ARG_SEP}int".label to mapOf(
           0 to setOf(),
           1 to setOf(intArg("x#0", 0)),
           2 to setOf(intArg("x#0", 0), intLoc("y@1#0")),
@@ -389,7 +390,7 @@ internal class GlobalFlowAnalyzerTest {
         ),
       ),
       aliveAfter = mapOf(
-        "f@int".label to mapOf(
+        "f${ARG_SEP}int".label to mapOf(
           0 to setOf(intArg("x#0", 0)),
           1 to setOf(intArg("x#0", 0), intLoc("y@1#0")),
           2 to setOf(intArg("x#0", 0), intLoc("y@1#1")),

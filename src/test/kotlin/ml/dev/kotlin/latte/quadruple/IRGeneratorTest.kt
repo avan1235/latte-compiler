@@ -2,6 +2,7 @@ package ml.dev.kotlin.latte.quadruple
 
 import ml.dev.kotlin.latte.asm.EMPTY_STRING_LABEL
 import ml.dev.kotlin.latte.syntax.parse
+import ml.dev.kotlin.latte.typecheck.ARG_SEP
 import ml.dev.kotlin.latte.typecheck.CLASS_DIVIDER
 import ml.dev.kotlin.latte.typecheck.typeCheck
 import ml.dev.kotlin.latte.util.nlString
@@ -211,15 +212,15 @@ internal class IRGeneratorTest {
       irRepresentation = """
       main():
         ret 0
-      f@int@boolean(a#0, b#0):
+      f${ARG_SEP}int${ARG_SEP}boolean(a#0, b#0):
         goto L1
       L0:
         @T3#0 = not b#1
         b#2 = @T3#0
         a#2 = dec a#1
       L1:
-        a#1 = phi (L0:a#2, f@int@boolean:a#0)
-        b#1 = phi (L0:b#2, f@int@boolean:b#0)
+        a#1 = phi (L0:a#2, f${ARG_SEP}int${ARG_SEP}boolean:a#0)
+        b#1 = phi (L0:b#2, f${ARG_SEP}int${ARG_SEP}boolean:b#0)
         if a#1 gt 0 goto L0
         ret a#1
       """,
@@ -288,15 +289,15 @@ internal class IRGeneratorTest {
         a@1#1 = b@3#0
         @T6#0 = call a@1#1.f (42)
         ret 0
-      A${CLASS_DIVIDER}f@int(self#0, x#0):
+      A${CLASS_DIVIDER}f${ARG_SEP}int(self#0, x#0):
         ret x#0
-      B${CLASS_DIVIDER}f@int(self#0, x#0):
+      B${CLASS_DIVIDER}f${ARG_SEP}int(self#0, x#0):
         @T7#0 = 2 times x#0
         ret @T7#0
       """,
       virtualTable = mapOf(
-        "A" to listOf("A${CLASS_DIVIDER}f@int"),
-        "B" to listOf("B${CLASS_DIVIDER}f@int"),
+        "A" to listOf("A${CLASS_DIVIDER}f${ARG_SEP}int"),
+        "B" to listOf("B${CLASS_DIVIDER}f${ARG_SEP}int"),
       )
     )
 
@@ -341,25 +342,25 @@ internal class IRGeneratorTest {
         @T7#0 = call b@3#0.f (42)
         @T8#0 = call c@5#0.f (42)
         ret 0
-      A${CLASS_DIVIDER}f@int(self#0, x#0):
+      A${CLASS_DIVIDER}f${ARG_SEP}int(self#0, x#0):
         ret
-      A${CLASS_DIVIDER}g@int(self#0, x#0):
+      A${CLASS_DIVIDER}g${ARG_SEP}int(self#0, x#0):
         ret
-      A${CLASS_DIVIDER}h@int(self#0, x#0):
+      A${CLASS_DIVIDER}h${ARG_SEP}int(self#0, x#0):
         ret
-      B${CLASS_DIVIDER}g@int(self#0, x#0):
+      B${CLASS_DIVIDER}g${ARG_SEP}int(self#0, x#0):
         ret
-      B${CLASS_DIVIDER}f@int(self#0, x#0):
+      B${CLASS_DIVIDER}f${ARG_SEP}int(self#0, x#0):
         ret
-      C${CLASS_DIVIDER}h@int(self#0, x#0):
+      C${CLASS_DIVIDER}h${ARG_SEP}int(self#0, x#0):
         ret
-      C${CLASS_DIVIDER}f@int(self#0, x#0):
+      C${CLASS_DIVIDER}f${ARG_SEP}int(self#0, x#0):
         ret
       """,
       virtualTable = mapOf(
-        "A" to listOf("A${CLASS_DIVIDER}f@int", "A${CLASS_DIVIDER}g@int", "A${CLASS_DIVIDER}h@int"),
-        "B" to listOf("B${CLASS_DIVIDER}f@int", "B${CLASS_DIVIDER}g@int", "A${CLASS_DIVIDER}h@int"),
-        "C" to listOf("C${CLASS_DIVIDER}f@int", "B${CLASS_DIVIDER}g@int", "C${CLASS_DIVIDER}h@int"),
+        "A" to listOf("A${CLASS_DIVIDER}f${ARG_SEP}int", "A${CLASS_DIVIDER}g${ARG_SEP}int", "A${CLASS_DIVIDER}h${ARG_SEP}int"),
+        "B" to listOf("B${CLASS_DIVIDER}f${ARG_SEP}int", "B${CLASS_DIVIDER}g${ARG_SEP}int", "A${CLASS_DIVIDER}h${ARG_SEP}int"),
+        "C" to listOf("C${CLASS_DIVIDER}f${ARG_SEP}int", "B${CLASS_DIVIDER}g${ARG_SEP}int", "C${CLASS_DIVIDER}h${ARG_SEP}int"),
       )
     )
 
@@ -797,11 +798,11 @@ internal class IRGeneratorTest {
       """,
       irRepresentation = """
       main():
-        @T6#0 = call positive@int (1)
+        @T6#0 = call positive${ARG_SEP}int (1)
         if @T6#0 goto M5
         goto L3
       M5:
-        @T7#0 = call positive@int (-1)
+        @T7#0 = call positive${ARG_SEP}int (-1)
         if @T7#0 goto L2
       L3:
         @T1#0 = false
@@ -810,18 +811,18 @@ internal class IRGeneratorTest {
         @T1#1 = true
       L4:
         @T1#2 = phi (L2:@T1#1, L3:@T1#0)
-        @T0#0 = call id@boolean (@T1#2)
+        @T0#0 = call id${ARG_SEP}boolean (@T1#2)
         x@8#0 = @T0#0
         ret 0
-      id@boolean(a#0):
+      id${ARG_SEP}boolean(a#0):
         ret a#0
-      positive@int(a#0):
+      positive${ARG_SEP}int(a#0):
         @T9#0 = false
         if a#0 le 0 goto F10
       G13:
         @T9#2 = true
       F10:
-        @T9#1 = phi (G13:@T9#2, positive@int:@T9#0)
+        @T9#1 = phi (G13:@T9#2, positive${ARG_SEP}int:@T9#0)
         ret @T9#1
       """
     )
