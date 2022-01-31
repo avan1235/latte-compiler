@@ -58,6 +58,8 @@ jobs:
           platform: i686
       - uses: ilammy/msvc-dev-cmd@v1.5.0
       - uses: microsoft/setup-msbuild@v1
+        with:
+          vs-version: '[7.1,7.2)'
       - name: Build with Gradle
         run: ./gradlew.bat --no-daemon clean nativeImage
         shell: powershell

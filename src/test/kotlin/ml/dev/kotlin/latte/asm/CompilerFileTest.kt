@@ -75,7 +75,7 @@ private fun testCompilerWithAllocatorStrategy(
   val inputFile = input.withExtension(".input").takeIf { it.exists() }
   val compiled = input.runCompiler(strategy = allocator.strategy)
   val asmFile = input.withExtension(".${shortcut}.s").apply { writeText(compiled) }
-  val (o, exe) = nasm(asmFile, libFile = File("lib/runtime.o"))
+  val (o, exe) = asm(asmFile, libFile = File("lib/runtime.o"))
   val outFile = input.withExtension(".${shortcut}.outputTest").apply { createNewFile() }
   val errFile = input.withExtension(".${shortcut}.errorTest").apply { createNewFile() }
   exe.absolutePath(inputFile, outFile, errFile).zeroCode()

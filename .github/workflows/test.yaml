@@ -15,7 +15,7 @@ jobs:
           distribution: 'adopt'
           cache: gradle
       - name: Make Gradle executable and prepare env
-        run: chmod u+x ./gradlew && sudo apt-get install -y gcc-multilib nasm
+        run: chmod u+x ./gradlew && sudo apt-get install -y gcc-multilib
       - name: Test with Gradle
         run: ./gradlew clean test
       - name: Cleanup Gradle Cache
